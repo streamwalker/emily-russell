@@ -352,7 +352,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
             {RECENT_SALES.slice(0, 3).map((s, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="card-hover bg-white cursor-pointer overflow-hidden" onClick={() => handleScrollTo("contact")}>
+                <div className="card-hover bg-white cursor-pointer overflow-hidden" title="Click to inquire about similar homes" onClick={() => handleScrollTo("contact")}>
                   <div className="relative overflow-hidden">
                     <img className="img-zoom w-full h-60 object-cover block" src={s.img} alt={s.addr} />
                     <div className="absolute top-3.5 left-3.5 bg-gold text-white py-1 px-3 font-body text-[9.5px] tracking-[2px] uppercase font-medium">
