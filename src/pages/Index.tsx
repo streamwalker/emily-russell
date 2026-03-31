@@ -229,6 +229,25 @@ export default function Index() {
             {NAV_ITEMS.map(([l, id]) => (
               <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
             ))}
+            {/* Mobile Affiliate Accordion */}
+            <button className="nav-link cursor-pointer bg-transparent border-none flex items-center gap-1"
+              onClick={() => setMobileAffiliateOpen(o => !o)}>
+              Partners
+              <svg className={`w-3 h-3 transition-transform duration-200 ${mobileAffiliateOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {mobileAffiliateOpen && (
+              <div className="flex flex-col items-center gap-2">
+                {AFFILIATE_LINKS.map(a => (
+                  <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
+                    className="font-body text-[12px] no-underline transition-colors duration-200 hover:text-gold-light"
+                    style={{ color: "rgba(255,255,255,.55)" }}>
+                    {a.label} ↗
+                  </a>
+                ))}
+              </div>
+            )}
             <a href="tel:2109120806" className="text-gold-light font-body text-sm no-underline">(210) 912-0806</a>
           </div>
         )}
