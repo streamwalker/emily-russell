@@ -270,7 +270,12 @@ export default function Index() {
                   style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", color: "#fff" }} />
                 <input className="er-input flex-1" placeholder="Email address" value={valEmail} onChange={e => setValEmail(e.target.value)}
                   style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", color: "#fff" }} />
-                <button className="btn-er-primary" onClick={() => { if (valAddr && valEmail) setValDone(true) }}>Get My Value</button>
+                <button className="btn-er-primary" onClick={() => {
+                  if (valAddr && valEmail) {
+                    setValDone(true);
+                    syncLead({ name: "Home Valuation Request", email: valEmail, address: valAddr, form_type: "valuation", intent: "Free Home Valuation" });
+                  }
+                }}>Get My Value</button>
               </div>
               <p className="font-body text-[11px] mt-2.5" style={{ color: "rgba(255,255,255,.3)" }}>100% free · No obligation · Personalized by Emily</p>
             </FadeIn>
