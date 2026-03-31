@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import CookieConsent from "@/components/CookieConsent";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
 import NuBuildLogo from "@/assets/nubuild_logo.png";
 import FathomEHO from "@/assets/fathom_eho.png";
@@ -784,6 +786,8 @@ export default function Index() {
         <div className="border-t border-white/[.07] pt-5 flex flex-col md:flex-row justify-between items-center gap-3">
           <p className="font-body text-[11px]">© 2026 Emily Russell Realty · Fathom Realty · San Antonio, TX</p>
           <div className="flex gap-5">
+            <Link to="/terms" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Terms</Link>
+            <Link to="/privacy" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Privacy</Link>
             {[["Facebook", "http://facebook.com/EmilyRussellRealty"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realty"]].map(([s, url]) => (
               <a key={s} href={url} target="_blank" rel="noopener noreferrer"
                 className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>{s}</a>
@@ -791,6 +795,8 @@ export default function Index() {
           </div>
         </div>
       </footer>
+
+      <CookieConsent />
     </div>
   );
 }
