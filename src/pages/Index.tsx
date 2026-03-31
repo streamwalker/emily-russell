@@ -1,7 +1,18 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
 import NuBuildLogo from "@/assets/nubuild_logo.png";
 import FathomEHO from "@/assets/fathom_eho.png";
+
+/* ── Lead Sync Helper ── */
+async function syncLead(data: Record<string, string>) {
+  try {
+    const { error } = await supabase.functions.invoke("sync-lead", { body: data });
+    if (error) console.error("Lead sync error:", error);
+  } catch (err) {
+    console.error("Lead sync failed:", err);
+  }
+}
 
 /* ── Data ── */
 const RECENT_SALES = [
