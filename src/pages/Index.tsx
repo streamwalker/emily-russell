@@ -634,7 +634,10 @@ export default function Index() {
                 </select>
                 <textarea className="er-input" placeholder="Tell me about what you're looking for..." rows={4} value={contactForm.message}
                   onChange={e => setContactForm(p => ({ ...p, message: e.target.value }))} style={{ resize: "vertical" }} />
-                <button className="btn-er-blush self-start" onClick={() => setContactDone(true)}>Send to Emily</button>
+                <button className="btn-er-blush self-start" onClick={() => {
+                  setContactDone(true);
+                  syncLead({ name: contactForm.name, email: contactForm.email, phone: contactForm.phone, intent: contactForm.intent, message: contactForm.message, form_type: "contact" });
+                }}>Send to Emily</button>
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-center p-9 bg-white">
