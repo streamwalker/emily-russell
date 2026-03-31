@@ -1,96 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 37 33% 97%;
+    --foreground: 0 0% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 11%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 27 35% 59%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 30 18% 92%;
+    --secondary-foreground: 0 0% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 30 18% 92%;
+    --muted-foreground: 0 0% 33%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 30 18% 92%;
+    --accent-foreground: 0 0% 11%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 30 14% 85%;
+    --input: 30 14% 85%;
+    --ring: 27 35% 59%;
 
-    --radius: 0.5rem;
+    --radius: 0rem;
+
+    /* Emily Russell brand tokens */
+    --gold: 27 35% 59%;
+    --gold-deep: 27 32% 50%;
+    --gold-light: 27 40% 72%;
+    --charcoal: 0 0% 11%;
+    --cream: 37 33% 97%;
+    --blush: 355 42% 55%;
+    --blush-soft: 355 42% 81%;
+    --sage: 100 13% 49%;
+    --slate: 0 0% 33%;
+    --warm-bg: 30 24% 92%;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 11%;
+    --foreground: 37 33% 97%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 11%;
+    --card-foreground: 37 33% 97%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 37 33% 97%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 27 40% 72%;
+    --primary-foreground: 0 0% 11%;
 
     --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary-foreground: 37 33% 97%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
     --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent-foreground: 37 33% 97%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 37 33% 97%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -101,5 +96,143 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'DM Sans', system-ui, sans-serif;
   }
+}
+
+@layer components {
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .font-body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  .nav-link {
+    @apply font-body text-cream cursor-pointer uppercase tracking-[2.5px] text-[12px] font-normal transition-colors duration-300;
+  }
+  .nav-link:hover {
+    color: hsl(var(--gold-light));
+  }
+
+  .btn-er-primary {
+    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-400;
+    background: hsl(var(--gold));
+    color: #fff;
+    padding: 15px 34px;
+  }
+  .btn-er-primary:hover {
+    background: hsl(var(--gold-deep));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px hsla(var(--gold) / 0.3);
+  }
+
+  .btn-outline-light {
+    @apply font-body font-normal uppercase tracking-[2.5px] text-[11.5px] cursor-pointer transition-all duration-400;
+    background: transparent;
+    color: hsl(var(--cream));
+    border: 1px solid rgba(255,255,255,.35);
+    padding: 15px 34px;
+  }
+  .btn-outline-light:hover {
+    border-color: hsl(var(--gold-light));
+    color: hsl(var(--gold-light));
+  }
+
+  .btn-er-dark {
+    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-400;
+    background: hsl(var(--charcoal));
+    color: hsl(var(--cream));
+    padding: 15px 34px;
+  }
+  .btn-er-dark:hover {
+    background: #333;
+    transform: translateY(-2px);
+  }
+
+  .btn-er-blush {
+    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-400;
+    background: hsl(var(--blush));
+    color: #fff;
+    padding: 15px 34px;
+  }
+  .btn-er-blush:hover {
+    background: #bc6e76;
+    transform: translateY(-2px);
+  }
+
+  .er-label {
+    @apply font-body font-medium uppercase tracking-[4px] text-[10.5px] mb-2.5;
+    color: hsl(var(--gold));
+  }
+
+  .er-heading {
+    @apply font-display font-normal leading-[1.15];
+    font-size: clamp(30px, 4.5vw, 50px);
+    color: hsl(var(--charcoal));
+  }
+
+  .er-body {
+    @apply font-body font-light text-[15px] leading-[1.75];
+    color: hsl(var(--slate));
+  }
+
+  .er-input {
+    @apply w-full font-body text-sm font-light outline-none transition-colors duration-300;
+    padding: 14px 16px;
+    border: 1px solid #d4cfc7;
+    background: #fff;
+    color: hsl(var(--charcoal));
+  }
+  .er-input:focus {
+    border-color: hsl(var(--gold));
+  }
+  .er-input::placeholder {
+    color: #b5ada4;
+  }
+
+  .card-hover {
+    transition: transform 0.5s cubic-bezier(.22,1,.36,1);
+  }
+  .card-hover:hover {
+    transform: translateY(-6px);
+  }
+
+  .img-zoom {
+    transition: transform 0.7s cubic-bezier(.22,1,.36,1);
+  }
+  .card-hover:hover .img-zoom {
+    transform: scale(1.05);
+  }
+
+  .gold-bar {
+    width: 44px;
+    height: 1.5px;
+    background: hsl(var(--gold));
+  }
+}
+
+@layer utilities {
+  .text-cream { color: hsl(var(--cream)); }
+  .text-gold { color: hsl(var(--gold)); }
+  .text-gold-light { color: hsl(var(--gold-light)); }
+  .text-charcoal { color: hsl(var(--charcoal)); }
+  .text-blush { color: hsl(var(--blush)); }
+  .text-sage { color: hsl(var(--sage)); }
+  .text-slate-er { color: hsl(var(--slate)); }
+  .bg-cream { background: hsl(var(--cream)); }
+  .bg-charcoal { background: hsl(var(--charcoal)); }
+  .bg-warm { background: hsl(var(--warm-bg)); }
+  .bg-gold { background: hsl(var(--gold)); }
+}
+
+@keyframes pulse-scroll {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
