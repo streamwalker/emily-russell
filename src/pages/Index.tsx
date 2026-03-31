@@ -735,8 +735,8 @@ export default function Index() {
 
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="bg-charcoal pt-14 pb-7 px-10" style={{ color: "rgba(255,255,255,.45)" }}>
-        <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-[2.5fr_1fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
-          <div>
+        <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-[2.5fr_1fr_1fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
+          <div className="col-span-2 md:col-span-1">
             <div className="flex items-baseline gap-2 mb-3.5 justify-center md:justify-start">
               <span className="font-display text-2xl font-normal text-white">Emily Russell</span>
               <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realty</span>
@@ -760,16 +760,23 @@ export default function Index() {
               ))}
             </div>
           ))}
-          {/* Partner Tools column */}
+          {/* Partner Network column */}
           <div>
-            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Partner Tools</h4>
-            {[
-              ["Lead Genius", "https://leadgenius.equiforge.ai/"],
-              ["Relocation Guide", "https://relocate.boaster.io/"],
-            ].map(([label, url]) => (
-              <a key={label} href={url} target="_blank" rel="noopener noreferrer"
+            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Partner Network</h4>
+            {AFFILIATE_LINKS.map(a => (
+              <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
                 className="block font-body text-[12.5px] mb-2 no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>
-                {label} ↗
+                {a.label} ↗
+              </a>
+            ))}
+          </div>
+          {/* Resources column */}
+          <div>
+            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Resources</h4>
+            {AUTHORITY_LINKS.map(a => (
+              <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
+                className="block font-body text-[12.5px] mb-2 no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>
+                {a.label} ↗
               </a>
             ))}
           </div>
