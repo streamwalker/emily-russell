@@ -147,7 +147,9 @@ export default function Index() {
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", intent: "", message: "" });
   const [contactDone, setContactDone] = useState(false);
   const [activeReview, setActiveReview] = useState(0);
-  const [scrolled, setScrolled] = useState(false);
+  const [affiliateOpen, setAffiliateOpen] = useState(false);
+  const [mobileAffiliateOpen, setMobileAffiliateOpen] = useState(false);
+  const affiliateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 50);
