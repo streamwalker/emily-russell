@@ -533,7 +533,7 @@ export default function Index() {
                 <div className="er-label">Local Insights</div>
                 <h2 className="er-heading">San Antonio <span className="italic text-sage">Market Guide</span></h2>
               </div>
-              <button className="btn-er-dark">All Articles</button>
+              <button className="btn-er-dark" onClick={() => handleScrollTo("contact")}>All Articles</button>
             </div>
           </FadeIn>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
