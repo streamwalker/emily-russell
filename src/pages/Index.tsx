@@ -539,7 +539,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
             {BLOG_POSTS.map((b, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="card-hover bg-white overflow-hidden cursor-pointer" onClick={() => handleScrollTo("contact")}>
+                <div className="card-hover bg-white overflow-hidden cursor-pointer" title="Click to learn more" onClick={() => handleScrollTo("contact")}>
                   <div className="overflow-hidden"><img className="img-zoom w-full h-[190px] object-cover block" src={b.img} alt={b.title} /></div>
                   <div className="py-[18px] px-[22px]">
                     <div className="flex gap-2.5 mb-2.5">
