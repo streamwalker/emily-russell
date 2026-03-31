@@ -183,7 +183,7 @@ export default function Index() {
         <div className="max-w-[1280px] mx-auto px-10 flex items-center justify-between">
           <div className="flex items-baseline gap-2 cursor-pointer" onClick={() => handleScrollTo("home")}>
             <span className="font-display text-[26px] font-normal text-white tracking-wide">Emily Russell</span>
-            <span className="font-body text-[9px] tracking-[3.5px] uppercase text-gold-light font-normal">Realty</span>
+            <span className="font-body text-[9px] tracking-[3.5px] uppercase text-gold-light font-normal">Realtor</span>
           </div>
           <div className="hidden md:flex gap-7 items-center">
             {NAV_ITEMS.map(([l, id]) => (
@@ -589,7 +589,7 @@ export default function Index() {
             ))}
           </div>
           <div className="mt-9">
-            <a href="https://www.zillow.com/profile/Emily%20Russell%20Realty" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.zillow.com/profile/Emily%20Russell%20Realtor" target="_blank" rel="noopener noreferrer"
               className="font-body text-[11px] tracking-[2px] uppercase text-gold-light no-underline">
               See All Reviews on Zillow →
             </a>
@@ -691,9 +691,9 @@ export default function Index() {
                 ))}
               </div>
               <div className="flex gap-4 mt-7">
-                <a href="http://facebook.com/EmilyRussellRealty" target="_blank" rel="noopener noreferrer"
+                <a href="http://facebook.com/EmilyRussellRealtor" target="_blank" rel="noopener noreferrer"
                   className="font-body text-[10.5px] tracking-[2px] uppercase text-gold no-underline">Facebook</a>
-                <a href="https://www.zillow.com/profile/Emily%20Russell%20Realty" target="_blank" rel="noopener noreferrer"
+                <a href="https://www.zillow.com/profile/Emily%20Russell%20Realtor" target="_blank" rel="noopener noreferrer"
                   className="font-body text-[10.5px] tracking-[2px] uppercase text-gold no-underline">Zillow</a>
               </div>
             </div>
@@ -741,7 +741,7 @@ export default function Index() {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-baseline gap-2 mb-3.5 justify-center md:justify-start">
               <span className="font-display text-2xl font-normal text-white">Emily Russell</span>
-              <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realty</span>
+              <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realtor</span>
             </div>
             <p className="font-body text-[13px] leading-[1.7] max-w-[280px] mx-auto md:mx-0 mb-5">
               Licensed REALTOR® with Fathom Realty, serving the Greater San Antonio area. Your trusted partner in finding the perfect Texas home.
@@ -784,11 +784,11 @@ export default function Index() {
           </div>
         </div>
         <div className="border-t border-white/[.07] pt-5 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="font-body text-[11px]">© 2026 Emily Russell Realty · Fathom Realty · San Antonio, TX</p>
+          <p className="font-body text-[11px]">© 2026 Emily Russell Realtor · Fathom Realty · San Antonio, TX</p>
           <div className="flex gap-5">
             <Link to="/terms" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Terms</Link>
             <Link to="/privacy" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Privacy</Link>
-            {[["Facebook", "http://facebook.com/EmilyRussellRealty"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realty"]].map(([s, url]) => (
+            {[["Facebook", "http://facebook.com/EmilyRussellRealtor"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realtor"]].map(([s, url]) => (
               <a key={s} href={url} target="_blank" rel="noopener noreferrer"
                 className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>{s}</a>
             ))}
