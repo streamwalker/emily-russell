@@ -186,6 +186,35 @@ export default function Index() {
             {NAV_ITEMS.map(([l, id]) => (
               <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
             ))}
+            {/* Affiliate Partner Network Dropdown */}
+            <div className="relative" ref={affiliateRef}
+              onMouseEnter={() => setAffiliateOpen(true)}
+              onMouseLeave={() => setAffiliateOpen(false)}
+            >
+              <button
+                className="nav-link cursor-pointer bg-transparent border-none flex items-center gap-1"
+                onClick={() => setAffiliateOpen(o => !o)}
+              >
+                Partners
+                <svg className={`w-3 h-3 transition-transform duration-200 ${affiliateOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {affiliateOpen && (
+                <div className="absolute top-full right-0 mt-2 py-2 min-w-[220px] rounded-md shadow-xl" style={{ background: "rgba(28,28,28,.97)", backdropFilter: "blur(14px)", border: "1px solid rgba(196,149,106,.15)" }}>
+                  <div className="px-3 py-1.5 mb-1">
+                    <span className="font-body text-[9px] tracking-[2px] uppercase text-gold-light">Affiliate Partner Network</span>
+                  </div>
+                  {AFFILIATE_LINKS.map(a => (
+                    <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
+                      className="block px-3 py-1.5 font-body text-[12.5px] no-underline transition-colors duration-200 hover:text-gold-light"
+                      style={{ color: "rgba(255,255,255,.65)" }}>
+                      {a.label} ↗
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
             <a href="tel:2109120806" className="btn-er-primary !py-2.5 !px-5 no-underline">(210) 912-0806</a>
           </div>
           <button className="md:hidden cursor-pointer bg-transparent border-none p-2" onClick={() => setMenuOpen(!menuOpen)}>
