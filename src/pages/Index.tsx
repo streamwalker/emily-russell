@@ -793,6 +793,7 @@ export default function Index() {
           <div className="flex gap-5">
             <Link to="/terms" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Terms</Link>
             <Link to="/privacy" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Privacy</Link>
+            <Link to="/trec" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>TREC Disclosures</Link>
             {[["Facebook", "http://facebook.com/EmilyRussellRealtor"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realtor"]].map(([s, url]) => (
               <a key={s} href={url} target="_blank" rel="noopener noreferrer"
                 className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>{s}</a>
