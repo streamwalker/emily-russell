@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
+import NuBuildLogo from "@/assets/nubuild_logo.png";
+import FathomEHO from "@/assets/fathom_eho.png";
 
 /* ── Data ── */
 const RECENT_SALES = [
@@ -28,7 +30,34 @@ const BLOG_POSTS = [
   { title: "Relocating to San Antonio: Everything You Need to Know in 2026", cat: "Relocation", date: "Feb 2026", read: "8 min", img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=80" },
 ];
 
-const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["Reviews","reviews"],["Blog","blog"],["Contact","contact"]];
+const NEW_HOME_DEALS = [
+  {
+    name: "Redbird Ranch",
+    price: "$217,000",
+    location: "Northwest San Antonio",
+    features: ["Brick, stone & siding exteriors", "Top-rated Northside ISD", "Community pool & parks"],
+    img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
+    tag: "Best Value",
+  },
+  {
+    name: "Ladera",
+    price: "$349,990",
+    location: "Gated Master-Planned Community",
+    features: ["Coventry Homes builder", "Resort-style amenities", "Hill Country views"],
+    img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80",
+    tag: "Gated Community",
+  },
+  {
+    name: "Stillwater Ranch",
+    price: "$380,000",
+    location: "Northwest San Antonio",
+    features: ["Resort-style pool & splash pad", "Miles of hike & bike trails", "Highly rated schools"],
+    img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80",
+    tag: "Resort Living",
+  },
+];
+
+const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["Blog","blog"],["Contact","contact"]];
 
 /* ── Helpers ── */
 function AnimatedCounter({ end, suffix = "", prefix = "", duration = 2200 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
@@ -107,7 +136,7 @@ export default function Index() {
 
       {/* ═══════════ NAVIGATION ═══════════ */}
       <nav
-        className="fixed top-0 left-0 right-0 z-[1000] transition-all duration-400"
+        className="fixed top-0 left-0 right-0 z-[1000] transition-all duration-300"
         style={{
           background: scrolled ? "rgba(28,28,28,.96)" : "transparent",
           backdropFilter: scrolled ? "blur(14px)" : "none",
@@ -155,7 +184,7 @@ export default function Index() {
             <div className="flex items-center gap-3 mb-5">
               <div className="gold-bar" />
               <span className="font-body text-[10.5px] tracking-[4px] uppercase text-gold-light font-normal">
-                Option One Real Estate · San Antonio, TX
+                Fathom Realty · San Antonio, TX
               </span>
             </div>
           </FadeIn>
@@ -270,7 +299,7 @@ export default function Index() {
                 <span className="text-blush italic">Find the Right Home</span>
               </h2>
               <p className="er-body mb-4">
-                As a licensed REALTOR® with Option One Real Estate, I specialize in helping buyers find their perfect home in the Greater San Antonio area. From first-time homebuyers to families relocating to Texas, I bring the same personal dedication and attention to detail to every client.
+                As a licensed REALTOR® with Fathom Realty, I specialize in helping buyers find their perfect home in the Greater San Antonio area. From first-time homebuyers to families relocating to Texas, I bring the same personal dedication and attention to detail to every client.
               </p>
               <p className="er-body mb-4">
                 I believe in asking the right questions, truly listening to your needs, and working tirelessly until we find exactly what you're looking for — not just a house, but a home where your story unfolds.
@@ -285,7 +314,7 @@ export default function Index() {
               </div>
               <div className="flex gap-3 flex-wrap">
                 <a href="tel:2109120806" className="btn-er-primary no-underline">Call (210) 912-0806</a>
-                <a href="mailto:alamocitydesignsllc@gmail.com" className="btn-er-dark no-underline">Email Emily</a>
+                <a href="mailto:emily@streamwalkers.com" className="btn-er-dark no-underline">Email Emily</a>
               </div>
             </div>
           </FadeIn>
@@ -382,6 +411,59 @@ export default function Index() {
         </div>
       </section>
 
+      {/* ═══════════ FEATURED NEW HOME DEALS ═══════════ */}
+      <section id="newhomes" className="py-[92px] px-10 bg-cream">
+        <div className="max-w-[1280px] mx-auto">
+          <FadeIn>
+            <div className="text-center mb-12">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <img src={NuBuildLogo} alt="NuBuild Homes" className="h-10 object-contain" />
+              </div>
+              <div className="er-label">In Partnership with NuBuild</div>
+              <h2 className="er-heading">Featured New Home <span className="italic text-gold">Deals</span></h2>
+              <p className="er-body max-w-[540px] mx-auto mt-3">
+                Exclusive new construction opportunities in San Antonio's most sought-after communities — curated by Emily with builder incentives you won't find anywhere else.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
+            {NEW_HOME_DEALS.map((deal, i) => (
+              <FadeIn key={i} delay={i * 0.1}>
+                <div className="card-hover bg-white overflow-hidden flex flex-col h-full">
+                  <div className="relative overflow-hidden">
+                    <img className="img-zoom w-full h-56 object-cover block" src={deal.img} alt={deal.name} />
+                    <div className="absolute top-3.5 left-3.5 bg-gold text-white py-1 px-3 font-body text-[9.5px] tracking-[2px] uppercase font-medium">
+                      {deal.tag}
+                    </div>
+                  </div>
+                  <div className="py-[22px] px-[22px] flex flex-col flex-1">
+                    <div className="font-body text-[10px] tracking-[2px] uppercase text-gold font-medium mb-1">{deal.location}</div>
+                    <h3 className="font-display text-xl font-medium text-charcoal mb-1">{deal.name}</h3>
+                    <div className="font-display text-2xl text-gold mb-3">Starting from {deal.price}</div>
+                    <ul className="flex-1 mb-5">
+                      {deal.features.map((f, j) => (
+                        <li key={j} className="font-body text-[13px] text-slate-er mb-1.5 flex items-start gap-2">
+                          <span className="text-gold mt-0.5 text-xs">✦</span>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href="https://nubuildhomes.com/markets/san-antonio/#get-deal"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-er-primary no-underline text-center block"
+                    >
+                      Get This Deal
+                    </a>
+                  </div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══════════ REVIEWS ═══════════ */}
       <section id="reviews" className="py-[92px] px-10" style={{ background: "linear-gradient(140deg,#2e2722 0%,#1c1c1c 100%)" }}>
         <div className="max-w-[760px] mx-auto text-center">
@@ -411,7 +493,7 @@ export default function Index() {
           </div>
           <div className="flex justify-center gap-2.5 mt-7">
             {REVIEWS.map((_, i) => (
-              <button key={i} onClick={() => setActiveReview(i)} className="border-none cursor-pointer transition-all duration-400" style={{
+              <button key={i} onClick={() => setActiveReview(i)} className="border-none cursor-pointer transition-all duration-300" style={{
                 width: i === activeReview ? 28 : 8, height: 8, borderRadius: 4,
                 background: i === activeReview ? "hsl(var(--gold))" : "rgba(255,255,255,.18)",
               }} />
@@ -492,9 +574,9 @@ export default function Index() {
               <div className="flex flex-col gap-[22px]">
                 {[
                   { icon: "📞", label: "Call or Text", val: "(210) 912-0806", href: "tel:2109120806" },
-                  { icon: "✉️", label: "Email", val: "alamocitydesignsllc@gmail.com", href: "mailto:alamocitydesignsllc@gmail.com" },
+                  { icon: "✉️", label: "Email", val: "emily@streamwalkers.com", href: "mailto:emily@streamwalkers.com" },
                   { icon: "📍", label: "Office", val: "San Antonio, TX 78257" },
-                  { icon: "🏢", label: "Brokerage", val: "Option One Real Estate" },
+                  { icon: "🏢", label: "Brokerage", val: "Fathom Realty" },
                 ].map((c, i) => (
                   <div key={i} className="flex gap-3.5 items-start">
                     <span className="text-lg mt-0.5">{c.icon}</span>
@@ -559,14 +641,15 @@ export default function Index() {
               <span className="font-display text-2xl font-normal text-white">Emily Russell</span>
               <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realty</span>
             </div>
-            <p className="font-body text-[13px] leading-[1.7] max-w-[280px] mx-auto md:mx-0">
-              Licensed REALTOR® with Option One Real Estate, serving the Greater San Antonio area. Your trusted partner in finding the perfect Texas home.
+            <p className="font-body text-[13px] leading-[1.7] max-w-[280px] mx-auto md:mx-0 mb-5">
+              Licensed REALTOR® with Fathom Realty, serving the Greater San Antonio area. Your trusted partner in finding the perfect Texas home.
             </p>
+            <img src={FathomEHO} alt="Fathom Realty - Equal Housing Opportunity" className="h-12 object-contain mx-auto md:mx-0" />
           </div>
           {[
-            { title: "Quick Links", items: [["About Emily", "about"], ["Recent Sales", "sales"], ["Neighborhoods", "areas"], ["Reviews", "reviews"], ["Contact", "contact"]] },
+            { title: "Quick Links", items: [["About Emily", "about"], ["Recent Sales", "sales"], ["Neighborhoods", "areas"], ["New Homes", "newhomes"], ["Reviews", "reviews"], ["Contact", "contact"]] },
             { title: "San Antonio Areas", items: [["Alamo Ranch", "areas"], ["Stone Oak", "areas"], ["Helotes", "areas"], ["Boerne", "areas"], ["Hill Country", "areas"]] },
-            { title: "Services", items: [["Buy a Home", "contact"], ["Sell Your Home", "contact"], ["Home Valuation", "valuation"], ["Relocation", "contact"]] },
+            { title: "Services", items: [["Buy a Home", "contact"], ["Sell Your Home", "contact"], ["Home Valuation", "valuation"], ["New Construction", "newhomes"], ["Relocation", "contact"]] },
           ].map((col, i) => (
             <div key={i}>
               <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">{col.title}</h4>
@@ -578,7 +661,7 @@ export default function Index() {
           ))}
         </div>
         <div className="border-t border-white/[.07] pt-5 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="font-body text-[11px]">© 2026 Emily Russell Realty · Option One Real Estate · San Antonio, TX</p>
+          <p className="font-body text-[11px]">© 2026 Emily Russell Realty · Fathom Realty · San Antonio, TX</p>
           <div className="flex gap-5">
             {[["Facebook", "http://facebook.com/EmilyRussellRealty"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realty"]].map(([s, url]) => (
               <a key={s} href={url} target="_blank" rel="noopener noreferrer"
