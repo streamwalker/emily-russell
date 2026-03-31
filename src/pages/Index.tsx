@@ -572,6 +572,16 @@ export default function Index() {
             <a href="tel:2109120806" className="btn-er-primary no-underline">Call Emily Now</a>
             <button className="btn-outline-light" onClick={() => handleScrollTo("contact")}>Send a Message</button>
           </div>
+          <div className="flex gap-5 justify-center mt-7">
+            <a href="https://leadgenius.equiforge.ai/" target="_blank" rel="noopener noreferrer"
+              className="font-body text-[11px] tracking-[2px] uppercase text-gold-light no-underline hover:text-white transition-colors">
+              AI Lead Insights →
+            </a>
+            <a href="https://relocate.boaster.io/" target="_blank" rel="noopener noreferrer"
+              className="font-body text-[11px] tracking-[2px] uppercase text-gold-light no-underline hover:text-white transition-colors">
+              Relocation Guide →
+            </a>
+          </div>
         </FadeIn>
       </section>
 
