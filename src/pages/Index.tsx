@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import CookieConsent from "@/components/CookieConsent";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
 import NuBuildLogo from "@/assets/nubuild_logo.png";
 import FathomEHO from "@/assets/fathom_eho.png";
