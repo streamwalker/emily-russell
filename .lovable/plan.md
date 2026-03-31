@@ -1,34 +1,36 @@
 
-## Emily Russell Realty — Full Website Build
 
-### Overview
-Build a complete, polished real estate website for Emily Russell, a San Antonio-based REALTOR®, based on the provided JSX component. Emily's uploaded photo will be used in the About section.
+## Changes to Emily Russell Realty Website
 
-### Pages & Sections (Single-Page Scrolling Site)
-1. **Fixed Navigation** — Transparent → dark on scroll, mobile hamburger menu, phone CTA button
-2. **Hero Section** — Full-viewport with background image, headline, tagline, two CTAs ("Work With Emily" / "What's My Home Worth?"), 5-star rating badge
-3. **Stats Bar** — Dark background with animated counters (7 Homes Closed, 5 Star Rating, 4+ Years Experience, 100% Client Satisfaction)
-4. **Home Valuation CTA** — Dark section with address + email form, success state
-5. **About Emily** — Two-column layout with Emily's real uploaded photo (replacing stock image), bio text, specialty badges, contact buttons, gold quote overlay
-6. **Recent Sales** — Grid of 5 sold properties with images, details (beds/baths/sqft), dates, and role badges
-7. **Neighborhoods** — 4-card grid with overlay text for Alamo Ranch, Stone Oak, Helotes, Boerne
-8. **Client Reviews** — Auto-rotating testimonial carousel with Zillow reviews, star ratings, pagination dots
-9. **Blog/Market Guide** — 3-card grid of article previews
-10. **CTA Banner** — Full-width call-to-action with background image
-11. **Contact Section** — Two-column with contact info (phone, email, office, brokerage, social links) and contact form with dropdown intent selector
-12. **Footer** — Branding, nav links, legal disclaimers, social links
+### 1. Update Email Address
+Replace all instances of `alamocitydesignsllc@gmail.com` with `emily@streamwalkers.com` (lines 288, 495).
 
-### Design System
-- **Fonts**: Playfair Display (headings) + DM Sans (body) via Google Fonts
-- **Colors**: Gold (#c4956a), Charcoal (#1c1c1c), Cream (#faf8f5), Blush (#d4868e), Sage (#7d8c6e)
-- **Animations**: Fade-in on scroll (IntersectionObserver), animated counters, hover card lifts, image zooms, pulsing scroll indicator
+### 2. Update Brokerage from "Option One Real Estate" to "Fathom Realty"
+Replace all references:
+- Hero badge text (line 158)
+- About section bio (line 273)
+- Contact section brokerage info (line 497)
+- Footer description (line 563)
+- Footer copyright (line 581)
 
-### Assets
-- Copy Emily's uploaded photo to `src/assets/Emily_Russell.png` and use it in the About section instead of the stock photo
+### 3. Add NuBuild Logo
+Copy the uploaded NuBuild logo (`user-uploads://Image_3-31-26_at_14.16.png`) to `src/assets/nubuild_logo.png` and display it in a new section or alongside the Fathom Realty branding.
 
-### Key Interactions
-- Smooth scroll navigation between sections
-- Home valuation form with success confirmation state
-- Contact form with success confirmation state
-- Review carousel with auto-rotation and manual dot navigation
-- Responsive design with mobile menu and grid breakpoints
+### 4. Add Equal Housing / Fathom Realty Logos
+Copy the uploaded Equal Housing + Fathom Realty image (`user-uploads://Image_3-31-26_at_14.16_1.png`) to `src/assets/fathom_eho.png` and display in the footer area as brokerage/compliance branding.
+
+### 5. Add "Featured New Home Deals" Section
+Add a new section (between Neighborhoods and Reviews, or after Recent Sales) showcasing the 3 NuBuild communities from the scraped data:
+
+- **Redbird Ranch** — Starting from $217,000, northwest SA, brick/stone/siding exteriors
+- **Ladera** — Starting from $349,990, gated master-planned, Coventry Homes
+- **Stillwater Ranch** — Starting from $380,000, resort-style, community amenities
+
+Each card will show the community image (from NuBuild URLs), name, starting price, key features, and a CTA linking to `https://nubuildhomes.com/markets/san-antonio/#get-deal`. The section header will include the NuBuild logo with "Powered by NuBuild" or "In Partnership with NuBuild" branding. Nav will be updated to include the new section.
+
+### Technical Details
+- **Files modified**: `src/pages/Index.tsx`
+- **Files created**: `src/assets/nubuild_logo.png`, `src/assets/fathom_eho.png` (copied from uploads)
+- All NuBuild community images will use external URLs from `nubuildhomes.com`
+- New data array `NEW_HOME_DEALS` added at top of file alongside existing data arrays
+
