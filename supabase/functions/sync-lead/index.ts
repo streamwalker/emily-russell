@@ -1,7 +1,19 @@
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const LeadSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(200, "Name too long"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email too long"),
+  phone: z.string().trim().max(30, "Phone too long").optional().nullable(),
+  intent: z.string().trim().max(500, "Intent too long").optional().nullable(),
+  message: z.string().trim().max(2000, "Message too long").optional().nullable(),
+  address: z.string().trim().max(500, "Address too long").optional().nullable(),
+  form_type: z.enum(["valuation", "contact"]).optional().nullable(),
+});
 
 const LEADGENIUS_URL = "https://cjsnpkvxajgyudlsange.supabase.co";
 const LEADGENIUS_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqc25wa3Z4YWpneXVkbHNhbmdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDExNDQsImV4cCI6MjA4ODU3NzE0NH0.V6NxUw3XTUf9Xssu_tC5T3Mg2TrssveMs6RkrsZEY34";
@@ -39,14 +51,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { name, email, phone, intent, message, address, form_type } = await req.json();
+    const rawBody = await req.json();
+    const parsed = LeadSchema.safeParse(rawBody);
 
-    if (!name || !email) {
+    if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: "Name and email are required" }),
+        JSON.stringify({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const { name, email, phone, intent, message, address, form_type } = parsed.data;
 
     const results: Record<string, unknown> = {};
 
