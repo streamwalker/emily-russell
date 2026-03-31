@@ -418,7 +418,7 @@ export default function Index() {
                     <div className="font-body text-[9px] tracking-[2px] uppercase text-gold-light font-medium mb-1.5">{n.highlight}</div>
                     <h3 className="font-display text-[22px] font-normal text-white mb-1">{n.name}</h3>
                     <p className="font-body text-xs leading-[1.5]" style={{ color: "rgba(255,255,255,.6)" }}>{n.desc}</p>
-                    <span className="font-body text-[10px] tracking-[2px] uppercase text-gold-light mt-2.5 cursor-pointer">Explore Area →</span>
+                    <span className="font-body text-[10px] tracking-[2px] uppercase text-gold-light mt-2.5 cursor-pointer" onClick={() => handleScrollTo("contact")}>Explore Area →</span>
                   </div>
                 </div>
               </FadeIn>
