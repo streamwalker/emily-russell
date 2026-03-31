@@ -150,6 +150,7 @@ export default function Index() {
   const [affiliateOpen, setAffiliateOpen] = useState(false);
   const [mobileAffiliateOpen, setMobileAffiliateOpen] = useState(false);
   const affiliateRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 50);
