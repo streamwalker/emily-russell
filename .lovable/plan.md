@@ -1,36 +1,42 @@
 
 
-## Changes to Emily Russell Realty Website
+## Activate All Links and Buttons
 
-### 1. Update Email Address
-Replace all instances of `alamocitydesignsllc@gmail.com` with `emily@streamwalkers.com` (lines 288, 495).
+After reviewing the full `Index.tsx`, most phone (`tel:`) and email (`mailto:`) links are already wired correctly. The following items are **not functional** and need to be activated:
 
-### 2. Update Brokerage from "Option One Real Estate" to "Fathom Realty"
-Replace all references:
-- Hero badge text (line 158)
-- About section bio (line 273)
-- Contact section brokerage info (line 497)
-- Footer description (line 563)
-- Footer copyright (line 581)
+### Items to Fix
 
-### 3. Add NuBuild Logo
-Copy the uploaded NuBuild logo (`user-uploads://Image_3-31-26_at_14.16.png`) to `src/assets/nubuild_logo.png` and display it in a new section or alongside the Fathom Realty branding.
+1. **"Explore Area →" in Neighborhoods section** (line 421)
+   - Currently a plain `<span>` with no link or action
+   - Fix: Make it scroll to the Contact section so users can inquire about that area
 
-### 4. Add Equal Housing / Fathom Realty Logos
-Copy the uploaded Equal Housing + Fathom Realty image (`user-uploads://Image_3-31-26_at_14.16_1.png`) to `src/assets/fathom_eho.png` and display in the footer area as brokerage/compliance branding.
+2. **"All Articles" button in Blog section** (line 536)
+   - Currently a `<button>` with no `onClick`
+   - Fix: Scroll to the blog section or link to a relevant resource
 
-### 5. Add "Featured New Home Deals" Section
-Add a new section (between Neighborhoods and Reviews, or after Recent Sales) showcasing the 3 NuBuild communities from the scraped data:
+3. **Blog post cards** (lines 542-553)
+   - Have `cursor-pointer` but no click action
+   - Fix: Make each card scroll to the Contact section (since there are no actual blog pages)
 
-- **Redbird Ranch** — Starting from $217,000, northwest SA, brick/stone/siding exteriors
-- **Ladera** — Starting from $349,990, gated master-planned, Coventry Homes
-- **Stillwater Ranch** — Starting from $380,000, resort-style, community amenities
+4. **Recent Sales cards** (lines 355, 379)
+   - Have `cursor-pointer` but no action
+   - Fix: Make them scroll to Contact to inquire about similar homes
 
-Each card will show the community image (from NuBuild URLs), name, starting price, key features, and a CTA linking to `https://nubuildhomes.com/markets/san-antonio/#get-deal`. The section header will include the NuBuild logo with "Powered by NuBuild" or "In Partnership with NuBuild" branding. Nav will be updated to include the new section.
+### Already Working (no changes needed)
+- Phone links: `tel:2109120806` (nav, about, CTA banner)
+- Email link: `mailto:emily@streamwalkers.com` (about section)
+- Contact info links (phone + email in contact section)
+- All NuBuild "Get This Deal" links
+- Zillow review link
+- Facebook and Zillow social links
+- All nav scroll links
+- Footer scroll links and partner tool links
+- Form submission buttons (valuation + contact)
 
 ### Technical Details
-- **Files modified**: `src/pages/Index.tsx`
-- **Files created**: `src/assets/nubuild_logo.png`, `src/assets/fathom_eho.png` (copied from uploads)
-- All NuBuild community images will use external URLs from `nubuildhomes.com`
-- New data array `NEW_HOME_DEALS` added at top of file alongside existing data arrays
+- **File**: `src/pages/Index.tsx`
+- Neighborhood "Explore Area →" spans become `<a>` or get `onClick={() => handleScrollTo("contact")}` 
+- Blog "All Articles" button gets `onClick={() => handleScrollTo("blog")}`
+- Blog cards and sales cards get `onClick={() => handleScrollTo("contact")}` to drive inquiries
+- All interactive elements will have proper `role` or semantic HTML for accessibility
 
