@@ -1,7 +1,18 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
 import NuBuildLogo from "@/assets/nubuild_logo.png";
 import FathomEHO from "@/assets/fathom_eho.png";
+
+/* ── Lead Sync Helper ── */
+async function syncLead(data: Record<string, string>) {
+  try {
+    const { error } = await supabase.functions.invoke("sync-lead", { body: data });
+    if (error) console.error("Lead sync error:", error);
+  } catch (err) {
+    console.error("Lead sync failed:", err);
+  }
+}
 
 /* ── Data ── */
 const RECENT_SALES = [
@@ -259,7 +270,12 @@ export default function Index() {
                   style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", color: "#fff" }} />
                 <input className="er-input flex-1" placeholder="Email address" value={valEmail} onChange={e => setValEmail(e.target.value)}
                   style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", color: "#fff" }} />
-                <button className="btn-er-primary" onClick={() => { if (valAddr && valEmail) setValDone(true) }}>Get My Value</button>
+                <button className="btn-er-primary" onClick={() => {
+                  if (valAddr && valEmail) {
+                    setValDone(true);
+                    syncLead({ name: "Home Valuation Request", email: valEmail, address: valAddr, form_type: "valuation", intent: "Free Home Valuation" });
+                  }
+                }}>Get My Value</button>
               </div>
               <p className="font-body text-[11px] mt-2.5" style={{ color: "rgba(255,255,255,.3)" }}>100% free · No obligation · Personalized by Emily</p>
             </FadeIn>
@@ -556,6 +572,16 @@ export default function Index() {
             <a href="tel:2109120806" className="btn-er-primary no-underline">Call Emily Now</a>
             <button className="btn-outline-light" onClick={() => handleScrollTo("contact")}>Send a Message</button>
           </div>
+          <div className="flex gap-5 justify-center mt-7">
+            <a href="https://leadgenius.equiforge.ai/" target="_blank" rel="noopener noreferrer"
+              className="font-body text-[11px] tracking-[2px] uppercase text-gold-light no-underline hover:text-white transition-colors">
+              AI Lead Insights →
+            </a>
+            <a href="https://relocate.boaster.io/" target="_blank" rel="noopener noreferrer"
+              className="font-body text-[11px] tracking-[2px] uppercase text-gold-light no-underline hover:text-white transition-colors">
+              Relocation Guide →
+            </a>
+          </div>
         </FadeIn>
       </section>
 
@@ -618,7 +644,10 @@ export default function Index() {
                 </select>
                 <textarea className="er-input" placeholder="Tell me about what you're looking for..." rows={4} value={contactForm.message}
                   onChange={e => setContactForm(p => ({ ...p, message: e.target.value }))} style={{ resize: "vertical" }} />
-                <button className="btn-er-blush self-start" onClick={() => setContactDone(true)}>Send to Emily</button>
+                <button className="btn-er-blush self-start" onClick={() => {
+                  setContactDone(true);
+                  syncLead({ name: contactForm.name, email: contactForm.email, phone: contactForm.phone, intent: contactForm.intent, message: contactForm.message, form_type: "contact" });
+                }}>Send to Emily</button>
               </div>
             ) : (
               <div className="flex items-center justify-center h-full text-center p-9 bg-white">
@@ -635,7 +664,7 @@ export default function Index() {
 
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="bg-charcoal pt-14 pb-7 px-10" style={{ color: "rgba(255,255,255,.45)" }}>
-        <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-[2.5fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
+        <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-[2.5fr_1fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
           <div>
             <div className="flex items-baseline gap-2 mb-3.5 justify-center md:justify-start">
               <span className="font-display text-2xl font-normal text-white">Emily Russell</span>
@@ -646,6 +675,7 @@ export default function Index() {
             </p>
             <img src={FathomEHO} alt="Fathom Realty - Equal Housing Opportunity" className="h-12 object-contain mx-auto md:mx-0" />
           </div>
+          {/* Scroll-link columns */}
           {[
             { title: "Quick Links", items: [["About Emily", "about"], ["Recent Sales", "sales"], ["Neighborhoods", "areas"], ["New Homes", "newhomes"], ["Reviews", "reviews"], ["Contact", "contact"]] },
             { title: "San Antonio Areas", items: [["Alamo Ranch", "areas"], ["Stone Oak", "areas"], ["Helotes", "areas"], ["Boerne", "areas"], ["Hill Country", "areas"]] },
@@ -659,6 +689,19 @@ export default function Index() {
               ))}
             </div>
           ))}
+          {/* Partner Tools column */}
+          <div>
+            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Partner Tools</h4>
+            {[
+              ["Lead Genius", "https://leadgenius.equiforge.ai/"],
+              ["Relocation Guide", "https://relocate.boaster.io/"],
+            ].map(([label, url]) => (
+              <a key={label} href={url} target="_blank" rel="noopener noreferrer"
+                className="block font-body text-[12.5px] mb-2 no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>
+                {label} ↗
+              </a>
+            ))}
+          </div>
         </div>
         <div className="border-t border-white/[.07] pt-5 flex flex-col md:flex-row justify-between items-center gap-3">
           <p className="font-body text-[11px]">© 2026 Emily Russell Realty · Fathom Realty · San Antonio, TX</p>
