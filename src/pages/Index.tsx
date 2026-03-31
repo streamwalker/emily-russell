@@ -297,6 +297,11 @@ export default function Index() {
               </div>
               <span className="font-body text-[13px]" style={{ color: "rgba(255,255,255,.6)" }}>5.0 Rating on Zillow · San Antonio's Trusted Agent</span>
             </div>
+            <div className="mt-3">
+              <Link to="/trec" className="font-body text-[11px] tracking-[1px] no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>
+                TREC: Information About Brokerage Services | Consumer Protection Notice
+              </Link>
+            </div>
           </FadeIn>
         </div>
         <div className="absolute bottom-9 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5" style={{ animation: "pulse-scroll 2.5s infinite" }}>
