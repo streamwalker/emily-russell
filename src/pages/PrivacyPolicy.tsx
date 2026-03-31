@@ -5,7 +5,7 @@ export default function PrivacyPolicy() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="bg-charcoal text-white py-6 px-6">
         <div className="max-w-[900px] mx-auto flex items-center justify-between">
-          <Link to="/" className="font-display text-2xl text-white no-underline hover:text-gold-light transition-colors">Emily Russell <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realty</span></Link>
+          <Link to="/" className="font-display text-2xl text-white no-underline hover:text-gold-light transition-colors">Emily Russell <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realtor</span></Link>
         </div>
       </header>
 
@@ -92,7 +92,7 @@ export default function PrivacyPolicy() {
             <h2 className="font-display text-xl mb-3">10. Contact Us</h2>
             <p>If you have questions about this Privacy Policy or wish to exercise your data rights, please contact us:</p>
             <ul className="list-none pl-0 mt-3 space-y-1">
-              <li><strong>Emily Russell Realty</strong></li>
+              <li><strong>Emily Russell Realtor</strong></li>
               <li>Email: <a href="mailto:emily@streamwalkers.com" className="text-primary hover:underline">emily@streamwalkers.com</a></li>
               <li>Phone: <a href="tel:+12109120806" className="text-primary hover:underline">(210) 912-0806</a></li>
               <li>San Antonio, TX 78257</li>
@@ -102,7 +102,7 @@ export default function PrivacyPolicy() {
       </main>
 
       <footer className="bg-charcoal text-center py-6 px-6" style={{ color: "rgba(255,255,255,.45)" }}>
-        <p className="font-body text-[11px]">© 2026 Emily Russell Realty · <Link to="/terms" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Terms of Service</Link> · <Link to="/" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Home</Link></p>
+        <p className="font-body text-[11px]">© 2026 Emily Russell Realtor · <Link to="/terms" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Terms of Service</Link> · <Link to="/" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Home</Link></p>
       </footer>
     </div>
   );
