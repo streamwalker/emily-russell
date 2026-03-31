@@ -352,7 +352,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
             {RECENT_SALES.slice(0, 3).map((s, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="card-hover bg-white cursor-pointer overflow-hidden">
+                <div className="card-hover bg-white cursor-pointer overflow-hidden" onClick={() => handleScrollTo("contact")}>
                   <div className="relative overflow-hidden">
                     <img className="img-zoom w-full h-60 object-cover block" src={s.img} alt={s.addr} />
                     <div className="absolute top-3.5 left-3.5 bg-gold text-white py-1 px-3 font-body text-[9.5px] tracking-[2px] uppercase font-medium">
@@ -376,7 +376,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[22px] mt-[22px]">
             {RECENT_SALES.slice(3).map((s, i) => (
               <FadeIn key={i} delay={(i + 3) * 0.1}>
-                <div className="card-hover bg-white cursor-pointer overflow-hidden flex flex-col md:flex-row">
+                <div className="card-hover bg-white cursor-pointer overflow-hidden flex flex-col md:flex-row" onClick={() => handleScrollTo("contact")}>
                   <div className="w-full md:w-[200px] min-h-[180px] overflow-hidden shrink-0">
                     <img className="img-zoom w-full h-full object-cover block" src={s.img} alt={s.addr} />
                   </div>
@@ -418,7 +418,7 @@ export default function Index() {
                     <div className="font-body text-[9px] tracking-[2px] uppercase text-gold-light font-medium mb-1.5">{n.highlight}</div>
                     <h3 className="font-display text-[22px] font-normal text-white mb-1">{n.name}</h3>
                     <p className="font-body text-xs leading-[1.5]" style={{ color: "rgba(255,255,255,.6)" }}>{n.desc}</p>
-                    <span className="font-body text-[10px] tracking-[2px] uppercase text-gold-light mt-2.5 cursor-pointer">Explore Area →</span>
+                    <span className="font-body text-[10px] tracking-[2px] uppercase text-gold-light mt-2.5 cursor-pointer" onClick={() => handleScrollTo("contact")}>Explore Area →</span>
                   </div>
                 </div>
               </FadeIn>
@@ -533,13 +533,13 @@ export default function Index() {
                 <div className="er-label">Local Insights</div>
                 <h2 className="er-heading">San Antonio <span className="italic text-sage">Market Guide</span></h2>
               </div>
-              <button className="btn-er-dark">All Articles</button>
+              <button className="btn-er-dark" onClick={() => handleScrollTo("contact")}>All Articles</button>
             </div>
           </FadeIn>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
             {BLOG_POSTS.map((b, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="card-hover bg-white overflow-hidden cursor-pointer">
+                <div className="card-hover bg-white overflow-hidden cursor-pointer" onClick={() => handleScrollTo("contact")}>
                   <div className="overflow-hidden"><img className="img-zoom w-full h-[190px] object-cover block" src={b.img} alt={b.title} /></div>
                   <div className="py-[18px] px-[22px]">
                     <div className="flex gap-2.5 mb-2.5">
