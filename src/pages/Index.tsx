@@ -679,6 +679,7 @@ export default function Index() {
             { title: "Quick Links", items: [["About Emily", "about"], ["Recent Sales", "sales"], ["Neighborhoods", "areas"], ["New Homes", "newhomes"], ["Reviews", "reviews"], ["Contact", "contact"]] },
             { title: "San Antonio Areas", items: [["Alamo Ranch", "areas"], ["Stone Oak", "areas"], ["Helotes", "areas"], ["Boerne", "areas"], ["Hill Country", "areas"]] },
             { title: "Services", items: [["Buy a Home", "contact"], ["Sell Your Home", "contact"], ["Home Valuation", "valuation"], ["New Construction", "newhomes"], ["Relocation", "contact"]] },
+            { title: "Partner Tools", links: [["Lead Genius", "https://leadgenius.equiforge.ai/"], ["Relocation Guide", "https://relocate.boaster.io/"]] },
           ].map((col, i) => (
             <div key={i}>
               <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">{col.title}</h4>
