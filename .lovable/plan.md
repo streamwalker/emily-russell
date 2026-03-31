@@ -1,47 +1,43 @@
 
 
-## Compliance & Security Hardening Plan
+## Add TREC-Required IABS & Consumer Protection Notice Links
 
-### Important: What Applies to This Site
+### Background
 
-This is a **static real estate landing page** with no user authentication, no user accounts, no payment processing, and no AI features. Therefore:
+TREC (Texas Real Estate Commission) requires that the **Information About Brokerage Services (IABS)** form and the **Consumer Protection Notice (CN 1-5)** be conspicuously available to consumers. Texas law allows these to be provided via a link on a website, but the link must be prominent — not buried in a footer.
 
-- **SOC 2, ISO 27001, ISO 42001, PCI-DSS**: Organizational certifications — cannot be implemented in code. Not applicable until the business pursues formal audits.
-- **Auth flow changes, user consents table, data export, account deletion**: No authentication or user accounts exist on this site, so these are not applicable.
-- **GDPR data export / right to erasure**: No user data is stored beyond lead form submissions (which go to an edge function). No user accounts to delete.
+### Plan
 
-### What We WILL Implement
+#### 1. Copy uploaded images to project
+- Copy `IABS.jpg` → `public/images/IABS.jpg`
+- Copy `Image_3-31-26_at_17.21.png` → `public/images/TREC_Consumer_Protection_Notice.png`
 
-#### 1. Terms of Service Page (`src/pages/TermsOfService.tsx`)
-- Full EULA covering: data collection via lead forms, intellectual property, limitation of liability, indemnification, dispute resolution, governing law (Texas), and termination.
-- Publicly accessible at `/terms`.
+#### 2. Create dedicated TREC disclosures page (`src/pages/TRECDisclosures.tsx`)
+- A clean page displaying both documents (IABS and Consumer Protection Notice) as full-width images
+- Include heading: "Texas Real Estate Commission Disclosures"
+- Show both documents with labels
+- Link to `www.trec.texas.gov` for additional info
+- Styled consistently with TermsOfService/PrivacyPolicy pages
 
-#### 2. Privacy Policy Page (`src/pages/PrivacyPolicy.tsx`)
-- Covers: what data the lead forms collect, how it's used, third-party sharing, cookies, user rights, contact info for data requests.
-- Publicly accessible at `/privacy`.
+#### 3. Add route in `src/App.tsx`
+- Add `/trec` route pointing to the new page
 
-#### 3. Cookie Consent Banner (`src/components/CookieConsent.tsx`)
-- Small banner on first visit with Accept/Decline buttons.
-- Stores preference in `localStorage` so it only shows once.
-- Styled to match the site's dark theme.
+#### 4. Add above-the-fold link in hero section (`src/pages/Index.tsx`)
+- In the hero section (around line 293-300, near the star rating area), add a small but visible line:
+  - Text: `"TREC: Information About Brokerage Services | Consumer Protection Notice"`
+  - Links to `/trec` page
+  - Styled as subtle but readable text (similar to the "5.0 Rating on Zillow" line) to comply with TREC's "conspicuous" requirement without disrupting the design
 
-#### 4. Content Security Policy (`index.html`)
-- Add CSP meta tag restricting script sources, image sources, and frame ancestors.
-
-#### 5. Routes & Navigation Updates
-- **`src/App.tsx`**: Add `/terms` and `/privacy` routes.
-- **`src/pages/Index.tsx`**: Add "Terms of Service" and "Privacy Policy" links in the footer. Add the cookie consent component.
+#### 5. Also add TREC links in the footer
+- Add a "TREC Disclosures" link in the footer legal section alongside Terms and Privacy links
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/pages/TermsOfService.tsx` | Create |
-| `src/pages/PrivacyPolicy.tsx` | Create |
-| `src/components/CookieConsent.tsx` | Create |
-| `src/App.tsx` | Edit — add routes |
-| `src/pages/Index.tsx` | Edit — footer links + cookie banner |
-| `index.html` | Edit — CSP meta tag |
-
-No database changes needed (no user accounts exist).
+| `public/images/IABS.jpg` | Copy from upload |
+| `public/images/TREC_Consumer_Protection_Notice.png` | Copy from upload |
+| `src/pages/TRECDisclosures.tsx` | Create |
+| `src/App.tsx` | Edit — add `/trec` route |
+| `src/pages/Index.tsx` | Edit — add hero link + footer link |
 
