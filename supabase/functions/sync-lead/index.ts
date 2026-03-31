@@ -1,4 +1,7 @@
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 const LEADGENIUS_URL = "https://cjsnpkvxajgyudlsange.supabase.co";
 const LEADGENIUS_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqc25wa3Z4YWpneXVkbHNhbmdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDExNDQsImV4cCI6MjA4ODU3NzE0NH0.V6NxUw3XTUf9Xssu_tC5T3Mg2TrssveMs6RkrsZEY34";
