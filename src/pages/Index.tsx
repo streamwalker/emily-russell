@@ -82,6 +82,7 @@ const AFFILIATE_LINKS = [
   { label: "TCL", url: "https://tcl.streamwalkers.com" },
   { label: "OmniCredits", url: "https://omnicredits.streamwalkers.com" },
   { label: "EquiForge", url: "https://equiforge.ai" },
+  { label: "Streamwalkers Etsy", url: "https://streamwalkers.etsy.com" },
 ];
 
 const AUTHORITY_LINKS = [
