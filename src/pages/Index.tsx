@@ -37,7 +37,7 @@ const REVIEWS = [
 
 const BLOG_POSTS = [
   { title: "Why San Antonio's 78253 Zip Code Is One of the Hottest in Texas", cat: "Neighborhood Guide", date: "Mar 2026", read: "5 min", img: "https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=400&q=80" },
-  { title: "First-Time Buyer in San Antonio? Here's Your Complete Checklist", cat: "Buyer Tips", date: "Mar 2026", read: "7 min", img: "https://images.unsplash.com/photo-1582407947092-5e43b5ee5fc4?w=400&q=80" },
+  { title: "First-Time Buyer in San Antonio? Here's Your Complete Checklist", cat: "Buyer Tips", date: "Mar 2026", read: "7 min", img: "https://images.unsplash.com/photo-1560520031-3a4dc4e9de0c?w=400&q=80" },
   { title: "Relocating to San Antonio: Everything You Need to Know in 2026", cat: "Relocation", date: "Feb 2026", read: "8 min", img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=80" },
 ];
 
@@ -352,7 +352,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
             {RECENT_SALES.slice(0, 3).map((s, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="card-hover bg-white cursor-pointer overflow-hidden" onClick={() => handleScrollTo("contact")}>
+                <div className="card-hover bg-white cursor-pointer overflow-hidden" title="Click to inquire about similar homes" onClick={() => handleScrollTo("contact")}>
                   <div className="relative overflow-hidden">
                     <img className="img-zoom w-full h-60 object-cover block" src={s.img} alt={s.addr} />
                     <div className="absolute top-3.5 left-3.5 bg-gold text-white py-1 px-3 font-body text-[9.5px] tracking-[2px] uppercase font-medium">
@@ -376,7 +376,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[22px] mt-[22px]">
             {RECENT_SALES.slice(3).map((s, i) => (
               <FadeIn key={i} delay={(i + 3) * 0.1}>
-                <div className="card-hover bg-white cursor-pointer overflow-hidden flex flex-col md:flex-row" onClick={() => handleScrollTo("contact")}>
+                <div className="card-hover bg-white cursor-pointer overflow-hidden flex flex-col md:flex-row" title="Click to inquire about similar homes" onClick={() => handleScrollTo("contact")}>
                   <div className="w-full md:w-[200px] min-h-[180px] overflow-hidden shrink-0">
                     <img className="img-zoom w-full h-full object-cover block" src={s.img} alt={s.addr} />
                   </div>
@@ -539,7 +539,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
             {BLOG_POSTS.map((b, i) => (
               <FadeIn key={i} delay={i * 0.1}>
-                <div className="card-hover bg-white overflow-hidden cursor-pointer" onClick={() => handleScrollTo("contact")}>
+                <div className="card-hover bg-white overflow-hidden cursor-pointer" title="Click to learn more" onClick={() => handleScrollTo("contact")}>
                   <div className="overflow-hidden"><img className="img-zoom w-full h-[190px] object-cover block" src={b.img} alt={b.title} /></div>
                   <div className="py-[18px] px-[22px]">
                     <div className="flex gap-2.5 mb-2.5">
