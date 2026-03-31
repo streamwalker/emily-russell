@@ -70,6 +70,26 @@ const NEW_HOME_DEALS = [
 
 const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["Blog","blog"],["Contact","contact"]];
 
+const AFFILIATE_LINKS = [
+  { label: "Streamwalkers", url: "https://streamwalkers.com" },
+  { label: "DripSlayer", url: "https://dripslayer.streamwalkers.com" },
+  { label: "Lead Genius", url: "https://leadgenius.equiforge.ai" },
+  { label: "Relocation Compass", url: "https://relocate.boaster.io" },
+  { label: "Herolic", url: "https://herolic.com" },
+  { label: "OfferScope", url: "https://offerscope.io" },
+  { label: "TCL", url: "https://tcl.streamwalkers.com" },
+  { label: "OmniCredits", url: "https://omnicredits.streamwalkers.com" },
+  { label: "EquiForge", url: "https://equiforge.ai" },
+];
+
+const AUTHORITY_LINKS = [
+  { label: "Realtor.com — San Antonio", url: "https://www.realtor.com/realestateandhomes-search/San-Antonio_TX" },
+  { label: "HAR.com", url: "https://www.har.com" },
+  { label: "SABOR", url: "https://www.sabor.com" },
+  { label: "Zillow San Antonio", url: "https://www.zillow.com/san-antonio-tx/" },
+  { label: "NeighborhoodScout", url: "https://www.neighborhoodscout.com/tx/san-antonio" },
+];
+
 /* ── Helpers ── */
 function AnimatedCounter({ end, suffix = "", prefix = "", duration = 2200 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
   const [count, setCount] = useState(0);
