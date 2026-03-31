@@ -37,7 +37,7 @@ const REVIEWS = [
 
 const BLOG_POSTS = [
   { title: "Why San Antonio's 78253 Zip Code Is One of the Hottest in Texas", cat: "Neighborhood Guide", date: "Mar 2026", read: "5 min", img: "https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=400&q=80" },
-  { title: "First-Time Buyer in San Antonio? Here's Your Complete Checklist", cat: "Buyer Tips", date: "Mar 2026", read: "7 min", img: "https://images.unsplash.com/photo-1582407947092-5e43b5ee5fc4?w=400&q=80" },
+  { title: "First-Time Buyer in San Antonio? Here's Your Complete Checklist", cat: "Buyer Tips", date: "Mar 2026", read: "7 min", img: "https://images.unsplash.com/photo-1560520031-3a4dc4e9de0c?w=400&q=80" },
   { title: "Relocating to San Antonio: Everything You Need to Know in 2026", cat: "Relocation", date: "Feb 2026", read: "8 min", img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=80" },
 ];
 
