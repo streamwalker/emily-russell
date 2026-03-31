@@ -664,7 +664,7 @@ export default function Index() {
 
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="bg-charcoal pt-14 pb-7 px-10" style={{ color: "rgba(255,255,255,.45)" }}>
-        <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-[2.5fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
+        <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-[2.5fr_1fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
           <div>
             <div className="flex items-baseline gap-2 mb-3.5 justify-center md:justify-start">
               <span className="font-display text-2xl font-normal text-white">Emily Russell</span>
@@ -675,11 +675,11 @@ export default function Index() {
             </p>
             <img src={FathomEHO} alt="Fathom Realty - Equal Housing Opportunity" className="h-12 object-contain mx-auto md:mx-0" />
           </div>
+          {/* Scroll-link columns */}
           {[
             { title: "Quick Links", items: [["About Emily", "about"], ["Recent Sales", "sales"], ["Neighborhoods", "areas"], ["New Homes", "newhomes"], ["Reviews", "reviews"], ["Contact", "contact"]] },
             { title: "San Antonio Areas", items: [["Alamo Ranch", "areas"], ["Stone Oak", "areas"], ["Helotes", "areas"], ["Boerne", "areas"], ["Hill Country", "areas"]] },
             { title: "Services", items: [["Buy a Home", "contact"], ["Sell Your Home", "contact"], ["Home Valuation", "valuation"], ["New Construction", "newhomes"], ["Relocation", "contact"]] },
-            { title: "Partner Tools", links: [["Lead Genius", "https://leadgenius.equiforge.ai/"], ["Relocation Guide", "https://relocate.boaster.io/"]] },
           ].map((col, i) => (
             <div key={i}>
               <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">{col.title}</h4>
@@ -689,6 +689,19 @@ export default function Index() {
               ))}
             </div>
           ))}
+          {/* Partner Tools column */}
+          <div>
+            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Partner Tools</h4>
+            {[
+              ["Lead Genius", "https://leadgenius.equiforge.ai/"],
+              ["Relocation Guide", "https://relocate.boaster.io/"],
+            ].map(([label, url]) => (
+              <a key={label} href={url} target="_blank" rel="noopener noreferrer"
+                className="block font-body text-[12.5px] mb-2 no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>
+                {label} ↗
+              </a>
+            ))}
+          </div>
         </div>
         <div className="border-t border-white/[.07] pt-5 flex flex-col md:flex-row justify-between items-center gap-3">
           <p className="font-body text-[11px]">© 2026 Emily Russell Realty · Fathom Realty · San Antonio, TX</p>
