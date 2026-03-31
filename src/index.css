@@ -117,7 +117,7 @@
   }
 
   .btn-er-primary {
-    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-[400ms];
+    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-300;
     background: hsl(var(--gold));
     color: #fff;
     padding: 15px 34px;
@@ -129,7 +129,7 @@
   }
 
   .btn-outline-light {
-    @apply font-body font-normal uppercase tracking-[2.5px] text-[11.5px] cursor-pointer transition-all duration-[400ms];
+    @apply font-body font-normal uppercase tracking-[2.5px] text-[11.5px] cursor-pointer transition-all duration-300;
     background: transparent;
     color: hsl(var(--cream));
     border: 1px solid rgba(255,255,255,.35);
@@ -141,7 +141,7 @@
   }
 
   .btn-er-dark {
-    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-[400ms];
+    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-300;
     background: hsl(var(--charcoal));
     color: hsl(var(--cream));
     padding: 15px 34px;
@@ -152,7 +152,7 @@
   }
 
   .btn-er-blush {
-    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-[400ms];
+    @apply font-body font-medium uppercase tracking-[2.5px] text-[11.5px] border-none cursor-pointer transition-all duration-300;
     background: hsl(var(--blush));
     color: #fff;
     padding: 15px 34px;
