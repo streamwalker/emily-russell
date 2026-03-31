@@ -70,6 +70,26 @@ const NEW_HOME_DEALS = [
 
 const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["Blog","blog"],["Contact","contact"]];
 
+const AFFILIATE_LINKS = [
+  { label: "Streamwalkers", url: "https://streamwalkers.com" },
+  { label: "DripSlayer", url: "https://dripslayer.streamwalkers.com" },
+  { label: "Lead Genius", url: "https://leadgenius.equiforge.ai" },
+  { label: "Relocation Compass", url: "https://relocate.boaster.io" },
+  { label: "Herolic", url: "https://herolic.com" },
+  { label: "OfferScope", url: "https://offerscope.io" },
+  { label: "TCL", url: "https://tcl.streamwalkers.com" },
+  { label: "OmniCredits", url: "https://omnicredits.streamwalkers.com" },
+  { label: "EquiForge", url: "https://equiforge.ai" },
+];
+
+const AUTHORITY_LINKS = [
+  { label: "Realtor.com — San Antonio", url: "https://www.realtor.com/realestateandhomes-search/San-Antonio_TX" },
+  { label: "HAR.com", url: "https://www.har.com" },
+  { label: "SABOR", url: "https://www.sabor.com" },
+  { label: "Zillow San Antonio", url: "https://www.zillow.com/san-antonio-tx/" },
+  { label: "NeighborhoodScout", url: "https://www.neighborhoodscout.com/tx/san-antonio" },
+];
+
 /* ── Helpers ── */
 function AnimatedCounter({ end, suffix = "", prefix = "", duration = 2200 }: { end: number; suffix?: string; prefix?: string; duration?: number }) {
   const [count, setCount] = useState(0);
@@ -127,6 +147,9 @@ export default function Index() {
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", intent: "", message: "" });
   const [contactDone, setContactDone] = useState(false);
   const [activeReview, setActiveReview] = useState(0);
+  const [affiliateOpen, setAffiliateOpen] = useState(false);
+  const [mobileAffiliateOpen, setMobileAffiliateOpen] = useState(false);
+  const affiliateRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -164,6 +187,35 @@ export default function Index() {
             {NAV_ITEMS.map(([l, id]) => (
               <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
             ))}
+            {/* Affiliate Partner Network Dropdown */}
+            <div className="relative" ref={affiliateRef}
+              onMouseEnter={() => setAffiliateOpen(true)}
+              onMouseLeave={() => setAffiliateOpen(false)}
+            >
+              <button
+                className="nav-link cursor-pointer bg-transparent border-none flex items-center gap-1"
+                onClick={() => setAffiliateOpen(o => !o)}
+              >
+                Partners
+                <svg className={`w-3 h-3 transition-transform duration-200 ${affiliateOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {affiliateOpen && (
+                <div className="absolute top-full right-0 mt-2 py-2 min-w-[220px] rounded-md shadow-xl" style={{ background: "rgba(28,28,28,.97)", backdropFilter: "blur(14px)", border: "1px solid rgba(196,149,106,.15)" }}>
+                  <div className="px-3 py-1.5 mb-1">
+                    <span className="font-body text-[9px] tracking-[2px] uppercase text-gold-light">Affiliate Partner Network</span>
+                  </div>
+                  {AFFILIATE_LINKS.map(a => (
+                    <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
+                      className="block px-3 py-1.5 font-body text-[12.5px] no-underline transition-colors duration-200 hover:text-gold-light"
+                      style={{ color: "rgba(255,255,255,.65)" }}>
+                      {a.label} ↗
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
             <a href="tel:2109120806" className="btn-er-primary !py-2.5 !px-5 no-underline">(210) 912-0806</a>
           </div>
           <button className="md:hidden cursor-pointer bg-transparent border-none p-2" onClick={() => setMenuOpen(!menuOpen)}>
@@ -177,6 +229,25 @@ export default function Index() {
             {NAV_ITEMS.map(([l, id]) => (
               <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
             ))}
+            {/* Mobile Affiliate Accordion */}
+            <button className="nav-link cursor-pointer bg-transparent border-none flex items-center gap-1"
+              onClick={() => setMobileAffiliateOpen(o => !o)}>
+              Partners
+              <svg className={`w-3 h-3 transition-transform duration-200 ${mobileAffiliateOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {mobileAffiliateOpen && (
+              <div className="flex flex-col items-center gap-2">
+                {AFFILIATE_LINKS.map(a => (
+                  <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
+                    className="font-body text-[12px] no-underline transition-colors duration-200 hover:text-gold-light"
+                    style={{ color: "rgba(255,255,255,.55)" }}>
+                    {a.label} ↗
+                  </a>
+                ))}
+              </div>
+            )}
             <a href="tel:2109120806" className="text-gold-light font-body text-sm no-underline">(210) 912-0806</a>
           </div>
         )}
@@ -664,8 +735,8 @@ export default function Index() {
 
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="bg-charcoal pt-14 pb-7 px-10" style={{ color: "rgba(255,255,255,.45)" }}>
-        <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-[2.5fr_1fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
-          <div>
+        <div className="max-w-[1280px] mx-auto grid grid-cols-2 md:grid-cols-[2.5fr_1fr_1fr_1fr_1fr_1fr] gap-10 mb-10 text-center md:text-left">
+          <div className="col-span-2 md:col-span-1">
             <div className="flex items-baseline gap-2 mb-3.5 justify-center md:justify-start">
               <span className="font-display text-2xl font-normal text-white">Emily Russell</span>
               <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realty</span>
@@ -689,16 +760,23 @@ export default function Index() {
               ))}
             </div>
           ))}
-          {/* Partner Tools column */}
+          {/* Partner Network column */}
           <div>
-            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Partner Tools</h4>
-            {[
-              ["Lead Genius", "https://leadgenius.equiforge.ai/"],
-              ["Relocation Guide", "https://relocate.boaster.io/"],
-            ].map(([label, url]) => (
-              <a key={label} href={url} target="_blank" rel="noopener noreferrer"
+            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Partner Network</h4>
+            {AFFILIATE_LINKS.map(a => (
+              <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
                 className="block font-body text-[12.5px] mb-2 no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>
-                {label} ↗
+                {a.label} ↗
+              </a>
+            ))}
+          </div>
+          {/* Resources column */}
+          <div>
+            <h4 className="font-body text-[10px] tracking-[2.5px] uppercase text-gold mb-3.5">Resources</h4>
+            {AUTHORITY_LINKS.map(a => (
+              <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer"
+                className="block font-body text-[12.5px] mb-2 no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>
+                {a.label} ↗
               </a>
             ))}
           </div>
