@@ -183,12 +183,18 @@ function PropertyRow({
   onToggle,
   accentColor,
   rankInfo,
+  isCompareSelected,
+  onCompareToggle,
+  userId,
 }: {
   prop: Property;
   isExpanded: boolean;
   onToggle: () => void;
   accentColor: string;
   rankInfo?: { rank: number; scoreSummary: string; sourceTab: string };
+  isCompareSelected?: boolean;
+  onCompareToggle?: () => void;
+  userId?: string;
 }) {
   return (
     <div className="bg-card rounded border border-border mb-3.5 overflow-hidden shadow-sm">
