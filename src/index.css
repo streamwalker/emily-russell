@@ -232,6 +232,26 @@
   50% { opacity: 0.5; }
 }
 
+/* Tab scroll container custom scrollbar */
+.tab-scroll-container::-webkit-scrollbar {
+  height: 4px;
+}
+.tab-scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+.tab-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+}
+.tab-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+.tab-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.08);
+}
+
 @keyframes fadeDown {
   from { opacity: 0; transform: translateY(-16px); }
   to { opacity: 1; transform: translateY(0); }
