@@ -755,7 +755,7 @@ export default function ClientPortal() {
                     {p._builderTag}
                   </div>
                 )}
-                <PropertyRow prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+                <PropertyRow prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
               </div>
             ))}
           </div>
