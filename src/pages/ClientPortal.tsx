@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import PaymentCalculator from "@/components/portal/PaymentCalculator";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
@@ -297,6 +298,10 @@ function PropertyRow({
                   </div>
                 );
               })()}
+              {/* Payment Calculator Toggle */}
+              {prop.price && (
+                <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} />
+              )}
               {prop.sourceUrl && (
                 <a
                   href={prop.sourceUrl}
