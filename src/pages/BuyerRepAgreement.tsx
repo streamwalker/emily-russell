@@ -431,15 +431,6 @@ const BuyerRepAgreement = () => {
         )}
       </div>
 
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          .print\\:hidden { display: none !important; }
-          .print\\:block { display: block !important; }
-          body { font-size: 11px; }
-          * { border-color: #ccc !important; }
-        }
-      `}</style>
     </div>
   );
 };
