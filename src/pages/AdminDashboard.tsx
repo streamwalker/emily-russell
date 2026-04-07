@@ -86,6 +86,18 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
+  // Templates
+  const [templates, setTemplates] = useState<{ id: string; name: string; description: string | null; dossier_data: Record<string, unknown>; created_at: string; updated_at: string }[]>([]);
+  const [templateEditId, setTemplateEditId] = useState<string | null>(null);
+  const [showNewTemplate, setShowNewTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateDesc, setNewTemplateDesc] = useState("");
+  const [newTemplateData, setNewTemplateData] = useState<any>(null);
+  const [newTemplateRawText, setNewTemplateRawText] = useState("");
+  const [newTemplateUseRawJson, setNewTemplateUseRawJson] = useState(false);
+  const [newTemplateJson, setNewTemplateJson] = useState("{}");
+  const [templateExtracting, setTemplateExtracting] = useState(false);
+
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
 
