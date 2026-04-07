@@ -201,6 +201,12 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userI
   );
 }
 
+interface CommentReply {
+  id: string;
+  reply_text: string;
+  created_at: string;
+}
+
 /* ── Property Row ── */
 function PropertyRow({
   prop,
@@ -214,6 +220,7 @@ function PropertyRow({
   interaction,
   onInteractionChange,
   gradeCounts,
+  replies,
 }: {
   prop: Property;
   isExpanded: boolean;
@@ -226,6 +233,7 @@ function PropertyRow({
   interaction?: PropertyInteraction;
   onInteractionChange?: (propertyId: string, field: string, value: any) => void;
   gradeCounts?: Record<string, number>;
+  replies?: CommentReply[];
 }) {
   const isFav = interaction?.is_favorite || false;
 
@@ -510,6 +518,23 @@ function PropertyRow({
             </div>
           </div>
 
+          {/* Admin Replies */}
+          {replies && replies.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {replies.map(r => (
+                <div key={r.id} className="ml-4 p-2.5 rounded border border-primary/20 bg-primary/5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] font-bold text-primary font-body">Emily replied</span>
+                    <span className="text-[9px] text-muted-foreground font-body">
+                      · {format(new Date(r.created_at), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                  </div>
+                  <div className="text-[12px] text-foreground font-body leading-relaxed">{r.reply_text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {prop.price && (
             <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} />
           )}
@@ -534,9 +559,11 @@ export default function ClientPortal() {
   const [userId, setUserId] = useState("");
   const [interactions, setInteractions] = useState<Record<string, PropertyInteraction>>({});
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
+  const [replies, setReplies] = useState<Record<string, CommentReply[]>>({});
   const { isAdmin } = useAdminCheck();
   const navigate = useNavigate();
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const interactionIdsRef = useRef<Set<string>>(new Set());
 
   const toggleCompare = (id: string) => {
     setCompareIds(prev => {
@@ -632,19 +659,79 @@ export default function ClientPortal() {
         }
       }
 
-      // Build interactions map
+      // Build interactions map and fetch replies
       if (interactionsRes.data) {
         const map: Record<string, PropertyInteraction> = {};
+        const ids: string[] = [];
         interactionsRes.data.forEach((row: any) => {
           map[row.property_id] = row;
+          if (row.id) ids.push(row.id);
         });
         setInteractions(map);
+        interactionIdsRef.current = new Set(ids);
+
+        // Fetch replies for all interactions
+        if (ids.length > 0) {
+          const { data: repliesData } = await supabase
+            .from("comment_replies")
+            .select("id, interaction_id, reply_text, created_at")
+            .in("interaction_id", ids)
+            .order("created_at", { ascending: true });
+
+          if (repliesData) {
+            const rmap: Record<string, CommentReply[]> = {};
+            repliesData.forEach((r: any) => {
+              if (!rmap[r.interaction_id]) rmap[r.interaction_id] = [];
+              rmap[r.interaction_id].push(r);
+            });
+            setReplies(rmap);
+          }
+        }
       }
 
       setLoading(false);
     };
     load();
   }, [navigate]);
+
+  // Realtime subscription for new admin replies
+  useEffect(() => {
+    const channel = supabase
+      .channel("client-reply-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "comment_replies" },
+        (payload) => {
+          const newReply = payload.new as any;
+          if (!interactionIdsRef.current.has(newReply.interaction_id)) return;
+
+          // Find the property address for this interaction
+          const matchingProp = Object.entries(interactions).find(
+            ([, inter]) => inter.id === newReply.interaction_id
+          );
+          const propId = matchingProp?.[0];
+          const propAddress = dossier
+            ? Object.values(dossier.properties).flat().find(p => p.id === propId)?.address
+            : null;
+
+          toast.success(
+            `Emily replied to your comment${propAddress ? ` on ${propAddress}` : ""}`,
+            { duration: 6000 }
+          );
+
+          setReplies(prev => ({
+            ...prev,
+            [newReply.interaction_id]: [
+              ...(prev[newReply.interaction_id] || []),
+              { id: newReply.id, reply_text: newReply.reply_text, created_at: newReply.created_at },
+            ],
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [interactions, dossier]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -739,22 +826,26 @@ export default function ClientPortal() {
         }, {})
       : null;
 
-  const renderPropertyRow = (p: Property, color: string, rankInfo?: { rank: number; scoreSummary: string; sourceTab: string }) => (
-    <PropertyRow
-      key={p.id}
-      prop={p}
-      isExpanded={expandedIds.has(p.id)}
-      onToggle={() => toggle(p.id)}
-      accentColor={color}
-      rankInfo={rankInfo}
-      isCompareSelected={compareIds.has(p.id)}
-      onCompareToggle={() => toggleCompare(p.id)}
-      userId={userId}
-      interaction={interactions[p.id]}
-      onInteractionChange={handleInteractionChange}
-      gradeCounts={gradeCounts}
-    />
-  );
+  const renderPropertyRow = (p: Property, color: string, rankInfo?: { rank: number; scoreSummary: string; sourceTab: string }) => {
+    const interactionId = interactions[p.id]?.id;
+    return (
+      <PropertyRow
+        key={p.id}
+        prop={p}
+        isExpanded={expandedIds.has(p.id)}
+        onToggle={() => toggle(p.id)}
+        accentColor={color}
+        rankInfo={rankInfo}
+        isCompareSelected={compareIds.has(p.id)}
+        onCompareToggle={() => toggleCompare(p.id)}
+        userId={userId}
+        interaction={interactions[p.id]}
+        onInteractionChange={handleInteractionChange}
+        gradeCounts={gradeCounts}
+        replies={interactionId ? replies[interactionId] : undefined}
+      />
+    );
+  };
 
   return (
     <TooltipProvider delayDuration={300}>
