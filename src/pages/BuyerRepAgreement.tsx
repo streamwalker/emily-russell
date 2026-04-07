@@ -154,7 +154,7 @@ const BuyerRepAgreement = () => {
   const legalClass = "text-xs text-muted-foreground leading-relaxed";
 
   return (
-    <div className={cn("font-body min-h-screen bg-background text-foreground", printMode && "print-mode")}>
+    <div className="font-body min-h-screen bg-background text-foreground">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)" }} className="text-white px-6 py-6 print:hidden">
         <div className="max-w-[800px] mx-auto flex items-center justify-between">
@@ -168,8 +168,8 @@ const BuyerRepAgreement = () => {
             </div>
           </div>
           {saved && (
-            <button onClick={handlePrint} className="flex items-center gap-2 text-[11px] uppercase tracking-[2px] border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors bg-transparent cursor-pointer">
-              <Download className="w-3.5 h-3.5" /> Print / Save PDF
+            <button onClick={handleDownloadPdf} disabled={generatingPdf} className="flex items-center gap-2 text-[11px] uppercase tracking-[2px] border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors bg-transparent cursor-pointer disabled:opacity-50">
+              <Download className="w-3.5 h-3.5" /> {generatingPdf ? "Generating…" : "Download PDF"}
             </button>
           )}
         </div>
@@ -182,10 +182,10 @@ const BuyerRepAgreement = () => {
               <Check className="w-8 h-8" />
             </div>
             <h2 className="font-display text-2xl font-semibold mb-2">Agreement Signed</h2>
-            <p className="text-sm text-muted-foreground mb-6">Your Buyer Representation Agreement has been saved. You can print or save a PDF copy for your records.</p>
+            <p className="text-sm text-muted-foreground mb-6">Your Buyer Representation Agreement has been saved. Download your signed PDF copy for your records.</p>
             <div className="flex items-center justify-center gap-3">
-              <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0">
-                <Download className="w-3.5 h-3.5" /> Print / Save PDF
+              <button onClick={handleDownloadPdf} disabled={generatingPdf} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0 disabled:opacity-50">
+                <Download className="w-3.5 h-3.5" /> {generatingPdf ? "Generating…" : "Download PDF"}
               </button>
               <Link to="/portal/dashboard" className="px-6 py-2.5 border border-border text-foreground font-body text-xs uppercase tracking-wider hover:border-primary transition-colors no-underline">
                 Back to Dashboard
