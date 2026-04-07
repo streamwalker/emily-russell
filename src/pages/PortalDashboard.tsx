@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { Home, FileText, Phone, Shield, BookOpen, Star, Users, ArrowRight } from "lucide-react";
 
 const PortalDashboard = () => {
@@ -8,6 +9,14 @@ const PortalDashboard = () => {
   const [hasDossier, setHasDossier] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { isAdmin, loading: adminLoading } = useAdminCheck();
+
+  // Redirect admins to admin dashboard
+  useEffect(() => {
+    if (!adminLoading && isAdmin) {
+      navigate("/portal/admin", { replace: true });
+    }
+  }, [adminLoading, isAdmin, navigate]);
 
   useEffect(() => {
     const load = async () => {
