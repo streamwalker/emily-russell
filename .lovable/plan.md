@@ -1,39 +1,37 @@
 
 
-## Rainbow-Colored Tabs with Visible Scroll Indicator
+## Inline Payment Calculator + EquiForge Link
 
 ### What changes
 
-**1. Rainbow color assignment**
+**1. Inline mortgage calculator per property card**
 
-Replace the static `tab.color` for each tab with a dynamically assigned rainbow color based on the tab's index in the `allTabs` array. Colors sampled from the uploaded rainbow spectrum image (left to right):
+Add a collapsible "Estimate Payment" section inside each expanded property card (below the existing expenses section, above "View Listing"). When toggled open, it shows:
 
-| Index position | Color |
-|---|---|
-| 0 | `#E81416` (Red) |
-| 1 | `#F97306` (Orange) |
-| 2 | `#FACA09` (Yellow) |
-| 3 | `#79C314` (Green) |
-| 4 | `#487DE7` (Blue) |
-| 5 | `#7B1FA2` (Purple) |
-| 6 | `#C2185B` (Magenta) |
-| 7+ | Cycle back through the palette |
+- **Offer Price** — pre-filled with `prop.price`, editable
+- **Down Payment %** / **Down Payment $** — linked sliders/inputs (changing one updates the other)
+- **Interest Rate %** — slider + input, default 6.5%
+- **Annual Tax Rate %** — default 2.2% (Texas average)
+- **Monthly Homeowner's Insurance** — default $150
+- **Monthly HOA Fee** — pre-filled from `prop.expenses?.hoa || 0`
+- **Estimated Monthly Payment** — computed live as: `P&I + (price × taxRate / 12) + insurance + HOA`
 
-Each tab button's background (when active) and accent bar will use the rainbow color instead of the stored `tab.color`. Inactive tabs get a subtle tinted version of their rainbow color for the text/border so users can see the color coding even before clicking.
+The P&I formula: `loanAmount × [r(1+r)^n] / [(1+r)^n - 1]` where `r = rate/12`, `n = 360` (30-year).
 
-**2. Horizontal scroll indicator**
+All inputs use existing `Input` and `Slider` components. The calculator state is local to each card (no database writes).
 
-Replace the plain `overflow-x-auto` container with a scroll-aware wrapper that shows:
-- A visible **horizontal scrollbar** (custom-styled thin bar matching the brand)
-- **Gradient fade-out** on the right edge when more tabs are offscreen, signaling scrollability
-- The fade disappears once the user scrolls to the end
+**2. "Full Calculator on EquiForge" link**
 
-Implementation: a small wrapper div with `overflow-x-auto` plus CSS for a visible thin scrollbar (`::-webkit-scrollbar` styles) and a pseudo-element gradient overlay on the right side, toggled via a scroll event listener that checks `scrollLeft + clientWidth < scrollWidth`.
+Below the inline calculator, add a link: **"Advanced Calculator on EquiForge →"** that opens `https://equiforge.ai/try/payment` in a new tab. This gives users access to closing costs, credit score ranges, PMI, and other advanced features.
+
+### New component
+
+Create `src/components/portal/PaymentCalculator.tsx` — a self-contained component that takes `price` and `hoaFee` as props and renders the calculator UI. This keeps `ClientPortal.tsx` clean.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/pages/ClientPortal.tsx` | Edit — define rainbow palette array, assign colors by index, add scroll container with fade indicator and visible scrollbar |
-| `src/index.css` | Edit — add custom scrollbar styles for the tab container |
+| `src/components/portal/PaymentCalculator.tsx` | Create — inline mortgage calculator component with all inputs, sliders, and live computation |
+| `src/pages/ClientPortal.tsx` | Edit — import `PaymentCalculator`, render it inside the expanded property card section with a toggle button |
 
