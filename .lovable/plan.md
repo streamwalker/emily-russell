@@ -1,81 +1,48 @@
 
 
-## Generate Signed PDF on the Actual TRX-1501 Form
+## Enhance PDF Output + Add Initials Input Field
 
-### Summary
+### Changes
 
-Keep the existing smooth input form as-is for data entry. After the user signs, generate a PDF that overlays their filled-in data (names, addresses, dates, signatures, etc.) onto the actual 6-page TRX-1501 PDF form — just like DocuSign does.
+**1. Increase PDF font sizes by 150% (Edge Function)**
 
-### Approach
+In `supabase/functions/generate-agreement-pdf/index.ts`, change:
+- `fontSize` from `10` to `15`
+- `smallSize` from `8` to `12`
+- Page header font size from `8` to `12`
 
-Use an edge function with `pdf-lib` to load the uploaded TRX-1501 PDF as a base template and overlay text + signature images at the correct coordinates on each page. The frontend sends the form data to this edge function, which returns the completed PDF for download. The current `window.print()` flow is replaced with a real PDF download.
+**2. Add client initials input fields (Frontend)**
 
-### Steps
+In `src/pages/BuyerRepAgreement.tsx`:
+- Add `clientInitials` state (and `client2Initials` for co-client)
+- Add an "Initials" input field in the Signature Block section, styled like a small text input (2-3 characters wide), with label "Your Initials"
+- Add a matching initials field for the second client when `hasSecondClient` is true
+- Pass `clientInitials` and `secondClient.initials` in the form payload to the edge function and store in `form_data`
 
-**1. Store the blank TRX-1501 PDF in file storage**
+**3. Stamp initials on pages 1-5 footer (Edge Function)**
 
-Upload the blank TRX-1501 PDF to the `signed-agreements` storage bucket so the edge function can fetch it as the base template.
-
-**2. Create edge function `generate-agreement-pdf`**
-
-- Accepts JSON body with all form fields: client name, address, city/state/zip, phone, email, market area, term start/end, broker fee %, signature image (base64), second client info
-- Loads the blank TRX-1501 PDF from storage using `pdf-lib`
-- Overlays text at precise coordinates on each page:
-  - **Page 1**: Client name, address, city/state/zip, phone, email on the Client lines; Broker info (Fathom Realty, Emily Russell, etc.) on the Broker lines; Market Area in Section 3C; Term dates in Section 4
-  - **Page 2**: Broker fee percentage in Section 7A
-  - **Page 6**: Broker printed name, license no., client printed name, signatures (embedded as PNG images), dates on the signature block
-- Each page also gets initials in the footer area (pages 1-5)
-- Returns the completed PDF as `application/pdf`
-
-**3. Update `BuyerRepAgreement.tsx`**
-
-- After successful save to database, call the edge function with form data
-- Store the returned PDF blob for download
-- Replace `window.print()` with a real file download (`URL.createObjectURL` + anchor click)
-- Also upload the generated PDF to storage alongside the raw form data
-- Update the "Print / Save PDF" button to trigger download of the generated PDF
-
-**4. Upload blank PDF to storage**
-
-Copy the uploaded TRX-1501 PDF to the project's public storage bucket as `templates/TXR-1501-blank.pdf`.
+In the edge function:
+- Accept `clientInitials` and `secondClient.initials` from the request body
+- On pages 1-5 (indices 0-4), draw the initials in the footer area where the form says "Initialed for Identification by Broker/Associate _______ and Client _______, _______"
+- Based on the uploaded screenshot, the initials line is near the bottom of each page. Draw client initials after "and Client" and co-client initials after the comma, using the larger font size
 
 ### Technical Details
 
-**Field coordinate mapping** (approximate, to be fine-tuned during implementation):
+**Footer initials coordinates** (from the screenshot showing "Page 3 of 6"):
+- The initials line appears at approximately `top ≈ 745` (near bottom of page)
+- "Broker/Associate" initials at approximately `x ≈ 310`
+- "Client" initials at approximately `x ≈ 450`
+- Second client initials at approximately `x ≈ 510`
+- Broker initials will be auto-filled as "ER" (Emily Russell)
 
-```text
-Page 1:
-  Client name    → (130, 710)
-  Address        → (130, 688)
-  City/State/Zip → (130, 666)
-  Phone          → (130, 644)
-  Email          → (130, 622)
-  Broker name    → (130, 580)
-  Broker address → (130, 558)
-  ...
-  Market Area    → (130, 340)  (Section 3C)
-  Term start     → (280, 270)  (Section 4)
-  Term end       → (450, 270)
-
-Page 2:
-  Broker fee %   → (95, 705)   (Section 7A)
-
-Page 6:
-  Broker printed name    → left column
-  Client printed name    → right column
-  Signature images       → overlaid at signature lines
-  Dates                  → next to signatures
-```
-
-Coordinates will be calibrated by inspecting the actual PDF page dimensions during implementation.
-
-**Edge function dependencies**: `pdf-lib` (available via esm.sh)
+**Font sizes after 150% increase:**
+- Main text: 15pt (was 10pt)
+- Small text: 12pt (was 8pt)
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `supabase/functions/generate-agreement-pdf/index.ts` | Create — edge function that overlays form data onto blank TRX-1501 PDF |
-| `src/pages/BuyerRepAgreement.tsx` | Edit — call edge function for PDF generation, replace print with download |
-| Storage | Upload blank TRX-1501 PDF as template |
+| `supabase/functions/generate-agreement-pdf/index.ts` | Edit — increase all font sizes by 150%, add initials stamps on pages 1-5 footer |
+| `src/pages/BuyerRepAgreement.tsx` | Edit — add initials input fields for client and co-client, pass to edge function |
 
