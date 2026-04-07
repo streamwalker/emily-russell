@@ -220,7 +220,7 @@ export default function Index() {
                 </div>
               )}
             </div>
-            <Link to={PORTAL_LINK} className="nav-link no-underline">Client Portal</Link>
+            <Link to={PORTAL_LINK} className="btn-er-primary !bg-transparent !border !border-gold-light/60 !text-gold-light hover:!bg-gold-light/10 !py-2 !px-5 no-underline font-body text-sm tracking-wide">Client Portal</Link>
             <a href="tel:2109120806" className="btn-er-primary !py-2.5 !px-5 no-underline">(210) 912-0806</a>
           </div>
           <button className="md:hidden cursor-pointer bg-transparent border-none p-2" onClick={() => setMenuOpen(!menuOpen)}>
@@ -253,7 +253,7 @@ export default function Index() {
                 ))}
               </div>
             )}
-            <Link to={PORTAL_LINK} className="nav-link no-underline" onClick={() => setMenuOpen(false)}>Client Portal</Link>
+            <Link to={PORTAL_LINK} className="inline-block border border-gold-light/60 text-gold-light hover:bg-gold-light/10 py-2 px-5 no-underline font-body text-sm tracking-wide rounded transition-colors" onClick={() => setMenuOpen(false)}>Client Portal</Link>
             <a href="tel:2109120806" className="text-gold-light font-body text-sm no-underline">(210) 912-0806</a>
           </div>
         )}

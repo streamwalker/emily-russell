@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Heart, CalendarIcon, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, CalendarIcon, Save, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -815,6 +815,21 @@ export default function ClientPortal() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Interaction Summary */}
+          <div className="flex gap-4 mb-4">
+            {[
+              { icon: Heart, label: "Favorited", count: favCount, color: "text-red-400" },
+              { icon: GraduationCap, label: "Graded", count: Object.values(interactions).filter(i => i.grade).length, color: "text-emerald-400" },
+              { icon: CalendarIcon, label: "Tours Scheduled", count: Object.values(interactions).filter(i => i.preferred_tour_date).length, color: "text-blue-400" },
+            ].map(stat => (
+              <div key={stat.label} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded px-3 py-1.5">
+                <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
+                <span className="text-[11px] text-white/60 font-body">{stat.label}</span>
+                <span className="text-[13px] font-bold text-white/90 font-body">{stat.count}</span>
+              </div>
+            ))}
           </div>
 
           {/* Tabs */}
