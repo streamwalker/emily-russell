@@ -412,6 +412,7 @@ export default function ClientPortal() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/portal/login", { replace: true }); return; }
       setUserEmail(session.user.email || "");
+      setUserId(session.user.id);
 
       const { data, error } = await supabase
         .from("client_dossiers")
