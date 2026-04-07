@@ -158,9 +158,10 @@ export default function Index() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
+    const cleanup = trackPageView("/");
     const h = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", h, { passive: true });
-    return () => window.removeEventListener("scroll", h);
+    return () => { cleanup(); window.removeEventListener("scroll", h); };
   }, []);
 
   useEffect(() => {
@@ -221,8 +222,8 @@ export default function Index() {
                 </div>
               )}
             </div>
-            <Link to={PORTAL_LINK} className="btn-er-primary !bg-transparent !border !border-gold-light/60 !text-gold-light hover:!bg-gold-light/10 !py-2 !px-5 no-underline font-body text-sm tracking-wide">Client Portal</Link>
-            <a href="tel:2109120806" className="btn-er-primary !py-2.5 !px-5 no-underline">(210) 912-0806</a>
+            <Link to={PORTAL_LINK} className="btn-er-primary !bg-transparent !border !border-gold-light/60 !text-gold-light hover:!bg-gold-light/10 !py-2 !px-5 no-underline font-body text-sm tracking-wide" onClick={() => trackLinkClick("Client Portal (Nav)", "/portal")}>Client Portal</Link>
+            <a href="tel:2109120806" className="btn-er-primary !py-2.5 !px-5 no-underline" onClick={() => trackLinkClick("Phone CTA (Nav)", "tel:2109120806")}>(210) 912-0806</a>
           </div>
           <button className="md:hidden cursor-pointer bg-transparent border-none p-2" onClick={() => setMenuOpen(!menuOpen)}>
             <span className="block w-[22px] h-[1.5px] bg-cream my-[5px]" />
@@ -291,8 +292,8 @@ export default function Index() {
           </FadeIn>
           <FadeIn delay={0.36}>
             <div className="flex gap-3.5 flex-wrap">
-              <button className="btn-er-primary" onClick={() => handleScrollTo("contact")}>Work With Emily</button>
-              <button className="btn-outline-light" onClick={() => handleScrollTo("valuation")}>What's My Home Worth?</button>
+              <button className="btn-er-primary" onClick={() => { trackLinkClick("Work With Emily CTA", "#contact"); handleScrollTo("contact"); }}>Work With Emily</button>
+              <button className="btn-outline-light" onClick={() => { trackLinkClick("Home Valuation CTA", "#valuation"); handleScrollTo("valuation"); }}>What's My Home Worth?</button>
             </div>
           </FadeIn>
           <FadeIn delay={0.5}>
