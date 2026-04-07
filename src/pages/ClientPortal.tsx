@@ -771,13 +771,13 @@ export default function ClientPortal() {
                     {city}
                   </div>
                   {props.map(p => (
-                    <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+                    <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
                   ))}
                 </div>
               ))
             ) : (
               builderProperties.map(p => (
-                <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+                <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
               ))
             )}
           </>
