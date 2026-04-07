@@ -88,6 +88,14 @@ export default function ExpenseEditor({ dossierData, onSave, onCancel, saving }:
     });
   };
 
+  const updateSourceUrl = (tabKey: string, propIndex: number, value: string) => {
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      next.properties[tabKey][propIndex].sourceUrl = value || undefined;
+      return next;
+    });
+  };
+
   const totalExpenses = (e?: Expenses) => {
     if (!e) return 0;
     return (e.piti || 0) + (e.hoa || 0) + (e.gas || 0) + (e.electric || 0) + (e.water || 0) + (e.trash || 0) + (e.other || 0);
