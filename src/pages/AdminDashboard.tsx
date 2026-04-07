@@ -798,7 +798,7 @@ export default function AdminDashboard() {
                 {templates.map(t => {
                   const data = t.dossier_data as any;
                   const tabCount = data?.tabs ? Object.keys(data.tabs).length : 0;
-                  const propCount = data?.tabs ? Object.values(data.tabs).reduce((sum: number, tab: any) => sum + (Array.isArray(tab) ? tab.length : 0), 0) : 0;
+                  const propCount: number = data?.tabs ? (Object.values(data.tabs) as any[]).reduce((sum: number, tab: any) => sum + (Array.isArray(tab) ? tab.length : 0), 0) : 0;
 
                   if (templateEditId === t.id) {
                     return (
