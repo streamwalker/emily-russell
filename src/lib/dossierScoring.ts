@@ -160,6 +160,7 @@ export interface FilterState {
   minBeds: number;
   city: string;
   builder: string;
+  favoritesOnly: boolean;
 }
 
 export type SortField = "price-asc" | "price-desc" | "beds" | "sqft" | "yield" | "status";
