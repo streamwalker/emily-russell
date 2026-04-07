@@ -109,9 +109,42 @@ const BuyerRepAgreement = () => {
     setSaving(false);
   };
 
-  const handlePrint = () => {
-    setPrintMode(true);
-    setTimeout(() => { window.print(); setPrintMode(false); }, 300);
+  const handleDownloadPdf = async () => {
+    if (pdfBlobUrl) {
+      const a = document.createElement("a");
+      a.href = pdfBlobUrl;
+      a.download = "TXR-1501-Signed.pdf";
+      a.click();
+      return;
+    }
+    setGeneratingPdf(true);
+    try {
+      const formPayload = {
+        clientName, clientAddress, clientCityStateZip, clientPhone, clientEmail,
+        marketArea, termStart: termStart ? format(termStart, "yyyy-MM-dd") : "",
+        termEnd: termEnd ? format(termEnd, "yyyy-MM-dd") : "",
+        brokerFeePct, signatureData, broker: BROKER,
+        secondClient: hasSecondClient ? { name: client2Name, signatureData: signature2Data, signatureType: signature2Type } : null,
+      };
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/generate-agreement-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        body: JSON.stringify(formPayload),
+      });
+      if (!resp.ok) throw new Error("PDF generation failed");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfBlobUrl(url);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "TXR-1501-Signed.pdf";
+      a.click();
+    } catch {
+      toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   const inputClass = "w-full px-3 py-2 border border-border bg-white text-foreground font-body text-sm focus:outline-none focus:border-primary";
