@@ -116,26 +116,26 @@ Deno.serve(async (req) => {
     for (let i = 0; i < Math.min(5, pages.length); i++) {
       const pg = pages[i];
       if (brokerInitials) {
-        pg.drawText(brokerInitials, { x: 385, y: y(738), font: fontBold, size: smallSize, color });
+        pg.drawText(brokerInitials, { x: 340, y: y(738), font: fontBold, size: smallSize, color });
       }
       if (clientInitials) {
-        pg.drawText(clientInitials, { x: 448, y: y(738), font: fontBold, size: smallSize, color });
+        pg.drawText(clientInitials, { x: 445, y: y(738), font: fontBold, size: smallSize, color });
       }
       if (client2Initials) {
-        pg.drawText(client2Initials, { x: 505, y: y(738), font: fontBold, size: smallSize, color });
+        pg.drawText(client2Initials, { x: 508, y: y(738), font: fontBold, size: smallSize, color });
       }
     }
 
     // ─── PAGE 6 — Signature block ───
     const p6 = pages[5];
 
-    // Broker's Printed Name (above the label line at top=235)
-    p6.drawText(broker.associate || "Emily Russell", { x: 36, y: y(222), font, size: fontSize, color });
+    // Broker's Printed Name (above the label line)
+    p6.drawText(broker.associate || "Emily Russell", { x: 36, y: y(230), font, size: fontSize, color });
     // License No
-    p6.drawText(broker.license || "791742", { x: 252, y: y(222), font, size: fontSize, color });
+    p6.drawText(broker.license || "791742", { x: 252, y: y(230), font, size: fontSize, color });
 
     // Client's Printed Name
-    p6.drawText(clientName, { x: 324, y: y(222), font, size: fontSize, color });
+    p6.drawText(clientName, { x: 324, y: y(230), font, size: fontSize, color });
 
     // Dates — above the "Date" label line
     const signedDate = new Date().toLocaleDateString("en-US");
