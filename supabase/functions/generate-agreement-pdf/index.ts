@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
         pg.drawText(brokerInitials, { x: 340, y: y(738), font: fontBold, size: smallSize, color });
       }
       if (clientInitials) {
-        pg.drawText(clientInitials, { x: 458, y: y(738), font: fontBold, size: smallSize, color });
+        pg.drawText(clientInitials, { x: 445, y: y(738), font: fontBold, size: smallSize, color });
       }
       if (client2Initials) {
         pg.drawText(client2Initials, { x: 508, y: y(738), font: fontBold, size: smallSize, color });
