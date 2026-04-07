@@ -531,7 +531,7 @@ export default function ClientPortal() {
     <TooltipProvider delayDuration={300}>
     <div className="font-body min-h-screen" style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}>
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)", color: "#fff", padding: "32px 24px 0" }}>
+      <div className="sticky top-0 z-40" style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)", color: "#fff", padding: "32px 24px 0" }}>
         <div className="max-w-[960px] mx-auto">
           <div className="flex justify-between items-start mb-5">
             <div>
