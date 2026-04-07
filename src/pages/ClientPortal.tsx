@@ -23,6 +23,7 @@ interface Property {
   notes: string;
   rentEst?: string;
   rentNote?: string;
+  yieldEst?: string;
 }
 
 interface Tab {
@@ -127,12 +128,26 @@ function PropertyRow({ prop, isExpanded, onToggle, accentColor }: { prop: Proper
               <div className="text-[12.5px] leading-relaxed text-charcoal font-body bg-warm p-3 rounded border border-border/50">
                 {prop.notes}
               </div>
-              {prop.rentEst && (
+              {(prop.rentEst || prop.yieldEst) && (
                 <div className="mt-2.5 p-2.5 rounded border" style={{ background: "#f0f7f0", borderColor: "#c8e6c9" }}>
-                  <div className="text-[9px] uppercase tracking-[2px] mb-1 font-body" style={{ color: "#2e7d32" }}>
-                    Rental Income Est.
+                  <div className="flex justify-between items-start gap-4">
+                    {prop.rentEst && (
+                      <div>
+                        <div className="text-[9px] uppercase tracking-[2px] mb-1 font-body" style={{ color: "#2e7d32" }}>
+                          Rental Income Est.
+                        </div>
+                        <div className="text-sm font-bold font-body" style={{ color: "#2e7d32" }}>{prop.rentEst}</div>
+                      </div>
+                    )}
+                    {prop.yieldEst && (
+                      <div className="text-right">
+                        <div className="text-[9px] uppercase tracking-[2px] mb-1 font-body" style={{ color: "#2e7d32" }}>
+                          Projected Gross Yield
+                        </div>
+                        <div className="text-sm font-bold font-body" style={{ color: "#2e7d32" }}>{prop.yieldEst}</div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm font-bold font-body" style={{ color: "#2e7d32" }}>{prop.rentEst}</div>
                   {prop.rentNote && <div className="text-[11px] text-slate-er mt-1 italic">{prop.rentNote}</div>}
                 </div>
               )}
