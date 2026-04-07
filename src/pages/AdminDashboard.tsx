@@ -776,9 +776,12 @@ export default function AdminDashboard() {
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Calendar className="w-3 h-3 text-primary" /> {summary.tours} tours
                               </div>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <MessageSquare className="w-3 h-3 text-primary" /> {summary.comments} comments
-                              </div>
+                              <button
+                                onClick={() => openCommentDialog(d.user_id)}
+                                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 cursor-pointer bg-transparent border-none underline underline-offset-2 transition-colors"
+                              >
+                                <MessageSquare className="w-3 h-3" /> {summary.comments} comments
+                              </button>
                             </div>
                           )}
                         </div>
