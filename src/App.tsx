@@ -16,6 +16,7 @@ import ChangeEmail from "./pages/ChangeEmail.tsx";
 import PortalDashboard from "./pages/PortalDashboard.tsx";
 import BuyerRepAgreement from "./pages/BuyerRepAgreement.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
+import Unsubscribe from "./pages/Unsubscribe.tsx";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/portal/dashboard" element={<ProtectedRoute><PortalDashboard /></ProtectedRoute>} />
           <Route path="/portal/agreement" element={<ProtectedRoute><BuyerRepAgreement /></ProtectedRoute>} />
           <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
