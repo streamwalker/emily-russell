@@ -103,13 +103,15 @@ export default function AdminDashboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [dossierRes, profileRes, interactionsRes] = await Promise.all([
+    const [dossierRes, profileRes, interactionsRes, templatesRes] = await Promise.all([
       supabase.from("client_dossiers").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, email, full_name"),
       supabase.from("property_interactions").select("user_id, is_favorite, grade, preferred_tour_date, comments"),
+      supabase.from("dossier_templates").select("*").order("updated_at", { ascending: false }),
     ]);
     if (dossierRes.data) setDossiers(dossierRes.data as DossierRow[]);
     if (profileRes.data) setProfiles(profileRes.data);
+    if (templatesRes.data) setTemplates(templatesRes.data as any);
 
     // Aggregate interactions per user
     const summaries: Record<string, { favorites: number; grades: number; tours: number; comments: number }> = {};
