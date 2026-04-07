@@ -8,6 +8,10 @@ import NotFound from "./pages/NotFound.tsx";
 import TermsOfService from "./pages/TermsOfService.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import TRECDisclosures from "./pages/TRECDisclosures.tsx";
+import ClientLogin from "./pages/ClientLogin.tsx";
+import ClientPortal from "./pages/ClientPortal.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
+import ProtectedRoute from "./components/ProtectedRoute.tsx";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +26,9 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/trec" element={<TRECDisclosures />} />
+          <Route path="/portal/login" element={<ClientLogin />} />
+          <Route path="/portal/reset-password" element={<ResetPassword />} />
+          <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

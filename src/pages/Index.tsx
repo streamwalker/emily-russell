@@ -71,6 +71,7 @@ const NEW_HOME_DEALS = [
 ];
 
 const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["Blog","blog"],["Contact","contact"]];
+const PORTAL_LINK = "/portal";
 
 const AFFILIATE_LINKS = [
   { label: "Streamwalkers", url: "https://streamwalkers.com" },
@@ -219,6 +220,7 @@ export default function Index() {
                 </div>
               )}
             </div>
+            <Link to={PORTAL_LINK} className="nav-link no-underline">Client Portal</Link>
             <a href="tel:2109120806" className="btn-er-primary !py-2.5 !px-5 no-underline">(210) 912-0806</a>
           </div>
           <button className="md:hidden cursor-pointer bg-transparent border-none p-2" onClick={() => setMenuOpen(!menuOpen)}>
@@ -251,6 +253,7 @@ export default function Index() {
                 ))}
               </div>
             )}
+            <Link to={PORTAL_LINK} className="nav-link no-underline" onClick={() => setMenuOpen(false)}>Client Portal</Link>
             <a href="tel:2109120806" className="text-gold-light font-body text-sm no-underline">(210) 912-0806</a>
           </div>
         )}
