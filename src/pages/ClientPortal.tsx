@@ -671,18 +671,25 @@ export default function ClientPortal() {
   const cities = useMemo(() => (dossier ? getUniqueCities(dossier.properties) : []), [dossier]);
   const builders = useMemo(() => (dossier ? getUniqueBuilders(dossier.properties) : []), [dossier]);
 
-  const primaryRanked = useMemo(
-    () => (dossier ? applyFilters(scorePrimaryResidence(dossier.properties, tabLabels), filters) : []),
-    [dossier, tabLabels, filters]
-  );
+  const primaryRanked = useMemo(() => {
+    if (!dossier) return [];
+    let result = applyFilters(scorePrimaryResidence(dossier.properties, tabLabels), filters);
+    if (filters.favoritesOnly) result = result.filter(p => interactions[p.id]?.is_favorite);
+    return result;
+  }, [dossier, tabLabels, filters, interactions]);
   const incomeRanked = useMemo(
     () => (dossier ? scoreIncomeGeneration(dossier.properties, tabLabels) : { fullRental: [], airbnbPotential: [] }),
     [dossier, tabLabels]
   );
-  const incomeFiltered = useMemo(() => ({
-    fullRental: applyFilters(incomeRanked.fullRental, filters),
-    airbnbPotential: applyFilters(incomeRanked.airbnbPotential, filters),
-  }), [incomeRanked, filters]);
+  const incomeFiltered = useMemo(() => {
+    let fr = applyFilters(incomeRanked.fullRental, filters);
+    let ab = applyFilters(incomeRanked.airbnbPotential, filters);
+    if (filters.favoritesOnly) {
+      fr = fr.filter(p => interactions[p.id]?.is_favorite);
+      ab = ab.filter(p => interactions[p.id]?.is_favorite);
+    }
+    return { fullRental: fr, airbnbPotential: ab };
+  }, [incomeRanked, filters, interactions]);
 
   const isRankTab = activeTab.startsWith("rank-");
   const isAllHomes = activeTab === "all-homes";
