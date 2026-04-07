@@ -275,6 +275,14 @@ export default function ClientPortal() {
     airbnbPotential: applyFilters(incomeRanked.airbnbPotential, filters),
   }), [incomeRanked, filters]);
 
+  const isRankTab = activeTab.startsWith("rank-");
+
+  const builderProperties = useMemo(() => {
+    if (!dossier || isRankTab) return [];
+    const raw = dossier.properties[activeTab] || [];
+    return applySort(applyFilters(raw, filters), sort);
+  }, [dossier, activeTab, filters, sort, isRankTab]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
