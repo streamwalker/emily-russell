@@ -388,8 +388,24 @@ export default function ClientPortal() {
   const [showSettings, setShowSettings] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [sort, setSort] = useState<SortField>("price-asc");
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [showCompare, setShowCompare] = useState(false);
+  const [userId, setUserId] = useState("");
   const { isAdmin } = useAdminCheck();
   const navigate = useNavigate();
+
+  const toggleCompare = (id: string) => {
+    setCompareIds(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) { n.delete(id); return n; }
+      if (n.size >= 3) { toast.error("You can compare up to 3 properties at a time."); return prev; }
+      n.add(id);
+      return n;
+    });
+  };
+
+  const allProperties = useMemo(() => (dossier ? Object.values(dossier.properties).flat() : []), [dossier]);
+  const compareProperties = useMemo(() => allProperties.filter(p => compareIds.has(p.id)), [allProperties, compareIds]);
 
   useEffect(() => {
     const load = async () => {
