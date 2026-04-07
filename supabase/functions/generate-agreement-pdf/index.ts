@@ -116,13 +116,13 @@ Deno.serve(async (req) => {
     for (let i = 0; i < Math.min(5, pages.length); i++) {
       const pg = pages[i];
       if (brokerInitials) {
-        pg.drawText(brokerInitials, { x: 352, y: y(738), font: fontBold, size: smallSize, color });
+        pg.drawText(brokerInitials, { x: 340, y: y(738), font: fontBold, size: smallSize, color });
       }
       if (clientInitials) {
-        pg.drawText(clientInitials, { x: 478, y: y(738), font: fontBold, size: smallSize, color });
+        pg.drawText(clientInitials, { x: 458, y: y(738), font: fontBold, size: smallSize, color });
       }
       if (client2Initials) {
-        pg.drawText(client2Initials, { x: 518, y: y(738), font: fontBold, size: smallSize, color });
+        pg.drawText(client2Initials, { x: 508, y: y(738), font: fontBold, size: smallSize, color });
       }
     }
 
