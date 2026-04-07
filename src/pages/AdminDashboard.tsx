@@ -206,7 +206,29 @@ export default function AdminDashboard() {
           <div className="space-y-3">
             {dossiers.map(d => (
               <div key={d.id} className="bg-white border border-border p-5 shadow-sm">
-                {editingId === d.id ? (
+                {expenseEditId === d.id ? (
+                  <ExpenseEditor
+                    dossierData={d.dossier_data as any}
+                    saving={saving}
+                    onCancel={() => setExpenseEditId(null)}
+                    onSave={async (updatedData) => {
+                      setSaving(true);
+                      setError("");
+                      try {
+                        const { error: err } = await supabase
+                          .from("client_dossiers")
+                          .update({ dossier_data: updatedData as any })
+                          .eq("id", d.id);
+                        if (err) throw err;
+                        setExpenseEditId(null);
+                        fetchData();
+                      } catch (e: unknown) {
+                        setError(e instanceof Error ? e.message : "Failed to save expenses");
+                      }
+                      setSaving(false);
+                    }}
+                  />
+                ) : editingId === d.id ? (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div>
