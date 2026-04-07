@@ -160,7 +160,7 @@ function TabScrollContainer({ children }: { children: React.ReactNode }) {
 }
 
 /* ── Payment Calculator Toggle ── */
-function PaymentCalculatorToggle({ price, hoaFee, accentColor }: { price: number; hoaFee?: number; accentColor: string }) {
+function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userId }: { price: number; hoaFee?: number; accentColor: string; propertyId?: string; userId?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
@@ -171,7 +171,7 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor }: { price: number
       >
         {open ? "▾ Hide Payment Estimator" : "▸ Estimate Monthly Payment"}
       </button>
-      {open && <PaymentCalculator price={price} hoaFee={hoaFee} />}
+      {open && <PaymentCalculator price={price} hoaFee={hoaFee} propertyId={propertyId} userId={userId} />}
     </div>
   );
 }
