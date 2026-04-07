@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      agreement_config: {
+        Row: {
+          broker_fee_pct: number | null
+          client_user_id: string
+          id: string
+          term_end: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          broker_fee_pct?: number | null
+          client_user_id: string
+          id?: string
+          term_end?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          broker_fee_pct?: number | null
+          client_user_id?: string
+          id?: string
+          term_end?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       client_dossiers: {
         Row: {
           created_at: string
