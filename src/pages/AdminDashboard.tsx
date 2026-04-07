@@ -316,6 +316,29 @@ export default function AdminDashboard() {
                     <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="er-input" />
                   </div>
                 </div>
+                {/* Template selector */}
+                <div className="mb-4">
+                  <label className="er-label block mb-1">Load Template from Existing Dossier</label>
+                  <select
+                    value=""
+                    onChange={e => {
+                      const templateDossier = dossiers.find(d => d.id === e.target.value);
+                      if (templateDossier) {
+                        const clonedData = JSON.parse(JSON.stringify(templateDossier.dossier_data));
+                        setExtractedData(clonedData);
+                        setUseRawJson(false);
+                      }
+                    }}
+                    className="er-input"
+                  >
+                    <option value="">— None (start fresh) —</option>
+                    {dossiers.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.title} — {getClientEmail(d.user_id)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {/* Smart Input / Raw JSON toggle */}
                 <div className="mb-4">
                   <div className="flex items-center gap-3 mb-3">
@@ -479,7 +502,7 @@ export default function AdminDashboard() {
                                 Prepared: {d.prepared_date} · Updated: {new Date(d.updated_at).toLocaleDateString()}
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               <button onClick={() => { setPropertyEditId(d.id); setExpenseEditId(null); setEditingId(null); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
                                 🏠 Properties
                               </button>
@@ -488,6 +511,22 @@ export default function AdminDashboard() {
                               </button>
                               <button onClick={() => startEdit(d)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-charcoal px-3 py-1.5 hover:border-primary transition-colors">
                                 Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const clonedData = JSON.parse(JSON.stringify(d.dossier_data));
+                                  setShowNew(true);
+                                  setNewTitle(d.title);
+                                  setNewDate(new Date().toISOString().split("T")[0]);
+                                  setNewUserId("");
+                                  setUseRawJson(false);
+                                  setExtractedData(clonedData);
+                                  setError("");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors"
+                              >
+                                📋 Use as Template
                               </button>
                               <button onClick={() => deleteDossier(d.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
                                 Delete
