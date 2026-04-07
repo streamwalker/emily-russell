@@ -826,22 +826,26 @@ export default function ClientPortal() {
         }, {})
       : null;
 
-  const renderPropertyRow = (p: Property, color: string, rankInfo?: { rank: number; scoreSummary: string; sourceTab: string }) => (
-    <PropertyRow
-      key={p.id}
-      prop={p}
-      isExpanded={expandedIds.has(p.id)}
-      onToggle={() => toggle(p.id)}
-      accentColor={color}
-      rankInfo={rankInfo}
-      isCompareSelected={compareIds.has(p.id)}
-      onCompareToggle={() => toggleCompare(p.id)}
-      userId={userId}
-      interaction={interactions[p.id]}
-      onInteractionChange={handleInteractionChange}
-      gradeCounts={gradeCounts}
-    />
-  );
+  const renderPropertyRow = (p: Property, color: string, rankInfo?: { rank: number; scoreSummary: string; sourceTab: string }) => {
+    const interactionId = interactions[p.id]?.id;
+    return (
+      <PropertyRow
+        key={p.id}
+        prop={p}
+        isExpanded={expandedIds.has(p.id)}
+        onToggle={() => toggle(p.id)}
+        accentColor={color}
+        rankInfo={rankInfo}
+        isCompareSelected={compareIds.has(p.id)}
+        onCompareToggle={() => toggleCompare(p.id)}
+        userId={userId}
+        interaction={interactions[p.id]}
+        onInteractionChange={handleInteractionChange}
+        gradeCounts={gradeCounts}
+        replies={interactionId ? replies[interactionId] : undefined}
+      />
+    );
+  };
 
   return (
     <TooltipProvider delayDuration={300}>
