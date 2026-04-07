@@ -105,7 +105,7 @@ export default function AdminDashboard() {
 
   // Comment detail dialog
   const [commentDialogUserId, setCommentDialogUserId] = useState<string | null>(null);
-  const [commentDetails, setCommentDetails] = useState<{ propertyId: string; address: string; builder: string; comment: string; updatedAt: string }[]>([]);
+  const [commentDetails, setCommentDetails] = useState<{ propertyId: string; address: string; builder: string; comment: string; updatedAt: string; dossierId: string | null }[]>([]);
   const [commentDetailsLoading, setCommentDetailsLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -149,18 +149,18 @@ export default function AdminDashboard() {
     const userDossiers = dossiers.filter(d => d.user_id === userId);
     for (const d of userDossiers) {
       const data = d.dossier_data as any;
-      if (!data?.tabs) continue;
+      if (!data?.tabs || !data?.properties) continue;
       for (const tab of data.tabs) {
-        const props = tab.properties || {};
-        for (const [key, prop] of Object.entries(props)) {
-          if (key === propertyId) {
-            const p = prop as any;
-            return { address: p.address || key, builder: tab.builder || tab.label || "Unknown" };
-          }
+        const tabKey = tab.key || tab.id;
+        const propsArray = data.properties[tabKey];
+        if (!Array.isArray(propsArray)) continue;
+        const found = propsArray.find((p: any) => p.id === propertyId);
+        if (found) {
+          return { address: found.address || propertyId, builder: tab.label || tab.builder || "Unknown", dossierId: d.id };
         }
       }
     }
-    return { address: propertyId, builder: "Unknown" };
+    return { address: propertyId, builder: "Unknown", dossierId: null };
   }, [dossiers]);
 
   // Fetch comment details for a user
@@ -181,6 +181,7 @@ export default function AdminDashboard() {
         builder: resolved.builder,
         comment: row.comments!,
         updatedAt: row.updated_at || "",
+        dossierId: resolved.dossierId,
       };
     }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     
@@ -1193,14 +1194,28 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-4">
               {commentDetails.map((c, i) => (
-                <div key={i} className="border border-border rounded p-3">
+                <div
+                  key={i}
+                  className={`border border-border rounded p-3 ${c.dossierId ? "cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors" : ""}`}
+                  onClick={() => {
+                    if (c.dossierId) {
+                      setCommentDialogUserId(null);
+                      setPropertyEditId(c.dossierId);
+                      setExpenseEditId(null);
+                      setEditingId(null);
+                    }
+                  }}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="font-body text-sm font-semibold text-foreground">{c.address}</div>
                       <div className="font-body text-[10px] uppercase tracking-[1.5px] text-muted-foreground">{c.builder}</div>
                     </div>
-                    <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap ml-3">
-                      {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                    <div className="flex items-center gap-2">
+                      <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap">
+                        {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                      </div>
+                      {c.dossierId && <span className="text-muted-foreground text-xs">→</span>}
                     </div>
                   </div>
                   <div className="font-body text-sm text-foreground bg-muted/30 rounded p-2 italic">"{c.comment}"</div>
