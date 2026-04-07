@@ -71,6 +71,7 @@ const NEW_HOME_DEALS = [
 ];
 
 const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["Blog","blog"],["Contact","contact"]];
+const PORTAL_LINK = "/portal";
 
 const AFFILIATE_LINKS = [
   { label: "Streamwalkers", url: "https://streamwalkers.com" },
