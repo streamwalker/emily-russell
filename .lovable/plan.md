@@ -1,27 +1,22 @@
 
 
-## 1. Expense Calculator in Admin Dashboard + 2. "All Homes" Tab
+## Add Source Links to Properties
 
 ### What changes
 
-**Admin Dashboard — Expense Calculator**
+1. **Property interface** — Add `sourceUrl?: string` field to the `Property` interface in both `src/pages/ClientPortal.tsx` and `src/lib/dossierScoring.ts`.
 
-When an admin clicks "Edit" on a dossier, instead of only showing a raw JSON textarea, add a new "Manage Expenses" mode. This provides a structured UI where the admin can:
-- Expand any property by name/address
-- Input PITI, HOA, Gas, Electric, Water, Trash, and Other (with custom label) as numeric fields
-- See a live total and net cash flow preview (rent minus expenses)
-- Save updates back into the `dossier_data` JSON (writing to each property's `expenses` object)
+2. **PropertyRow UI** — In the expanded detail section, add a "View Listing →" link button that opens `prop.sourceUrl` in a new tab. Place it below the Property Details grid, styled as a small accent-colored link. Only render when `sourceUrl` is present.
 
-This will be a new component `src/components/admin/ExpenseEditor.tsx` that receives the parsed dossier data, renders an accordion of properties grouped by builder tab, and emits the updated JSON on save. The admin dashboard will get a "Manage Expenses" button alongside the existing "Edit" button for each dossier.
+3. **Dossier data update** — Run a database update to add `sourceUrl` values to each property in gomezurita's dossier. URLs will be sourced from the original links (NHB, Lennar, Meritage, etc.) used when the properties were added.
 
-**Client Portal — "All Homes" Tab**
-
-Add a new synthetic tab `{ key: "all-homes", label: "📋 All Homes", color: "#6B7280" }` inserted before the two ranking tabs. This tab aggregates every property from every builder tab into a single flat list, with the builder name shown as a tag on each card. The existing filter/sort toolbar applies to this view as well. The `TabSummary` component displays combined stats across the entire dossier.
+4. **Admin ExpenseEditor** — Add a `sourceUrl` text input field so admins can set/edit source links per property going forward.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/components/admin/ExpenseEditor.tsx` | Create — structured expense input form per property |
-| `src/pages/AdminDashboard.tsx` | Edit — add "Manage Expenses" button that opens the ExpenseEditor instead of raw JSON |
-| `src/pages/ClientPortal.tsx` | Edit — add "All Homes" synthetic tab with aggregated property list
+| `src/pages/ClientPortal.tsx` | Add `sourceUrl` to interface + render link in PropertyRow |
+| `src/lib/dossierScoring.ts` | Add `sourceUrl` to Property interface |
+| `src/components/admin/ExpenseEditor.tsx` | Add sourceUrl input field |
+| Database | Update
