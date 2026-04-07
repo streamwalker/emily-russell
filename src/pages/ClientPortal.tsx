@@ -23,6 +23,7 @@ interface Property {
   notes: string;
   rentEst?: string;
   rentNote?: string;
+  yieldEst?: string;
 }
 
 interface Tab {
