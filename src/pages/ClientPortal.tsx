@@ -356,9 +356,6 @@ function PropertyRow({
                   </div>
                 );
               })()}
-              {prop.price && (
-                <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} />
-              )}
               {prop.sourceUrl && (
                 <a
                   href={prop.sourceUrl}
@@ -372,6 +369,9 @@ function PropertyRow({
               )}
             </div>
           </div>
+          {prop.price && (
+            <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} />
+          )}
         </div>
       )}
     </div>
