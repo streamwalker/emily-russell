@@ -472,6 +472,8 @@ export default function ClientPortal() {
           <TabSummary properties={primaryRanked} color={currentTab.color} label="Primary Residence Rankings" />
         ) : activeTab === "rank-income" ? (
           <TabSummary properties={incomeFiltered.fullRental} color={currentTab.color} label="Income Generation Rankings" />
+        ) : activeTab === "all-homes" ? (
+          <TabSummary properties={allHomesProperties} color={currentTab.color} label="All Homes" />
         ) : (
           <TabSummary properties={builderProperties} color={currentTab.color} label={currentTab.label} />
         )}
