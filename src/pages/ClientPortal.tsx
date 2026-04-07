@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import FilterSortToolbar from "@/components/portal/FilterSortToolbar";
 import RankBadge from "@/components/portal/RankBadge";
+import TabSummary from "@/components/portal/TabSummary";
 import {
   scorePrimaryResidence,
   scoreIncomeGeneration,
@@ -38,6 +39,16 @@ interface Property {
   rentEst?: string;
   rentNote?: string;
   yieldEst?: string;
+  expenses?: {
+    piti?: number;
+    hoa?: number;
+    gas?: number;
+    electric?: number;
+    water?: number;
+    trash?: number;
+    other?: number;
+    otherLabel?: string;
+  };
 }
 
 interface Tab {
