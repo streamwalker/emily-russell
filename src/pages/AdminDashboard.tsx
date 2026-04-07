@@ -653,6 +653,12 @@ export default function AdminDashboard() {
                               >
                                 📋 Use as Template
                               </button>
+                              <button
+                                onClick={() => saveAsTemplate(d.dossier_data as Record<string, unknown>, d.title)}
+                                className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors"
+                              >
+                                💾 Save as Template
+                              </button>
                               <button onClick={() => deleteDossier(d.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
                                 Delete
                               </button>
