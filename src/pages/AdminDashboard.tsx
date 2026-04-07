@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
@@ -6,8 +6,10 @@ import ExpenseEditor from "@/components/admin/ExpenseEditor";
 import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+import { toast } from "sonner";
 
 interface DossierRow {
   id: string;
@@ -101,6 +103,11 @@ export default function AdminDashboard() {
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
 
+  // Comment detail dialog
+  const [commentDialogUserId, setCommentDialogUserId] = useState<string | null>(null);
+  const [commentDetails, setCommentDetails] = useState<{ propertyId: string; address: string; builder: string; comment: string; updatedAt: string }[]>([]);
+  const [commentDetailsLoading, setCommentDetailsLoading] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [dossierRes, profileRes, interactionsRes, templatesRes] = await Promise.all([
@@ -137,6 +144,50 @@ export default function AdminDashboard() {
     setAnalyticsLoading(false);
   }, []);
 
+  // Resolve property address/builder from dossier data
+  const resolvePropertyFromDossiers = useCallback((propertyId: string, userId: string) => {
+    const userDossiers = dossiers.filter(d => d.user_id === userId);
+    for (const d of userDossiers) {
+      const data = d.dossier_data as any;
+      if (!data?.tabs) continue;
+      for (const tab of data.tabs) {
+        const props = tab.properties || {};
+        for (const [key, prop] of Object.entries(props)) {
+          if (key === propertyId) {
+            const p = prop as any;
+            return { address: p.address || key, builder: tab.builder || tab.label || "Unknown" };
+          }
+        }
+      }
+    }
+    return { address: propertyId, builder: "Unknown" };
+  }, [dossiers]);
+
+  // Fetch comment details for a user
+  const openCommentDialog = useCallback(async (userId: string) => {
+    setCommentDialogUserId(userId);
+    setCommentDetailsLoading(true);
+    const { data } = await supabase
+      .from("property_interactions")
+      .select("property_id, comments, updated_at")
+      .eq("user_id", userId)
+      .not("comments", "is", null);
+    
+    const details = (data || []).map(row => {
+      const resolved = resolvePropertyFromDossiers(row.property_id, userId);
+      return {
+        propertyId: row.property_id,
+        address: resolved.address,
+        builder: resolved.builder,
+        comment: row.comments!,
+        updatedAt: row.updated_at || "",
+      };
+    }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    
+    setCommentDetails(details);
+    setCommentDetailsLoading(false);
+  }, [resolvePropertyFromDossiers]);
+
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate("/portal", { replace: true });
     if (!adminLoading && isAdmin) {
@@ -144,6 +195,55 @@ export default function AdminDashboard() {
       fetchAnalytics();
     }
   }, [adminLoading, isAdmin, navigate, fetchData, fetchAnalytics]);
+
+  // Realtime subscription for new comments
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const channel = supabase
+      .channel("admin-comment-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "property_interactions" },
+        (payload) => {
+          const row = payload.new as any;
+          if (row.comments) {
+            const profile = profiles.find(p => p.user_id === row.user_id);
+            const clientName = profile?.full_name || profile?.email || "A client";
+            const resolved = resolvePropertyFromDossiers(row.property_id, row.user_id);
+            toast.info(`${clientName} commented on ${resolved.address}`, {
+              description: row.comments.length > 80 ? row.comments.slice(0, 80) + "…" : row.comments,
+              duration: 8000,
+            });
+            // Update interaction summaries
+            fetchData();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "property_interactions" },
+        (payload) => {
+          const row = payload.new as any;
+          const old = payload.old as any;
+          if (row.comments && row.comments !== old.comments) {
+            const profile = profiles.find(p => p.user_id === row.user_id);
+            const clientName = profile?.full_name || profile?.email || "A client";
+            const resolved = resolvePropertyFromDossiers(row.property_id, row.user_id);
+            toast.info(`${clientName} commented on ${resolved.address}`, {
+              description: row.comments.length > 80 ? row.comments.slice(0, 80) + "…" : row.comments,
+              duration: 8000,
+            });
+            fetchData();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAdmin, profiles, resolvePropertyFromDossiers, fetchData]);
 
   const getClientEmail = (userId: string) => profiles.find(p => p.user_id === userId)?.email || userId;
   const getClientName = (userId: string) => profiles.find(p => p.user_id === userId)?.full_name || "";
@@ -676,9 +776,12 @@ export default function AdminDashboard() {
                               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                                 <Calendar className="w-3 h-3 text-primary" /> {summary.tours} tours
                               </div>
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <MessageSquare className="w-3 h-3 text-primary" /> {summary.comments} comments
-                              </div>
+                              <button
+                                onClick={() => openCommentDialog(d.user_id)}
+                                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 cursor-pointer bg-transparent border-none underline underline-offset-2 transition-colors"
+                              >
+                                <MessageSquare className="w-3 h-3" /> {summary.comments} comments
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1071,6 +1174,42 @@ export default function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Comment Details Dialog */}
+      <Dialog open={!!commentDialogUserId} onOpenChange={(open) => { if (!open) setCommentDialogUserId(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              Comments — {commentDialogUserId ? (getClientName(commentDialogUserId) || getClientEmail(commentDialogUserId)) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {commentDetailsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            </div>
+          ) : commentDetails.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">No comments found.</div>
+          ) : (
+            <div className="space-y-4">
+              {commentDetails.map((c, i) => (
+                <div key={i} className="border border-border rounded p-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-body text-sm font-semibold text-foreground">{c.address}</div>
+                      <div className="font-body text-[10px] uppercase tracking-[1.5px] text-muted-foreground">{c.builder}</div>
+                    </div>
+                    <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap ml-3">
+                      {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                    </div>
+                  </div>
+                  <div className="font-body text-sm text-foreground bg-muted/30 rounded p-2 italic">"{c.comment}"</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
