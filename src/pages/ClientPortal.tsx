@@ -794,6 +794,19 @@ export default function ClientPortal() {
       <div className="fixed bottom-4 left-4 font-body text-[10px] text-muted-foreground opacity-50">
         Logged in as {userEmail}
       </div>
+
+      {/* Sticky Compare Button */}
+      {compareIds.size >= 2 && (
+        <button
+          onClick={() => setShowCompare(true)}
+          className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-full shadow-lg font-body text-sm font-semibold cursor-pointer border-none transition-transform hover:scale-105 bg-primary text-primary-foreground"
+        >
+          Compare ({compareIds.size})
+        </button>
+      )}
+
+      {/* Comparison Dialog */}
+      <ComparisonView open={showCompare} onOpenChange={setShowCompare} properties={compareProperties} />
     </div>
     </TooltipProvider>
   );
