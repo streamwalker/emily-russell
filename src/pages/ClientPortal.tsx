@@ -92,6 +92,42 @@ function getRainbowColor(index: number) {
   return RAINBOW_PALETTE[index % RAINBOW_PALETTE.length];
 }
 
+/* ── Tab Scroll Container ── */
+function TabScrollContainer({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showFade, setShowFade] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [checkScroll]);
+
+  return (
+    <div className="relative">
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="tab-scroll-container flex gap-1 overflow-x-auto items-end pb-1"
+      >
+        {children}
+      </div>
+      {showFade && (
+        <div
+          className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 transition-opacity duration-300"
+          style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }}
+        />
+      )}
+    </div>
+  );
+}
+
 /* ── Property Row ── */
 function PropertyRow({
   prop,
