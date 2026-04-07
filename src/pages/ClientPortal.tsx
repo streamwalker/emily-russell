@@ -5,6 +5,7 @@ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import FilterSortToolbar from "@/components/portal/FilterSortToolbar";
 import RankBadge from "@/components/portal/RankBadge";
 import TabSummary from "@/components/portal/TabSummary";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   scorePrimaryResidence,
   scoreIncomeGeneration,
@@ -146,7 +147,14 @@ function PropertyRow({
               {prop.status}
             </span>
           </div>
-          <div className="text-xs ml-1 opacity-50">{isExpanded ? "▲" : "▼"}</div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-xs ml-1 opacity-50">{isExpanded ? "▲" : "▼"}</div>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs max-w-[200px]">
+              Click to see full details, rental estimates, and expenses.
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
