@@ -103,6 +103,11 @@ export default function AdminDashboard() {
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
 
+  // Comment detail dialog
+  const [commentDialogUserId, setCommentDialogUserId] = useState<string | null>(null);
+  const [commentDetails, setCommentDetails] = useState<{ propertyId: string; address: string; builder: string; comment: string; updatedAt: string }[]>([]);
+  const [commentDetailsLoading, setCommentDetailsLoading] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [dossierRes, profileRes, interactionsRes, templatesRes] = await Promise.all([
