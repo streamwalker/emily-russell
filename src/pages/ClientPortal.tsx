@@ -208,7 +208,7 @@ function PropertyRow({
                   ["Water", e.water || 0],
                   ["Trash Pickup", e.trash || 0],
                   [e.otherLabel || "Other", e.other || 0],
-                ].filter(([, v]) => v > 0) as [string, number][];
+                ].filter(([, v]) => typeof v === "number" && v > 0) as [string, number][];
                 const totalExpenses = items.reduce((sum, [, v]) => sum + v, 0);
                 const rentNum = (() => { const m = (prop.rentEst || "").replace(/,/g, "").match(/\$?([\d]+)/); return m ? parseInt(m[1], 10) : 0; })();
                 const netIncome = rentNum > 0 ? rentNum - totalExpenses : 0;
