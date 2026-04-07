@@ -659,19 +659,79 @@ export default function ClientPortal() {
         }
       }
 
-      // Build interactions map
+      // Build interactions map and fetch replies
       if (interactionsRes.data) {
         const map: Record<string, PropertyInteraction> = {};
+        const ids: string[] = [];
         interactionsRes.data.forEach((row: any) => {
           map[row.property_id] = row;
+          if (row.id) ids.push(row.id);
         });
         setInteractions(map);
+        interactionIdsRef.current = new Set(ids);
+
+        // Fetch replies for all interactions
+        if (ids.length > 0) {
+          const { data: repliesData } = await supabase
+            .from("comment_replies")
+            .select("id, interaction_id, reply_text, created_at")
+            .in("interaction_id", ids)
+            .order("created_at", { ascending: true });
+
+          if (repliesData) {
+            const rmap: Record<string, CommentReply[]> = {};
+            repliesData.forEach((r: any) => {
+              if (!rmap[r.interaction_id]) rmap[r.interaction_id] = [];
+              rmap[r.interaction_id].push(r);
+            });
+            setReplies(rmap);
+          }
+        }
       }
 
       setLoading(false);
     };
     load();
   }, [navigate]);
+
+  // Realtime subscription for new admin replies
+  useEffect(() => {
+    const channel = supabase
+      .channel("client-reply-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "comment_replies" },
+        (payload) => {
+          const newReply = payload.new as any;
+          if (!interactionIdsRef.current.has(newReply.interaction_id)) return;
+
+          // Find the property address for this interaction
+          const matchingProp = Object.entries(interactions).find(
+            ([, inter]) => inter.id === newReply.interaction_id
+          );
+          const propId = matchingProp?.[0];
+          const propAddress = dossier
+            ? Object.values(dossier.properties).flat().find(p => p.id === propId)?.address
+            : null;
+
+          toast.success(
+            `Emily replied to your comment${propAddress ? ` on ${propAddress}` : ""}`,
+            { duration: 6000 }
+          );
+
+          setReplies(prev => ({
+            ...prev,
+            [newReply.interaction_id]: [
+              ...(prev[newReply.interaction_id] || []),
+              { id: newReply.id, reply_text: newReply.reply_text, created_at: newReply.created_at },
+            ],
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [interactions, dossier]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
