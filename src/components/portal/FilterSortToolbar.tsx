@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Heart } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { FilterState, SortField } from "@/lib/dossierScoring";
 
 interface Props {
@@ -8,13 +10,14 @@ interface Props {
   onSortChange: (s: SortField) => void;
   cities: string[];
   builders: string[];
+  favCount?: number;
 }
 
-export default function FilterSortToolbar({ filters, sort, onFiltersChange, onSortChange, cities, builders }: Props) {
+export default function FilterSortToolbar({ filters, sort, onFiltersChange, onSortChange, cities, builders, favCount = 0 }: Props) {
   const [open, setOpen] = useState(false);
 
   const update = (patch: Partial<FilterState>) => onFiltersChange({ ...filters, ...patch });
-  const hasActive = filters.minPrice > 0 || filters.maxPrice > 0 || filters.minBeds > 0 || !!filters.city || !!filters.builder;
+  const hasActive = filters.minPrice > 0 || filters.maxPrice > 0 || filters.minBeds > 0 || !!filters.city || !!filters.builder || filters.favoritesOnly;
 
   return (
     <div className="mb-4">
@@ -24,6 +27,19 @@ export default function FilterSortToolbar({ filters, sort, onFiltersChange, onSo
           className="text-[11px] font-semibold uppercase tracking-wider font-body px-3 py-1.5 rounded border border-border bg-card text-foreground hover:bg-muted transition-colors"
         >
           {open ? "▲ Hide Filters" : "▼ Filters"}{hasActive ? " •" : ""}
+        </button>
+
+        <button
+          onClick={() => update({ favoritesOnly: !filters.favoritesOnly })}
+          className={cn(
+            "text-[11px] font-semibold font-body px-3 py-1.5 rounded border transition-colors inline-flex items-center gap-1.5",
+            filters.favoritesOnly
+              ? "bg-red-500/10 border-red-500/30 text-red-500"
+              : "bg-card text-muted-foreground border-border hover:bg-muted"
+          )}
+        >
+          <Heart className={cn("h-3.5 w-3.5", filters.favoritesOnly && "fill-red-500")} />
+          Favorites{favCount > 0 ? ` (${favCount})` : ""}
         </button>
 
         <div className="flex items-center gap-1.5 ml-auto">
@@ -107,7 +123,7 @@ export default function FilterSortToolbar({ filters, sort, onFiltersChange, onSo
           </div>
           {hasActive && (
             <button
-              onClick={() => onFiltersChange({ minPrice: 0, maxPrice: 0, minBeds: 0, city: "", builder: "" })}
+              onClick={() => onFiltersChange({ minPrice: 0, maxPrice: 0, minBeds: 0, city: "", builder: "", favoritesOnly: false })}
               className="col-span-2 md:col-span-5 text-[10px] text-destructive font-body underline text-left"
             >
               Clear all filters
