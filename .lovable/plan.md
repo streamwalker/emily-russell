@@ -1,37 +1,50 @@
 
 
-## Inline Payment Calculator + EquiForge Link
+## Three Features: Arrow Navigation, Comparison View, Save Estimates
 
-### What changes
+### 1. Tab Bar Arrow Buttons
 
-**1. Inline mortgage calculator per property card**
+Add left/right chevron buttons flanking the `TabScrollContainer` for easier tab navigation, especially on mobile.
 
-Add a collapsible "Estimate Payment" section inside each expanded property card (below the existing expenses section, above "View Listing"). When toggled open, it shows:
+- Modify `TabScrollContainer` to expose `scrollRef` and add `<` / `>` arrow buttons on each side
+- Left arrow hidden when scrolled to start; right arrow hidden when scrolled to end
+- Clicking an arrow scrolls the container by ~200px with smooth behavior
+- Arrows styled as semi-transparent overlay buttons so they don't take extra space
 
-- **Offer Price** — pre-filled with `prop.price`, editable
-- **Down Payment %** / **Down Payment $** — linked sliders/inputs (changing one updates the other)
-- **Interest Rate %** — slider + input, default 6.5%
-- **Annual Tax Rate %** — default 2.2% (Texas average)
-- **Monthly Homeowner's Insurance** — default $150
-- **Monthly HOA Fee** — pre-filled from `prop.expenses?.hoa || 0`
-- **Estimated Monthly Payment** — computed live as: `P&I + (price × taxRate / 12) + insurance + HOA`
+**File:** `src/pages/ClientPortal.tsx` (edit `TabScrollContainer`)
 
-The P&I formula: `loanAmount × [r(1+r)^n] / [(1+r)^n - 1]` where `r = rate/12`, `n = 360` (30-year).
+---
 
-All inputs use existing `Input` and `Slider` components. The calculator state is local to each card (no database writes).
+### 2. Side-by-Side Comparison View
 
-**2. "Full Calculator on EquiForge" link**
+Add a "Compare" mode where users can select 2-3 properties and view them in a comparison table.
 
-Below the inline calculator, add a link: **"Advanced Calculator on EquiForge →"** that opens `https://equiforge.ai/try/payment` in a new tab. This gives users access to closing costs, credit score ranges, PMI, and other advanced features.
+- Add a `compareIds: Set<string>` state to the main portal
+- Add a small checkbox/toggle on each property card header: "☐ Compare"
+- When 2+ properties are selected, show a sticky "Compare (N)" button at the bottom of the screen
+- Clicking it opens a full-width dialog/sheet showing a comparison table with columns per property and rows for: Address, Price, Beds, Baths, SqFt, Builder, Monthly PITI, HOA, Total Expenses, Rent Estimate, Net Cash Flow, Estimated Payment (using default 20% down / 6.5% rate)
+- Max 3 selections; if user tries to add a 4th, show a toast
+- Create a new component `src/components/portal/ComparisonView.tsx` for the dialog content
 
-### New component
+**Files:**
+- `src/components/portal/ComparisonView.tsx` (create)
+- `src/pages/ClientPortal.tsx` (edit — add compare state, checkbox on PropertyRow, sticky button, dialog)
 
-Create `src/components/portal/PaymentCalculator.tsx` — a self-contained component that takes `price` and `hoaFee` as props and renders the calculator UI. This keeps `ClientPortal.tsx` clean.
+---
 
-### Files
+### 3. Save Estimate to Database
 
-| File | Action |
-|------|--------|
-| `src/components/portal/PaymentCalculator.tsx` | Create — inline mortgage calculator component with all inputs, sliders, and live computation |
-| `src/pages/ClientPortal.tsx` | Edit — import `PaymentCalculator`, render it inside the expanded property card section with a toggle button |
+Allow users to save their custom payment estimator settings (offer price, down payment %, rate, tax rate, insurance, HOA) per property so they persist across sessions.
+
+- Add a new database table `saved_estimates` with columns: `id`, `user_id`, `property_id` (text, matches the dossier property id), `offer_price`, `down_pct`, `rate`, `tax_rate`, `insurance`, `hoa`, `created_at`, `updated_at`
+- RLS: users can CRUD their own rows (`auth.uid() = user_id`)
+- Unique constraint on `(user_id, property_id)` so each user saves one estimate per property (upsert)
+- Modify `PaymentCalculator` to accept `propertyId` and `userId` props, load saved estimate on mount, and show a "Save Estimate" button that upserts to the table
+- Show a subtle "Saved ✓" indicator after saving
+
+**Files:**
+- Database migration: create `saved_estimates` table with RLS
+- `src/components/portal/PaymentCalculator.tsx` (edit — add save/load logic)
+- `src/pages/ClientPortal.tsx` (edit — pass `propertyId` and `userId` to PaymentCalculator)
+- `src/integrations/supabase/types.ts` will auto-update after migration
 
