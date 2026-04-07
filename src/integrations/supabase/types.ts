@@ -118,6 +118,41 @@ export type Database = {
           },
         ]
       }
+      comment_replies: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          id: string
+          interaction_id: string
+          reply_text: string
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          id?: string
+          interaction_id: string
+          reply_text: string
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          id?: string
+          interaction_id?: string
+          reply_text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_replies_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: false
+            referencedRelation: "property_interactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_templates: {
         Row: {
           created_at: string

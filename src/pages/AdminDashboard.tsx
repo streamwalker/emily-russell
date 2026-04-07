@@ -7,7 +7,7 @@ import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
 
@@ -105,8 +105,10 @@ export default function AdminDashboard() {
 
   // Comment detail dialog
   const [commentDialogUserId, setCommentDialogUserId] = useState<string | null>(null);
-  const [commentDetails, setCommentDetails] = useState<{ propertyId: string; address: string; builder: string; comment: string; updatedAt: string; dossierId: string | null }[]>([]);
+  const [commentDetails, setCommentDetails] = useState<{ interactionId: string; propertyId: string; address: string; builder: string; comment: string; updatedAt: string; dossierId: string | null; replies: { id: string; reply_text: string; created_at: string }[] }[]>([]);
   const [commentDetailsLoading, setCommentDetailsLoading] = useState(false);
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+  const [replyingSaving, setReplyingSaving] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -167,27 +169,66 @@ export default function AdminDashboard() {
   const openCommentDialog = useCallback(async (userId: string) => {
     setCommentDialogUserId(userId);
     setCommentDetailsLoading(true);
+    setReplyTexts({});
     const { data } = await supabase
       .from("property_interactions")
-      .select("property_id, comments, updated_at")
+      .select("id, property_id, comments, updated_at")
       .eq("user_id", userId)
       .not("comments", "is", null);
     
+    // Fetch replies for all interactions
+    const interactionIds = (data || []).map(r => r.id);
+    let repliesMap: Record<string, { id: string; reply_text: string; created_at: string }[]> = {};
+    if (interactionIds.length > 0) {
+      const { data: repliesData } = await supabase
+        .from("comment_replies")
+        .select("id, interaction_id, reply_text, created_at")
+        .in("interaction_id", interactionIds)
+        .order("created_at", { ascending: true });
+      for (const r of repliesData || []) {
+        if (!repliesMap[r.interaction_id]) repliesMap[r.interaction_id] = [];
+        repliesMap[r.interaction_id].push({ id: r.id, reply_text: r.reply_text, created_at: r.created_at });
+      }
+    }
+
     const details = (data || []).map(row => {
       const resolved = resolvePropertyFromDossiers(row.property_id, userId);
       return {
+        interactionId: row.id,
         propertyId: row.property_id,
         address: resolved.address,
         builder: resolved.builder,
         comment: row.comments!,
         updatedAt: row.updated_at || "",
         dossierId: resolved.dossierId,
+        replies: repliesMap[row.id] || [],
       };
     }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     
     setCommentDetails(details);
     setCommentDetailsLoading(false);
   }, [resolvePropertyFromDossiers]);
+
+  const submitReply = useCallback(async (interactionId: string) => {
+    const text = replyTexts[interactionId]?.trim();
+    if (!text) return;
+    setReplyingSaving(interactionId);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("comment_replies").insert({
+      interaction_id: interactionId,
+      admin_user_id: userData.user?.id || "",
+      reply_text: text,
+    });
+    if (error) {
+      toast.error("Failed to send reply");
+    } else {
+      toast.success("Reply sent");
+      setReplyTexts(prev => ({ ...prev, [interactionId]: "" }));
+      // Refresh replies
+      if (commentDialogUserId) openCommentDialog(commentDialogUserId);
+    }
+    setReplyingSaving(null);
+  }, [replyTexts, commentDialogUserId, openCommentDialog]);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate("/portal", { replace: true });
@@ -1194,31 +1235,66 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-4">
               {commentDetails.map((c, i) => (
-                <div
-                  key={i}
-                  className={`border border-border rounded p-3 ${c.dossierId ? "cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors" : ""}`}
-                  onClick={() => {
-                    if (c.dossierId) {
-                      setCommentDialogUserId(null);
-                      setPropertyEditId(c.dossierId);
-                      setExpenseEditId(null);
-                      setEditingId(null);
-                    }
-                  }}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="font-body text-sm font-semibold text-foreground">{c.address}</div>
-                      <div className="font-body text-[10px] uppercase tracking-[1.5px] text-muted-foreground">{c.builder}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap">
-                        {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                <div key={i} className="border border-border rounded p-3">
+                  <div
+                    className={`${c.dossierId ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
+                    onClick={() => {
+                      if (c.dossierId) {
+                        setCommentDialogUserId(null);
+                        setPropertyEditId(c.dossierId);
+                        setExpenseEditId(null);
+                        setEditingId(null);
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-body text-sm font-semibold text-foreground">{c.address}</div>
+                        <div className="font-body text-[10px] uppercase tracking-[1.5px] text-muted-foreground">{c.builder}</div>
                       </div>
-                      {c.dossierId && <span className="text-muted-foreground text-xs">→</span>}
+                      <div className="flex items-center gap-2">
+                        <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap">
+                          {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                        </div>
+                        {c.dossierId && <span className="text-muted-foreground text-xs">→</span>}
+                      </div>
                     </div>
+                    <div className="font-body text-sm text-foreground bg-muted/30 rounded p-2 italic">"{c.comment}"</div>
                   </div>
-                  <div className="font-body text-sm text-foreground bg-muted/30 rounded p-2 italic">"{c.comment}"</div>
+
+                  {/* Existing replies */}
+                  {c.replies.length > 0 && (
+                    <div className="mt-2 ml-4 space-y-1.5 border-l-2 border-primary/20 pl-3">
+                      {c.replies.map(r => (
+                        <div key={r.id} className="text-xs">
+                          <span className="font-semibold text-primary">Admin</span>
+                          <span className="text-muted-foreground ml-2">
+                            {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          </span>
+                          <div className="text-foreground mt-0.5">{r.reply_text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply input */}
+                  <div className="mt-2 flex gap-2" onClick={e => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      placeholder="Reply to this comment…"
+                      className="flex-1 font-body text-xs border border-border rounded px-2 py-1.5 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      value={replyTexts[c.interactionId] || ""}
+                      onChange={e => setReplyTexts(prev => ({ ...prev, [c.interactionId]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === "Enter") submitReply(c.interactionId); }}
+                    />
+                    <button
+                      onClick={() => submitReply(c.interactionId)}
+                      disabled={!replyTexts[c.interactionId]?.trim() || replyingSaving === c.interactionId}
+                      className="flex items-center gap-1 font-body text-[10px] uppercase tracking-[1.5px] bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {replyingSaving === c.interactionId ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
