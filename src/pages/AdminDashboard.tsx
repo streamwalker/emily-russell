@@ -1174,6 +1174,42 @@ export default function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Comment Details Dialog */}
+      <Dialog open={!!commentDialogUserId} onOpenChange={(open) => { if (!open) setCommentDialogUserId(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-lg flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-primary" />
+              Comments — {commentDialogUserId ? (getClientName(commentDialogUserId) || getClientEmail(commentDialogUserId)) : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {commentDetailsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            </div>
+          ) : commentDetails.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">No comments found.</div>
+          ) : (
+            <div className="space-y-4">
+              {commentDetails.map((c, i) => (
+                <div key={i} className="border border-border rounded p-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="font-body text-sm font-semibold text-foreground">{c.address}</div>
+                      <div className="font-body text-[10px] uppercase tracking-[1.5px] text-muted-foreground">{c.builder}</div>
+                    </div>
+                    <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap ml-3">
+                      {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                    </div>
+                  </div>
+                  <div className="font-body text-sm text-foreground bg-muted/30 rounded p-2 italic">"{c.comment}"</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
