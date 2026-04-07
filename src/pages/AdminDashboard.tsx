@@ -479,7 +479,7 @@ export default function AdminDashboard() {
                                 Prepared: {d.prepared_date} · Updated: {new Date(d.updated_at).toLocaleDateString()}
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               <button onClick={() => { setPropertyEditId(d.id); setExpenseEditId(null); setEditingId(null); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
                                 🏠 Properties
                               </button>
@@ -488,6 +488,22 @@ export default function AdminDashboard() {
                               </button>
                               <button onClick={() => startEdit(d)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-charcoal px-3 py-1.5 hover:border-primary transition-colors">
                                 Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const clonedData = JSON.parse(JSON.stringify(d.dossier_data));
+                                  setShowNew(true);
+                                  setNewTitle(d.title);
+                                  setNewDate(new Date().toISOString().split("T")[0]);
+                                  setNewUserId("");
+                                  setUseRawJson(false);
+                                  setExtractedData(clonedData);
+                                  setError("");
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors"
+                              >
+                                📋 Use as Template
                               </button>
                               <button onClick={() => deleteDossier(d.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
                                 Delete
