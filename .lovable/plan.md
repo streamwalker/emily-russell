@@ -1,50 +1,42 @@
 
 
-## Three Features: Arrow Navigation, Comparison View, Save Estimates
+## Admin Property Editor + Sticky Header
 
-### 1. Tab Bar Arrow Buttons
+### Two changes
 
-Add left/right chevron buttons flanking the `TabScrollContainer` for easier tab navigation, especially on mobile.
+**1. Admin Property Editor**
 
-- Modify `TabScrollContainer` to expose `scrollRef` and add `<` / `>` arrow buttons on each side
-- Left arrow hidden when scrolled to start; right arrow hidden when scrolled to end
-- Clicking an arrow scrolls the container by ~200px with smooth behavior
-- Arrows styled as semi-transparent overlay buttons so they don't take extra space
+Create `src/components/admin/PropertyEditor.tsx` following the same pattern as `ExpenseEditor`:
+- Same props interface: `dossierData`, `onSave`, `onCancel`, `saving`
+- Deep-clone dossier data into local state
+- List properties grouped by tab (accordion-style, one expanded at a time)
+- For each property, editable fields:
+  - **Text**: address, city, community, area, builder, plan, type, status, rentEst, yieldEst, rentNote, sourceUrl
+  - **Number**: price, beds, sqft, stories, garages
+  - **Text (string)**: baths (supports "2.5" format)
+  - **Textarea**: notes (Agent Notes) — multi-line
+- "Save All" and "Cancel" buttons at the bottom
+- Uses the same `er-input` CSS classes as ExpenseEditor
 
-**File:** `src/pages/ClientPortal.tsx` (edit `TabScrollContainer`)
+Update `src/pages/AdminDashboard.tsx`:
+- Import `PropertyEditor`
+- Add `propertyEditId` state (like `expenseEditId`)
+- Add a "Properties" button next to "Expenses" in each dossier row
+- When active, render `PropertyEditor` in place of the dossier card (same conditional pattern as ExpenseEditor)
 
----
+**2. Sticky Header with Tabs**
 
-### 2. Side-by-Side Comparison View
+Make the header area (branding + tab bar) stick to the top when scrolling, so users always see the tabs.
 
-Add a "Compare" mode where users can select 2-3 properties and view them in a comparison table.
+In `src/pages/ClientPortal.tsx`:
+- Add `sticky top-0 z-40` to the header `div` (the one with the dark gradient background, lines 534-629)
+- This keeps the "Prepared by..." line, title, account buttons, and tab bar all visible while scrolling
 
-- Add a `compareIds: Set<string>` state to the main portal
-- Add a small checkbox/toggle on each property card header: "☐ Compare"
-- When 2+ properties are selected, show a sticky "Compare (N)" button at the bottom of the screen
-- Clicking it opens a full-width dialog/sheet showing a comparison table with columns per property and rows for: Address, Price, Beds, Baths, SqFt, Builder, Monthly PITI, HOA, Total Expenses, Rent Estimate, Net Cash Flow, Estimated Payment (using default 20% down / 6.5% rate)
-- Max 3 selections; if user tries to add a 4th, show a toast
-- Create a new component `src/components/portal/ComparisonView.tsx` for the dialog content
+### Files
 
-**Files:**
-- `src/components/portal/ComparisonView.tsx` (create)
-- `src/pages/ClientPortal.tsx` (edit — add compare state, checkbox on PropertyRow, sticky button, dialog)
-
----
-
-### 3. Save Estimate to Database
-
-Allow users to save their custom payment estimator settings (offer price, down payment %, rate, tax rate, insurance, HOA) per property so they persist across sessions.
-
-- Add a new database table `saved_estimates` with columns: `id`, `user_id`, `property_id` (text, matches the dossier property id), `offer_price`, `down_pct`, `rate`, `tax_rate`, `insurance`, `hoa`, `created_at`, `updated_at`
-- RLS: users can CRUD their own rows (`auth.uid() = user_id`)
-- Unique constraint on `(user_id, property_id)` so each user saves one estimate per property (upsert)
-- Modify `PaymentCalculator` to accept `propertyId` and `userId` props, load saved estimate on mount, and show a "Save Estimate" button that upserts to the table
-- Show a subtle "Saved ✓" indicator after saving
-
-**Files:**
-- Database migration: create `saved_estimates` table with RLS
-- `src/components/portal/PaymentCalculator.tsx` (edit — add save/load logic)
-- `src/pages/ClientPortal.tsx` (edit — pass `propertyId` and `userId` to PaymentCalculator)
-- `src/integrations/supabase/types.ts` will auto-update after migration
+| File | Action |
+|------|--------|
+| `src/components/admin/PropertyEditor.tsx` | Create — full property + notes editor |
+| `src/pages/AdminDashboard.tsx` | Edit — add PropertyEditor button and rendering |
+| `src/pages/ClientPortal.tsx` | Edit — add `sticky top-0 z-40` to header container |
 
