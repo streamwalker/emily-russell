@@ -9,8 +9,16 @@ import RankBadge from "@/components/portal/RankBadge";
 import TabSummary from "@/components/portal/TabSummary";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Heart, CalendarIcon, Save } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import {
   scorePrimaryResidence,
   scoreIncomeGeneration,
@@ -73,6 +81,29 @@ interface DossierData {
   phone?: string;
 }
 
+interface PropertyInteraction {
+  id?: string;
+  user_id: string;
+  property_id: string;
+  dossier_id?: string;
+  is_favorite: boolean;
+  preferred_tour_date: string | null;
+  preferred_tour_time: string | null;
+  comments: string | null;
+  grade: string | null;
+}
+
+const GRADE_OPTIONS = [
+  "A+", "A", "A-",
+  "B+", "B", "B-",
+  "C+", "C", "C-",
+  "D+", "D", "D-",
+  "F", "F-",
+];
+
+const LIMITED_GRADES = ["A+", "A", "A-"];
+const GRADE_LIMIT = 3;
+
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -84,13 +115,7 @@ const RANK_TABS: Tab[] = [
 ];
 
 const RAINBOW_PALETTE = [
-  "#E81416", // Red
-  "#F97306", // Orange
-  "#FACA09", // Yellow
-  "#79C314", // Green
-  "#487DE7", // Blue
-  "#7B1FA2", // Purple
-  "#C2185B", // Magenta
+  "#E81416", "#F97306", "#FACA09", "#79C314", "#487DE7", "#7B1FA2", "#C2185B",
 ];
 
 function getRainbowColor(index: number) {
@@ -186,6 +211,9 @@ function PropertyRow({
   isCompareSelected,
   onCompareToggle,
   userId,
+  interaction,
+  onInteractionChange,
+  gradeCounts,
 }: {
   prop: Property;
   isExpanded: boolean;
@@ -195,18 +223,49 @@ function PropertyRow({
   isCompareSelected?: boolean;
   onCompareToggle?: () => void;
   userId?: string;
+  interaction?: PropertyInteraction;
+  onInteractionChange?: (propertyId: string, field: string, value: any) => void;
+  gradeCounts?: Record<string, number>;
 }) {
+  const isFav = interaction?.is_favorite || false;
+
+  const handleGradeChange = (newGrade: string) => {
+    if (!onInteractionChange) return;
+    if (LIMITED_GRADES.includes(newGrade)) {
+      const currentGrade = interaction?.grade;
+      const currentCount = gradeCounts?.[newGrade] || 0;
+      const alreadyHasThisGrade = currentGrade === newGrade;
+      if (!alreadyHasThisGrade && currentCount >= GRADE_LIMIT) {
+        toast.error(`Only ${GRADE_LIMIT} properties can receive a grade of ${newGrade} per dossier.`);
+        return;
+      }
+    }
+    onInteractionChange(prop.id, "grade", newGrade);
+  };
+
   return (
     <div className="bg-card rounded border border-border mb-3.5 overflow-hidden shadow-sm">
-      {/* Compare checkbox + rank badge header */}
+      {/* Compare checkbox + favorite + rank badge header */}
       <div className="flex items-center justify-between px-5 pt-3 pb-1">
-        <div>{rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}</div>
-        {onCompareToggle && (
-          <label className="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground font-body" onClick={e => e.stopPropagation()}>
-            <Checkbox checked={isCompareSelected} onCheckedChange={() => onCompareToggle()} className="h-3.5 w-3.5" />
-            Compare
-          </label>
-        )}
+        <div className="flex items-center gap-2">
+          {rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Favorite button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onInteractionChange?.(prop.id, "is_favorite", !isFav); }}
+            className="cursor-pointer bg-transparent border-none p-0 transition-transform hover:scale-110"
+            title={isFav ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart className={cn("h-5 w-5 transition-colors", isFav ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
+          </button>
+          {onCompareToggle && (
+            <label className="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground font-body" onClick={e => e.stopPropagation()}>
+              <Checkbox checked={isCompareSelected} onCheckedChange={() => onCompareToggle()} className="h-3.5 w-3.5" />
+              Compare
+            </label>
+          )}
+        </div>
       </div>
       <div
         onClick={onToggle}
@@ -289,6 +348,36 @@ function PropertyRow({
                     </div>
                   ))}
               </div>
+
+              {/* Tour Scheduling */}
+              <div className="mt-4">
+                <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">When would you like to see this home?</div>
+                <div className="flex gap-2 items-start">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal text-xs h-8", !interaction?.preferred_tour_date && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                        {interaction?.preferred_tour_date ? format(new Date(interaction.preferred_tour_date + "T12:00:00"), "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={interaction?.preferred_tour_date ? new Date(interaction.preferred_tour_date + "T12:00:00") : undefined}
+                        onSelect={(d) => onInteractionChange?.(prop.id, "preferred_tour_date", d ? format(d, "yyyy-MM-dd") : null)}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Input
+                    placeholder="e.g. 10:00 AM"
+                    value={interaction?.preferred_tour_time || ""}
+                    onChange={(e) => onInteractionChange?.(prop.id, "preferred_tour_time", e.target.value)}
+                    className="w-[110px] text-xs h-8"
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Agent Notes</div>
@@ -369,6 +458,45 @@ function PropertyRow({
               )}
             </div>
           </div>
+
+          {/* Your Feedback Section */}
+          <div className="mt-4 p-3 rounded border border-border bg-muted/50">
+            <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Your Feedback</div>
+            <div className="flex gap-3 items-start">
+              <div className="flex-1">
+                <Textarea
+                  placeholder="Add your notes about this property..."
+                  value={interaction?.comments || ""}
+                  onChange={(e) => onInteractionChange?.(prop.id, "comments", e.target.value)}
+                  className="text-xs min-h-[60px] resize-y"
+                />
+              </div>
+              <div className="w-[100px]">
+                <div className="text-[9px] text-muted-foreground mb-1 font-body">Grade</div>
+                <Select
+                  value={interaction?.grade || ""}
+                  onValueChange={handleGradeChange}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GRADE_OPTIONS.map(g => {
+                      const isLimited = LIMITED_GRADES.includes(g);
+                      const count = gradeCounts?.[g] || 0;
+                      const atLimit = isLimited && count >= GRADE_LIMIT && interaction?.grade !== g;
+                      return (
+                        <SelectItem key={g} value={g} disabled={atLimit} className="text-xs">
+                          {g} {isLimited && <span className="text-muted-foreground ml-1">({count}/{GRADE_LIMIT})</span>}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
           {prop.price && (
             <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} />
           )}
@@ -391,8 +519,11 @@ export default function ClientPortal() {
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
   const [userId, setUserId] = useState("");
+  const [interactions, setInteractions] = useState<Record<string, PropertyInteraction>>({});
+  const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
   const { isAdmin } = useAdminCheck();
   const navigate = useNavigate();
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
   const toggleCompare = (id: string) => {
     setCompareIds(prev => {
@@ -407,6 +538,62 @@ export default function ClientPortal() {
   const allProperties = useMemo(() => (dossier ? Object.values(dossier.properties).flat() : []), [dossier]);
   const compareProperties = useMemo(() => allProperties.filter(p => compareIds.has(p.id)), [allProperties, compareIds]);
 
+  // Grade counts across all interactions
+  const gradeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.values(interactions).forEach(i => {
+      if (i.grade) counts[i.grade] = (counts[i.grade] || 0) + 1;
+    });
+    return counts;
+  }, [interactions]);
+
+  // Favorites count
+  const favCount = useMemo(() => Object.values(interactions).filter(i => i.is_favorite).length, [interactions]);
+
+  // Upsert interaction to DB
+  const upsertInteraction = useCallback(async (propertyId: string, data: Partial<PropertyInteraction>) => {
+    if (!userId) return;
+    const existing = interactions[propertyId];
+    const payload = {
+      user_id: userId,
+      property_id: propertyId,
+      is_favorite: data.is_favorite ?? existing?.is_favorite ?? false,
+      preferred_tour_date: data.preferred_tour_date !== undefined ? data.preferred_tour_date : existing?.preferred_tour_date || null,
+      preferred_tour_time: data.preferred_tour_time !== undefined ? data.preferred_tour_time : existing?.preferred_tour_time || null,
+      comments: data.comments !== undefined ? data.comments : existing?.comments || null,
+      grade: data.grade !== undefined ? data.grade : existing?.grade || null,
+    };
+
+    const { error } = await supabase
+      .from("property_interactions")
+      .upsert(payload, { onConflict: "user_id,property_id" });
+
+    if (error) {
+      console.error("Failed to save interaction:", error);
+      toast.error("Failed to save. Please try again.");
+    }
+  }, [userId, interactions]);
+
+  // Handle interaction field change with debounce for text fields
+  const handleInteractionChange = useCallback((propertyId: string, field: string, value: any) => {
+    setInteractions(prev => {
+      const existing = prev[propertyId] || { user_id: userId, property_id: propertyId, is_favorite: false, preferred_tour_date: null, preferred_tour_time: null, comments: null, grade: null };
+      return { ...prev, [propertyId]: { ...existing, [field]: value } };
+    });
+
+    // Debounce text fields, immediate for others
+    const key = `${propertyId}-${field}`;
+    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
+
+    if (field === "comments" || field === "preferred_tour_time") {
+      debounceTimers.current[key] = setTimeout(() => {
+        upsertInteraction(propertyId, { [field]: value });
+      }, 1000);
+    } else {
+      upsertInteraction(propertyId, { [field]: value });
+    }
+  }, [userId, upsertInteraction]);
+
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -414,17 +601,16 @@ export default function ClientPortal() {
       setUserEmail(session.user.email || "");
       setUserId(session.user.id);
 
-      const { data, error } = await supabase
-        .from("client_dossiers")
-        .select("dossier_data")
-        .eq("user_id", session.user.id)
-        .limit(1)
-        .maybeSingle();
+      // Load dossier and interactions in parallel
+      const [dossierRes, interactionsRes] = await Promise.all([
+        supabase.from("client_dossiers").select("dossier_data").eq("user_id", session.user.id).limit(1).maybeSingle(),
+        supabase.from("property_interactions").select("*").eq("user_id", session.user.id),
+      ]);
 
-      if (error || !data) {
+      if (dossierRes.error || !dossierRes.data) {
         setDossier(null);
       } else {
-        const d = data.dossier_data as unknown as DossierData;
+        const d = dossierRes.data.dossier_data as unknown as DossierData;
         setDossier(d);
         if (d.tabs?.length) {
           setActiveTab(d.tabs[0].key);
@@ -432,6 +618,16 @@ export default function ClientPortal() {
           setExpandedIds(new Set(firstIds));
         }
       }
+
+      // Build interactions map
+      if (interactionsRes.data) {
+        const map: Record<string, PropertyInteraction> = {};
+        interactionsRes.data.forEach((row: any) => {
+          map[row.property_id] = row;
+        });
+        setInteractions(map);
+      }
+
       setLoading(false);
     };
     load();
@@ -507,7 +703,6 @@ export default function ClientPortal() {
   }
 
   const currentTab = allTabs.find(t => t.key === activeTab) || allTabs[0];
-
   const totalProps = Object.values(dossier.properties).flat().length;
 
   const outOfTownByCity =
@@ -519,6 +714,23 @@ export default function ClientPortal() {
           return acc;
         }, {})
       : null;
+
+  const renderPropertyRow = (p: Property, color: string, rankInfo?: { rank: number; scoreSummary: string; sourceTab: string }) => (
+    <PropertyRow
+      key={p.id}
+      prop={p}
+      isExpanded={expandedIds.has(p.id)}
+      onToggle={() => toggle(p.id)}
+      accentColor={color}
+      rankInfo={rankInfo}
+      isCompareSelected={compareIds.has(p.id)}
+      onCompareToggle={() => toggleCompare(p.id)}
+      userId={userId}
+      interaction={interactions[p.id]}
+      onInteractionChange={handleInteractionChange}
+      gradeCounts={gradeCounts}
+    />
+  );
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -541,6 +753,11 @@ export default function ClientPortal() {
                 <div>{dossier.date || "April 6, 2026"}</div>
                 <div>{dossier.phone || "(210) 912-0806"}</div>
               </div>
+              {favCount > 0 && (
+                <div className="flex items-center gap-1 text-[11px] text-red-400 font-body">
+                  <Heart className="h-3.5 w-3.5 fill-red-400" /> {favCount}
+                </div>
+              )}
               <Link to="/portal/dashboard" className="font-body text-[11px] uppercase tracking-[2px] no-underline bg-transparent border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors">
                 Dashboard
               </Link>
@@ -570,7 +787,7 @@ export default function ClientPortal() {
             </div>
           </div>
 
-          {/* Tabs with scroll indicator */}
+          {/* Tabs */}
           <TabScrollContainer>
             {allTabs.map((tab, idx) => {
               const rainbowColor = getRainbowColor(idx);
@@ -671,19 +888,7 @@ export default function ClientPortal() {
             <p className="text-xs text-muted-foreground font-body mb-4">
               All {primaryRanked.length} properties ranked best-to-worst for primary residence living — based on size, layout, value per sq ft, and move-in readiness.
             </p>
-            {primaryRanked.map(p => (
-              <PropertyRow
-                key={p.id}
-                prop={p}
-                isExpanded={expandedIds.has(p.id)}
-                onToggle={() => toggle(p.id)}
-                accentColor={currentTab.color}
-                rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
-                isCompareSelected={compareIds.has(p.id)}
-                onCompareToggle={() => toggleCompare(p.id)}
-                userId={userId}
-              />
-            ))}
+            {primaryRanked.map(p => renderPropertyRow(p, currentTab.color, { rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }))}
           </div>
         )}
 
@@ -697,19 +902,7 @@ export default function ClientPortal() {
               <p className="text-xs text-muted-foreground font-body mb-3">
                 Ranked by gross yield, rental income, and barrier to entry — {incomeFiltered.fullRental.length} properties.
               </p>
-              {incomeFiltered.fullRental.map(p => (
-                <PropertyRow
-                  key={`fr-${p.id}`}
-                  prop={p}
-                  isExpanded={expandedIds.has(p.id)}
-                  onToggle={() => toggle(p.id)}
-                  accentColor={currentTab.color}
-                  rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
-                  isCompareSelected={compareIds.has(p.id)}
-                  onCompareToggle={() => toggleCompare(p.id)}
-                  userId={userId}
-                />
-              ))}
+              {incomeFiltered.fullRental.map(p => renderPropertyRow(p, currentTab.color, { rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }))}
             </div>
 
             {incomeFiltered.airbnbPotential.length > 0 && (
@@ -720,19 +913,7 @@ export default function ClientPortal() {
                 <p className="text-xs text-muted-foreground font-body mb-3">
                   Properties suited for short-term rentals or renting out part of the home — {incomeFiltered.airbnbPotential.length} properties.
                 </p>
-                {incomeFiltered.airbnbPotential.map(p => (
-                  <PropertyRow
-                    key={`ab-${p.id}`}
-                    prop={p}
-                    isExpanded={expandedIds.has(p.id)}
-                    onToggle={() => toggle(p.id)}
-                    accentColor="#1565c0"
-                    rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
-                    isCompareSelected={compareIds.has(p.id)}
-                    onCompareToggle={() => toggleCompare(p.id)}
-                    userId={userId}
-                  />
-                ))}
+                {incomeFiltered.airbnbPotential.map(p => renderPropertyRow(p, "#1565c0", { rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }))}
               </div>
             )}
           </div>
@@ -751,7 +932,7 @@ export default function ClientPortal() {
                     {p._builderTag}
                   </div>
                 )}
-                <PropertyRow prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
+                {renderPropertyRow(p, currentTab.color)}
               </div>
             ))}
           </div>
@@ -766,15 +947,11 @@ export default function ClientPortal() {
                   <div className="text-[11px] font-bold uppercase tracking-[2px] text-muted-foreground mb-2 pb-1 border-b border-border">
                     {city}
                   </div>
-                  {props.map(p => (
-                    <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
-                  ))}
+                  {props.map(p => renderPropertyRow(p, currentTab.color))}
                 </div>
               ))
             ) : (
-              builderProperties.map(p => (
-                <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
-              ))
+              builderProperties.map(p => renderPropertyRow(p, currentTab.color))
             )}
           </>
         )}
