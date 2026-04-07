@@ -214,21 +214,42 @@ export default function AdminDashboard() {
     if (!text) return;
     setReplyingSaving(interactionId);
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("comment_replies").insert({
+    const { data: insertedReply, error } = await supabase.from("comment_replies").insert({
       interaction_id: interactionId,
       admin_user_id: userData.user?.id || "",
       reply_text: text,
-    });
+    }).select("id").single();
     if (error) {
       toast.error("Failed to send reply");
     } else {
       toast.success("Reply sent");
       setReplyTexts(prev => ({ ...prev, [interactionId]: "" }));
+
+      // Send email notification to client
+      if (commentDialogUserId && insertedReply) {
+        const profile = profiles.find(p => p.user_id === commentDialogUserId);
+        const detail = commentDetails.find(c => c.interactionId === interactionId);
+        if (profile?.email) {
+          supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "comment-reply-notification",
+              recipientEmail: profile.email,
+              idempotencyKey: `reply-${insertedReply.id}`,
+              templateData: {
+                propertyAddress: detail?.address || "a property",
+                replyText: text,
+                portalUrl: `${window.location.origin}/portal`,
+              },
+            },
+          }).catch(err => console.error("Email notification failed:", err));
+        }
+      }
+
       // Refresh replies
       if (commentDialogUserId) openCommentDialog(commentDialogUserId);
     }
     setReplyingSaving(null);
-  }, [replyTexts, commentDialogUserId, openCommentDialog]);
+  }, [replyTexts, commentDialogUserId, openCommentDialog, profiles, commentDetails]);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate("/portal", { replace: true });
