@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
@@ -77,6 +77,56 @@ const RANK_TABS: Tab[] = [
   { key: "rank-primary", label: "🏠 Primary Residence", color: "#5B7FA5" },
   { key: "rank-income", label: "💰 Income Generation", color: "#2e7d32" },
 ];
+
+const RAINBOW_PALETTE = [
+  "#E81416", // Red
+  "#F97306", // Orange
+  "#FACA09", // Yellow
+  "#79C314", // Green
+  "#487DE7", // Blue
+  "#7B1FA2", // Purple
+  "#C2185B", // Magenta
+];
+
+function getRainbowColor(index: number) {
+  return RAINBOW_PALETTE[index % RAINBOW_PALETTE.length];
+}
+
+/* ── Tab Scroll Container ── */
+function TabScrollContainer({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showFade, setShowFade] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [checkScroll]);
+
+  return (
+    <div className="relative">
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="tab-scroll-container flex gap-1 overflow-x-auto items-end pb-1"
+      >
+        {children}
+      </div>
+      {showFade && (
+        <div
+          className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 transition-opacity duration-300"
+          style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }}
+        />
+      )}
+    </div>
+  );
+}
 
 /* ── Property Row ── */
 function PropertyRow({
@@ -445,9 +495,12 @@ export default function ClientPortal() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto items-end">
+          {/* Tabs with scroll indicator */}
+          <TabScrollContainer>
             {allTabs.map((tab, idx) => {
+              const rainbowColor = getRainbowColor(idx);
+              const isActive = activeTab === tab.key;
+
               const tooltipText = tab.key === "all-homes"
                 ? "View every property in your dossier in one place, regardless of builder."
                 : tab.key === "rank-primary"
@@ -464,8 +517,10 @@ export default function ClientPortal() {
                   onClick={() => setActiveTab(tab.key)}
                   className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
                   style={{
-                    background: activeTab === tab.key ? tab.color : "rgba(255,255,255,0.06)",
-                    color: activeTab === tab.key ? "#fff" : "rgba(255,255,255,0.4)",
+                    background: isActive ? rainbowColor : "rgba(255,255,255,0.06)",
+                    color: isActive ? "#fff" : rainbowColor,
+                    borderBottom: isActive ? "none" : `2px solid ${rainbowColor}40`,
+                    opacity: isActive ? 1 : 0.85,
                   }}
                 >
                   {tab.label}{" "}
@@ -490,12 +545,12 @@ export default function ClientPortal() {
               }
               return tabBtn;
             })}
-          </div>
+          </TabScrollContainer>
         </div>
       </div>
 
       {/* Accent bar */}
-      <div className="h-[3px]" style={{ background: currentTab.color }} />
+      <div className="h-[3px]" style={{ background: getRainbowColor(allTabs.findIndex(t => t.key === activeTab)) }} />
 
       {/* Content */}
       <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
