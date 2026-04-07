@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import PaymentCalculator from "@/components/portal/PaymentCalculator";
+import ComparisonView from "@/components/portal/ComparisonView";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
@@ -7,6 +8,9 @@ import FilterSortToolbar from "@/components/portal/FilterSortToolbar";
 import RankBadge from "@/components/portal/RankBadge";
 import TabSummary from "@/components/portal/TabSummary";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import {
   scorePrimaryResidence,
   scoreIncomeGeneration,
@@ -97,11 +101,15 @@ function getRainbowColor(index: number) {
 function TabScrollContainer({ children }: { children: React.ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(true);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(true);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     setShowFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    setShowLeft(el.scrollLeft > 4);
+    setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   }, []);
 
   useEffect(() => {
@@ -110,27 +118,49 @@ function TabScrollContainer({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", checkScroll);
   }, [checkScroll]);
 
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  };
+
   return (
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        onScroll={checkScroll}
-        className="tab-scroll-container flex gap-1 overflow-x-auto items-end pb-1"
-      >
-        {children}
-      </div>
-      {showFade && (
+    <div className="relative flex items-end">
+      {showLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors mr-1 cursor-pointer border-none"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+      <div className="relative flex-1 min-w-0">
         <div
-          className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 transition-opacity duration-300"
-          style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }}
-        />
+          ref={scrollRef}
+          onScroll={checkScroll}
+          className="tab-scroll-container flex gap-1 overflow-x-auto items-end pb-1"
+        >
+          {children}
+        </div>
+        {showFade && (
+          <div
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 transition-opacity duration-300"
+            style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }}
+          />
+        )}
+      </div>
+      {showRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors ml-1 cursor-pointer border-none"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       )}
     </div>
   );
 }
 
 /* ── Payment Calculator Toggle ── */
-function PaymentCalculatorToggle({ price, hoaFee, accentColor }: { price: number; hoaFee?: number; accentColor: string }) {
+function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userId }: { price: number; hoaFee?: number; accentColor: string; propertyId?: string; userId?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
@@ -141,7 +171,7 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor }: { price: number
       >
         {open ? "▾ Hide Payment Estimator" : "▸ Estimate Monthly Payment"}
       </button>
-      {open && <PaymentCalculator price={price} hoaFee={hoaFee} />}
+      {open && <PaymentCalculator price={price} hoaFee={hoaFee} propertyId={propertyId} userId={userId} />}
     </div>
   );
 }
@@ -153,20 +183,31 @@ function PropertyRow({
   onToggle,
   accentColor,
   rankInfo,
+  isCompareSelected,
+  onCompareToggle,
+  userId,
 }: {
   prop: Property;
   isExpanded: boolean;
   onToggle: () => void;
   accentColor: string;
   rankInfo?: { rank: number; scoreSummary: string; sourceTab: string };
+  isCompareSelected?: boolean;
+  onCompareToggle?: () => void;
+  userId?: string;
 }) {
   return (
     <div className="bg-card rounded border border-border mb-3.5 overflow-hidden shadow-sm">
-      {rankInfo && (
-        <div className="px-5 pt-3 pb-1">
-          <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />
-        </div>
-      )}
+      {/* Compare checkbox + rank badge header */}
+      <div className="flex items-center justify-between px-5 pt-3 pb-1">
+        <div>{rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}</div>
+        {onCompareToggle && (
+          <label className="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground font-body" onClick={e => e.stopPropagation()}>
+            <Checkbox checked={isCompareSelected} onCheckedChange={() => onCompareToggle()} className="h-3.5 w-3.5" />
+            Compare
+          </label>
+        )}
+      </div>
       <div
         onClick={onToggle}
         className="flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
@@ -315,9 +356,8 @@ function PropertyRow({
                   </div>
                 );
               })()}
-              {/* Payment Calculator Toggle */}
               {prop.price && (
-                <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} />
+                <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} />
               )}
               {prop.sourceUrl && (
                 <a
@@ -348,14 +388,31 @@ export default function ClientPortal() {
   const [showSettings, setShowSettings] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [sort, setSort] = useState<SortField>("price-asc");
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [showCompare, setShowCompare] = useState(false);
+  const [userId, setUserId] = useState("");
   const { isAdmin } = useAdminCheck();
   const navigate = useNavigate();
+
+  const toggleCompare = (id: string) => {
+    setCompareIds(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) { n.delete(id); return n; }
+      if (n.size >= 3) { toast.error("You can compare up to 3 properties at a time."); return prev; }
+      n.add(id);
+      return n;
+    });
+  };
+
+  const allProperties = useMemo(() => (dossier ? Object.values(dossier.properties).flat() : []), [dossier]);
+  const compareProperties = useMemo(() => allProperties.filter(p => compareIds.has(p.id)), [allProperties, compareIds]);
 
   useEffect(() => {
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/portal/login", { replace: true }); return; }
       setUserEmail(session.user.email || "");
+      setUserId(session.user.id);
 
       const { data, error } = await supabase
         .from("client_dossiers")
@@ -626,6 +683,9 @@ export default function ClientPortal() {
                 onToggle={() => toggle(p.id)}
                 accentColor={currentTab.color}
                 rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
+                isCompareSelected={compareIds.has(p.id)}
+                onCompareToggle={() => toggleCompare(p.id)}
+                userId={userId}
               />
             ))}
           </div>
@@ -649,6 +709,9 @@ export default function ClientPortal() {
                   onToggle={() => toggle(p.id)}
                   accentColor={currentTab.color}
                   rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
+                  isCompareSelected={compareIds.has(p.id)}
+                  onCompareToggle={() => toggleCompare(p.id)}
+                  userId={userId}
                 />
               ))}
             </div>
@@ -669,6 +732,9 @@ export default function ClientPortal() {
                     onToggle={() => toggle(p.id)}
                     accentColor="#1565c0"
                     rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
+                    isCompareSelected={compareIds.has(p.id)}
+                    onCompareToggle={() => toggleCompare(p.id)}
+                    userId={userId}
                   />
                 ))}
               </div>
@@ -689,7 +755,7 @@ export default function ClientPortal() {
                     {p._builderTag}
                   </div>
                 )}
-                <PropertyRow prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+                <PropertyRow prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
               </div>
             ))}
           </div>
@@ -705,13 +771,13 @@ export default function ClientPortal() {
                     {city}
                   </div>
                   {props.map(p => (
-                    <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+                    <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
                   ))}
                 </div>
               ))
             ) : (
               builderProperties.map(p => (
-                <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+                <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} isCompareSelected={compareIds.has(p.id)} onCompareToggle={() => toggleCompare(p.id)} userId={userId} />
               ))
             )}
           </>
@@ -728,6 +794,19 @@ export default function ClientPortal() {
       <div className="fixed bottom-4 left-4 font-body text-[10px] text-muted-foreground opacity-50">
         Logged in as {userEmail}
       </div>
+
+      {/* Sticky Compare Button */}
+      {compareIds.size >= 2 && (
+        <button
+          onClick={() => setShowCompare(true)}
+          className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-full shadow-lg font-body text-sm font-semibold cursor-pointer border-none transition-transform hover:scale-105 bg-primary text-primary-foreground"
+        >
+          Compare ({compareIds.size})
+        </button>
+      )}
+
+      {/* Comparison Dialog */}
+      <ComparisonView open={showCompare} onOpenChange={setShowCompare} properties={compareProperties} />
     </div>
     </TooltipProvider>
   );
