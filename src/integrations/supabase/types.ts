@@ -41,6 +41,45 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_events: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          event_type: string
+          id: string
+          label: string | null
+          page: string | null
+          referrer: string | null
+          session_id: string | null
+          target: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          event_type: string
+          id?: string
+          label?: string | null
+          page?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          target?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          event_type?: string
+          id?: string
+          label?: string | null
+          page?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          target?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       client_dossiers: {
         Row: {
           created_at: string

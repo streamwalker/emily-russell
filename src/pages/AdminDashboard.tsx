@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import ExpenseEditor from "@/components/admin/ExpenseEditor";
 import PropertyEditor from "@/components/admin/PropertyEditor";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
 interface DossierRow {
   id: string;
@@ -14,6 +17,42 @@ interface DossierRow {
   created_at: string;
   updated_at: string;
   client_email?: string;
+}
+
+interface ClientInteractionSummary {
+  userId: string;
+  email?: string;
+  name?: string;
+  favorites: number;
+  grades: number;
+  tours: number;
+  comments: number;
+}
+
+interface AnalyticsData {
+  builtInAnalytics: any;
+  customEvents: {
+    topClicks: { label: string; count: number; target: string }[];
+    dwellTimes: { page: string; avgMs: number; sessions: number }[];
+    totalCustomPageViews: number;
+  };
+  clientActivity: ClientInteractionSummary[];
+  recentAgreements: { client_name: string; agreement_type: string; signed_at: string; client_email: string | null }[];
+}
+
+const CHART_COLORS = ["hsl(27, 35%, 59%)", "hsl(27, 50%, 72%)", "hsl(15, 38%, 62%)", "hsl(140, 30%, 55%)", "hsl(220, 30%, 55%)"];
+
+function KpiCard({ icon: Icon, label, value, sub }: { icon: any; label: string; value: string | number; sub?: string }) {
+  return (
+    <div className="bg-white border border-border p-5 shadow-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="w-4 h-4 text-primary" />
+        <span className="font-body text-[10px] tracking-[2px] uppercase text-muted-foreground">{label}</span>
+      </div>
+      <div className="font-display text-2xl font-semibold text-foreground">{value}</div>
+      {sub && <div className="font-body text-xs text-muted-foreground mt-1">{sub}</div>}
+    </div>
+  );
 }
 
 export default function AdminDashboard() {
@@ -38,21 +77,54 @@ export default function AdminDashboard() {
   const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
   const [newJson, setNewJson] = useState("{}");
 
+  // Analytics
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  // Client interaction summaries (for dossier tab)
+  const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
+
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [dossierRes, profileRes] = await Promise.all([
+    const [dossierRes, profileRes, interactionsRes] = await Promise.all([
       supabase.from("client_dossiers").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, email, full_name"),
+      supabase.from("property_interactions").select("user_id, is_favorite, grade, preferred_tour_date, comments"),
     ]);
     if (dossierRes.data) setDossiers(dossierRes.data as DossierRow[]);
     if (profileRes.data) setProfiles(profileRes.data);
+
+    // Aggregate interactions per user
+    const summaries: Record<string, { favorites: number; grades: number; tours: number; comments: number }> = {};
+    (interactionsRes.data || []).forEach((i) => {
+      if (!summaries[i.user_id]) summaries[i.user_id] = { favorites: 0, grades: 0, tours: 0, comments: 0 };
+      if (i.is_favorite) summaries[i.user_id].favorites++;
+      if (i.grade) summaries[i.user_id].grades++;
+      if (i.preferred_tour_date) summaries[i.user_id].tours++;
+      if (i.comments) summaries[i.user_id].comments++;
+    });
+    setInteractionSummaries(summaries);
     setLoading(false);
+  }, []);
+
+  const fetchAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-site-analytics");
+      if (!error && data) setAnalytics(data as AnalyticsData);
+    } catch (e) {
+      console.error("Failed to fetch analytics:", e);
+    }
+    setAnalyticsLoading(false);
   }, []);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate("/portal", { replace: true });
-    if (!adminLoading && isAdmin) fetchData();
-  }, [adminLoading, isAdmin, navigate, fetchData]);
+    if (!adminLoading && isAdmin) {
+      fetchData();
+      fetchAnalytics();
+    }
+  }, [adminLoading, isAdmin, navigate, fetchData, fetchAnalytics]);
 
   const getClientEmail = (userId: string) => profiles.find(p => p.user_id === userId)?.email || userId;
   const getClientName = (userId: string) => profiles.find(p => p.user_id === userId)?.full_name || "";
@@ -119,23 +191,49 @@ export default function AdminDashboard() {
   if (adminLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-cream">
-        <div className="text-gold font-body text-lg">Loading…</div>
+        <div className="text-primary font-body text-lg">Loading…</div>
       </div>
     );
   }
+
+  // Parse built-in analytics
+  const visitorTimeSeries = analytics?.builtInAnalytics?.timeSeries?.find((ts: any) => ts.name === "visitors")?.data || [];
+  const pageviewTimeSeries = analytics?.builtInAnalytics?.timeSeries?.find((ts: any) => ts.name === "pageviews")?.data || [];
+  const totals = analytics?.builtInAnalytics?.timeSeries || [];
+  const totalVisitors = totals.find((t: any) => t.name === "visitors")?.total || 0;
+  const totalPageviews = totals.find((t: any) => t.name === "pageviews")?.total || 0;
+  const avgSessionDuration = totals.find((t: any) => t.name === "sessionDuration")?.total || 0;
+  const bounceRate = totals.find((t: any) => t.name === "bounceRate")?.total || 0;
+
+  const breakdowns = analytics?.builtInAnalytics?.breakdowns || {};
+  const topPages = breakdowns.page || [];
+  const trafficSources = breakdowns.source || [];
+  const deviceBreakdown = breakdowns.device || [];
+  const countryBreakdown = breakdowns.country || [];
+
+  const chartData = (visitorTimeSeries as any[])
+    .filter((d: any) => d.value > 0)
+    .map((d: any, i: number) => ({
+      date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      visitors: d.value,
+      pageviews: (pageviewTimeSeries as any[])[i]?.value || 0,
+    }));
 
   return (
     <div className="font-body min-h-screen bg-cream text-charcoal">
       {/* Header */}
       <div className="bg-charcoal text-white px-6 py-5">
-        <div className="max-w-[1100px] mx-auto flex justify-between items-center">
+        <div className="max-w-[1200px] mx-auto flex justify-between items-center">
           <div>
             <h1 className="font-display text-2xl font-bold m-0">Admin Dashboard</h1>
-            <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Manage Client Dossiers</p>
+            <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Dossiers · Analytics · Engagement</p>
           </div>
           <div className="flex gap-3 items-center">
             <Link to="/portal" className="font-body text-[11px] uppercase tracking-[2px] text-white/70 no-underline hover:text-white transition-colors">
               My Portal
+            </Link>
+            <Link to="/" className="font-body text-[11px] uppercase tracking-[2px] text-white/70 no-underline hover:text-white transition-colors">
+              Main Site
             </Link>
             <button onClick={handleLogout} className="font-body text-[11px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors">
               Sign Out
@@ -144,181 +242,412 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-[1100px] mx-auto px-6 py-8">
-        {/* Actions */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="font-display text-xl">All Dossiers ({dossiers.length})</h2>
-          <button onClick={() => { setShowNew(true); setError(""); }} className="btn-er-primary !py-2.5 !px-5 !text-[10px]">
-            + New Dossier
-          </button>
-        </div>
+      <div className="max-w-[1200px] mx-auto px-6 py-8">
+        <Tabs defaultValue="dossiers">
+          <TabsList className="mb-6 bg-white border border-border">
+            <TabsTrigger value="dossiers" className="flex items-center gap-1.5 text-xs">
+              <Users className="w-3.5 h-3.5" /> Client Dossiers
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-xs">
+              <BarChart3 className="w-3.5 h-3.5" /> Site Analytics
+            </TabsTrigger>
+            <TabsTrigger value="engagement" className="flex items-center gap-1.5 text-xs">
+              <MousePointerClick className="w-3.5 h-3.5" /> Engagement
+            </TabsTrigger>
+          </TabsList>
 
-        {error && <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>}
-
-        {/* New Dossier Form */}
-        {showNew && (
-          <div className="bg-white p-6 border border-border mb-6 shadow-sm">
-            <h3 className="font-display text-lg mb-4">Create New Dossier</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="er-label block mb-1">Client</label>
-                <select value={newUserId} onChange={e => setNewUserId(e.target.value)} className="er-input">
-                  <option value="">Select client…</option>
-                  {profiles.map(p => (
-                    <option key={p.user_id} value={p.user_id}>
-                      {p.email} {p.full_name ? `(${p.full_name})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="er-label block mb-1">Title</label>
-                <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="er-input" />
-              </div>
-              <div>
-                <label className="er-label block mb-1">Prepared Date</label>
-                <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="er-input" />
-              </div>
-            </div>
-            <div className="mb-4">
-              <label className="er-label block mb-1">Dossier Data (JSON)</label>
-              <textarea
-                value={newJson}
-                onChange={e => setNewJson(e.target.value)}
-                rows={12}
-                className="er-input font-mono text-xs"
-                style={{ resize: "vertical" }}
-              />
-            </div>
-            <div className="flex gap-3">
-              <button onClick={createDossier} disabled={saving || !newUserId} className="btn-er-primary !py-2.5 !px-6 !text-[10px]">
-                {saving ? "Creating…" : "Create Dossier"}
-              </button>
-              <button onClick={() => setShowNew(false)} className="btn-outline-light !text-charcoal !border-border !py-2.5 !px-6 !text-[10px]">
-                Cancel
+          {/* ═══════════ TAB 1: CLIENT DOSSIERS ═══════════ */}
+          <TabsContent value="dossiers">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-display text-xl">All Dossiers ({dossiers.length})</h2>
+              <button onClick={() => { setShowNew(true); setError(""); }} className="btn-er-primary !py-2.5 !px-5 !text-[10px]">
+                + New Dossier
               </button>
             </div>
-          </div>
-        )}
 
-        {/* Dossier List */}
-        {dossiers.length === 0 ? (
-          <div className="text-center py-12 text-slate-er">No dossiers yet. Create one above.</div>
-        ) : (
-          <div className="space-y-3">
-            {dossiers.map(d => (
-              <div key={d.id} className="bg-white border border-border p-5 shadow-sm">
-                {propertyEditId === d.id ? (
-                  <PropertyEditor
-                    dossierData={d.dossier_data as any}
-                    saving={saving}
-                    onCancel={() => setPropertyEditId(null)}
-                    onSave={async (updatedData) => {
-                      setSaving(true);
-                      setError("");
-                      try {
-                        const { error: err } = await supabase
-                          .from("client_dossiers")
-                          .update({ dossier_data: updatedData as any })
-                          .eq("id", d.id);
-                        if (err) throw err;
-                        setPropertyEditId(null);
-                        fetchData();
-                      } catch (e: unknown) {
-                        setError(e instanceof Error ? e.message : "Failed to save properties");
-                      }
-                      setSaving(false);
-                    }}
-                  />
-                ) : expenseEditId === d.id ? (
-                  <ExpenseEditor
-                    dossierData={d.dossier_data as any}
-                    saving={saving}
-                    onCancel={() => setExpenseEditId(null)}
-                    onSave={async (updatedData) => {
-                      setSaving(true);
-                      setError("");
-                      try {
-                        const { error: err } = await supabase
-                          .from("client_dossiers")
-                          .update({ dossier_data: updatedData as any })
-                          .eq("id", d.id);
-                        if (err) throw err;
-                        setExpenseEditId(null);
-                        fetchData();
-                      } catch (e: unknown) {
-                        setError(e instanceof Error ? e.message : "Failed to save expenses");
-                      }
-                      setSaving(false);
-                    }}
-                  />
-                ) : editingId === d.id ? (
+            {error && <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>}
+
+            {/* New Dossier Form */}
+            {showNew && (
+              <div className="bg-white p-6 border border-border mb-6 shadow-sm">
+                <h3 className="font-display text-lg mb-4">Create New Dossier</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <label className="er-label block mb-1">Client</label>
-                        <div className="er-input bg-warm cursor-not-allowed">{getClientEmail(d.user_id)}</div>
-                      </div>
-                      <div>
-                        <label className="er-label block mb-1">Title</label>
-                        <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="er-input" />
-                      </div>
-                      <div>
-                        <label className="er-label block mb-1">Prepared Date</label>
-                        <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="er-input" />
-                      </div>
-                    </div>
-                    <div className="mb-4">
-                      <label className="er-label block mb-1">Dossier Data (JSON)</label>
-                      <textarea
-                        value={editJson}
-                        onChange={e => setEditJson(e.target.value)}
-                        rows={16}
-                        className="er-input font-mono text-xs"
-                        style={{ resize: "vertical" }}
-                      />
-                    </div>
-                    <div className="flex gap-3">
-                      <button onClick={saveEdit} disabled={saving} className="btn-er-primary !py-2 !px-5 !text-[10px]">
-                        {saving ? "Saving…" : "Save Changes"}
-                      </button>
-                      <button onClick={() => setEditingId(null)} className="btn-outline-light !text-charcoal !border-border !py-2 !px-5 !text-[10px]">
-                        Cancel
-                      </button>
-                    </div>
+                    <label className="er-label block mb-1">Client</label>
+                    <select value={newUserId} onChange={e => setNewUserId(e.target.value)} className="er-input">
+                      <option value="">Select client…</option>
+                      {profiles.map(p => (
+                        <option key={p.user_id} value={p.user_id}>
+                          {p.email} {p.full_name ? `(${p.full_name})` : ""}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                ) : (
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="font-display text-base font-semibold">{d.title}</div>
-                      <div className="font-body text-sm text-slate-er mt-1">
-                        Client: <strong>{getClientEmail(d.user_id)}</strong>
-                        {getClientName(d.user_id) && <span> ({getClientName(d.user_id)})</span>}
-                      </div>
-                      <div className="font-body text-xs text-slate-er mt-1 opacity-60">
-                        Prepared: {d.prepared_date} · Updated: {new Date(d.updated_at).toLocaleDateString()}
-                      </div>
+                  <div>
+                    <label className="er-label block mb-1">Title</label>
+                    <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="er-input" />
+                  </div>
+                  <div>
+                    <label className="er-label block mb-1">Prepared Date</label>
+                    <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="er-input" />
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="er-label block mb-1">Dossier Data (JSON)</label>
+                  <textarea value={newJson} onChange={e => setNewJson(e.target.value)} rows={12} className="er-input font-mono text-xs" style={{ resize: "vertical" }} />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={createDossier} disabled={saving || !newUserId} className="btn-er-primary !py-2.5 !px-6 !text-[10px]">
+                    {saving ? "Creating…" : "Create Dossier"}
+                  </button>
+                  <button onClick={() => setShowNew(false)} className="btn-outline-light !text-charcoal !border-border !py-2.5 !px-6 !text-[10px]">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Dossier List */}
+            {dossiers.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">No dossiers yet. Create one above.</div>
+            ) : (
+              <div className="space-y-3">
+                {dossiers.map(d => {
+                  const summary = interactionSummaries[d.user_id];
+                  return (
+                    <div key={d.id} className="bg-white border border-border p-5 shadow-sm">
+                      {propertyEditId === d.id ? (
+                        <PropertyEditor
+                          dossierData={d.dossier_data as any}
+                          saving={saving}
+                          onCancel={() => setPropertyEditId(null)}
+                          onSave={async (updatedData) => {
+                            setSaving(true); setError("");
+                            try {
+                              const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
+                              if (err) throw err;
+                              setPropertyEditId(null); fetchData();
+                            } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save properties"); }
+                            setSaving(false);
+                          }}
+                        />
+                      ) : expenseEditId === d.id ? (
+                        <ExpenseEditor
+                          dossierData={d.dossier_data as any}
+                          saving={saving}
+                          onCancel={() => setExpenseEditId(null)}
+                          onSave={async (updatedData) => {
+                            setSaving(true); setError("");
+                            try {
+                              const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
+                              if (err) throw err;
+                              setExpenseEditId(null); fetchData();
+                            } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save expenses"); }
+                            setSaving(false);
+                          }}
+                        />
+                      ) : editingId === d.id ? (
+                        <div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                              <label className="er-label block mb-1">Client</label>
+                              <div className="er-input bg-warm cursor-not-allowed">{getClientEmail(d.user_id)}</div>
+                            </div>
+                            <div>
+                              <label className="er-label block mb-1">Title</label>
+                              <input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="er-input" />
+                            </div>
+                            <div>
+                              <label className="er-label block mb-1">Prepared Date</label>
+                              <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="er-input" />
+                            </div>
+                          </div>
+                          <div className="mb-4">
+                            <label className="er-label block mb-1">Dossier Data (JSON)</label>
+                            <textarea value={editJson} onChange={e => setEditJson(e.target.value)} rows={16} className="er-input font-mono text-xs" style={{ resize: "vertical" }} />
+                          </div>
+                          <div className="flex gap-3">
+                            <button onClick={saveEdit} disabled={saving} className="btn-er-primary !py-2 !px-5 !text-[10px]">{saving ? "Saving…" : "Save Changes"}</button>
+                            <button onClick={() => setEditingId(null)} className="btn-outline-light !text-charcoal !border-border !py-2 !px-5 !text-[10px]">Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="font-display text-base font-semibold">{d.title}</div>
+                              <div className="font-body text-sm text-muted-foreground mt-1">
+                                Client: <strong>{getClientEmail(d.user_id)}</strong>
+                                {getClientName(d.user_id) && <span> ({getClientName(d.user_id)})</span>}
+                              </div>
+                              <div className="font-body text-xs text-muted-foreground mt-1 opacity-60">
+                                Prepared: {d.prepared_date} · Updated: {new Date(d.updated_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => { setPropertyEditId(d.id); setExpenseEditId(null); setEditingId(null); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
+                                🏠 Properties
+                              </button>
+                              <button onClick={() => { setExpenseEditId(d.id); setPropertyEditId(null); setEditingId(null); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
+                                💰 Expenses
+                              </button>
+                              <button onClick={() => startEdit(d)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-charcoal px-3 py-1.5 hover:border-primary transition-colors">
+                                Edit
+                              </button>
+                              <button onClick={() => deleteDossier(d.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                          {/* Interaction Summary */}
+                          {summary && (
+                            <div className="flex gap-4 mt-3 pt-3 border-t border-border">
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Heart className="w-3 h-3 text-destructive" /> {summary.favorites} favorites
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <GraduationCap className="w-3 h-3 text-primary" /> {summary.grades} graded
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Calendar className="w-3 h-3 text-primary" /> {summary.tours} tours
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <MessageSquare className="w-3 h-3 text-primary" /> {summary.comments} comments
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => { setPropertyEditId(d.id); setExpenseEditId(null); setEditingId(null); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
-                        🏠 Properties
-                      </button>
-                      <button onClick={() => { setExpenseEditId(d.id); setPropertyEditId(null); setEditingId(null); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
-                        💰 Expenses
-                      </button>
-                      <button onClick={() => startEdit(d)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-charcoal px-3 py-1.5 hover:border-gold transition-colors">
-                        Edit
-                      </button>
-                      <button onClick={() => deleteDossier(d.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
-                        Delete
-                      </button>
-                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ═══════════ TAB 2: SITE ANALYTICS ═══════════ */}
+          <TabsContent value="analytics">
+            {analyticsLoading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading analytics…</div>
+            ) : (
+              <div className="space-y-6">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <KpiCard icon={Eye} label="Visitors (30d)" value={totalVisitors} />
+                  <KpiCard icon={TrendingUp} label="Pageviews" value={totalPageviews} />
+                  <KpiCard icon={Clock} label="Avg Session" value={`${Math.round(avgSessionDuration)}s`} />
+                  <KpiCard icon={TrendingUp} label="Bounce Rate" value={`${Math.round(bounceRate)}%`} />
+                </div>
+
+                {/* Visitors Over Time */}
+                {chartData.length > 0 && (
+                  <div className="bg-white border border-border p-5 shadow-sm">
+                    <h3 className="font-display text-base font-semibold mb-4">Visitors & Pageviews (Last 30 Days)</h3>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="visitors" stroke="hsl(27, 35%, 59%)" strokeWidth={2} dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="pageviews" stroke="hsl(15, 38%, 62%)" strokeWidth={2} dot={{ r: 3 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Top Pages */}
+                  <div className="bg-white border border-border p-5 shadow-sm">
+                    <h3 className="font-display text-base font-semibold mb-4">Top Pages</h3>
+                    <div className="space-y-2">
+                      {(topPages as any[]).map((p: any, i: number) => (
+                        <div key={i} className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground truncate max-w-[200px]">{p.name || p[0]}</span>
+                          <span className="font-semibold">{p.value || p[1]} views</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Traffic Sources */}
+                  <div className="bg-white border border-border p-5 shadow-sm">
+                    <h3 className="font-display text-base font-semibold mb-4">Traffic Sources</h3>
+                    {(trafficSources as any[]).length > 0 ? (
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={(trafficSources as any[]).map((s: any) => ({ name: s.name || s[0], value: s.value || s[1] }))}>
+                          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="hsl(27, 35%, 59%)" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No source data available</div>
+                    )}
+                  </div>
+
+                  {/* Device Breakdown */}
+                  <div className="bg-white border border-border p-5 shadow-sm">
+                    <h3 className="font-display text-base font-semibold mb-4">Devices</h3>
+                    {(deviceBreakdown as any[]).length > 0 ? (
+                      <div className="flex items-center gap-6">
+                        <ResponsiveContainer width={150} height={150}>
+                          <PieChart>
+                            <Pie
+                              data={(deviceBreakdown as any[]).map((d: any) => ({ name: d.name || d[0], value: d.value || d[1] }))}
+                              cx="50%" cy="50%" outerRadius={60} dataKey="value"
+                            >
+                              {(deviceBreakdown as any[]).map((_, i) => (
+                                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="space-y-2">
+                          {(deviceBreakdown as any[]).map((d: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                              {(d.name || d[0]) === "desktop" ? <Monitor className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
+                              <span className="capitalize">{d.name || d[0]}</span>
+                              <span className="font-semibold ml-auto">{d.value || d[1]}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No device data available</div>
+                    )}
+                  </div>
+
+                  {/* Country Breakdown */}
+                  <div className="bg-white border border-border p-5 shadow-sm">
+                    <h3 className="font-display text-base font-semibold mb-4 flex items-center gap-2">
+                      <Globe className="w-4 h-4" /> Countries
+                    </h3>
+                    <div className="space-y-2">
+                      {(countryBreakdown as any[]).slice(0, 8).map((c: any, i: number) => (
+                        <div key={i} className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">{c.name || c[0]}</span>
+                          <span className="font-semibold">{c.value || c[1]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            )}
+          </TabsContent>
+
+          {/* ═══════════ TAB 3: ENGAGEMENT ═══════════ */}
+          <TabsContent value="engagement">
+            {analyticsLoading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading engagement data…</div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Most Clicked Links */}
+                  <div className="bg-white border border-border p-5 shadow-sm">
+                    <h3 className="font-display text-base font-semibold mb-4 flex items-center gap-2">
+                      <MousePointerClick className="w-4 h-4 text-primary" /> Most Clicked Links
+                    </h3>
+                    {(analytics?.customEvents?.topClicks || []).length > 0 ? (
+                      <div className="space-y-2">
+                        {analytics!.customEvents.topClicks.slice(0, 15).map((c, i) => (
+                          <div key={i} className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground truncate max-w-[250px]">{c.label}</span>
+                            <span className="font-semibold">{c.count} clicks</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No click data yet. Events will appear as visitors interact with links on the main site.</div>
+                    )}
+                  </div>
+
+                  {/* Page Dwell Time */}
+                  <div className="bg-white border border-border p-5 shadow-sm">
+                    <h3 className="font-display text-base font-semibold mb-4 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-primary" /> Page Dwell Time
+                    </h3>
+                    {(analytics?.customEvents?.dwellTimes || []).length > 0 ? (
+                      <div className="space-y-2">
+                        {analytics!.customEvents.dwellTimes.map((d, i) => (
+                          <div key={i} className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">{d.page}</span>
+                            <span className="font-semibold">{Math.round(d.avgMs / 1000)}s avg ({d.sessions} sessions)</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No dwell time data yet.</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Client Activity Summary */}
+                <div className="bg-white border border-border p-5 shadow-sm">
+                  <h3 className="font-display text-base font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" /> Client Activity
+                  </h3>
+                  {(analytics?.clientActivity || []).length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 font-body text-[10px] tracking-[2px] uppercase text-muted-foreground">Client</th>
+                            <th className="text-center py-2 font-body text-[10px] tracking-[2px] uppercase text-muted-foreground">Favorites</th>
+                            <th className="text-center py-2 font-body text-[10px] tracking-[2px] uppercase text-muted-foreground">Graded</th>
+                            <th className="text-center py-2 font-body text-[10px] tracking-[2px] uppercase text-muted-foreground">Tours</th>
+                            <th className="text-center py-2 font-body text-[10px] tracking-[2px] uppercase text-muted-foreground">Comments</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics!.clientActivity.map((c, i) => (
+                            <tr key={i} className="border-b border-border/50">
+                              <td className="py-2">
+                                <div className="font-semibold">{c.name || "—"}</div>
+                                <div className="text-xs text-muted-foreground">{c.email}</div>
+                              </td>
+                              <td className="text-center">{c.favorites}</td>
+                              <td className="text-center">{c.grades}</td>
+                              <td className="text-center">{c.tours}</td>
+                              <td className="text-center">{c.comments}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">No client activity recorded yet.</div>
+                  )}
+                </div>
+
+                {/* Recent Agreements */}
+                <div className="bg-white border border-border p-5 shadow-sm">
+                  <h3 className="font-display text-base font-semibold mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" /> Recent Signed Agreements
+                  </h3>
+                  {(analytics?.recentAgreements || []).length > 0 ? (
+                    <div className="space-y-2">
+                      {analytics!.recentAgreements.map((a, i) => (
+                        <div key={i} className="flex justify-between items-center text-sm border-b border-border/50 pb-2">
+                          <div>
+                            <span className="font-semibold">{a.client_name}</span>
+                            {a.client_email && <span className="text-muted-foreground ml-2 text-xs">{a.client_email}</span>}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(a.signed_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">No signed agreements yet.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
