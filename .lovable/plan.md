@@ -1,28 +1,31 @@
 
 
-## Fix Comment Dialog: Show Property Addresses + Clickable Navigation
+## Show Admin Replies + Real-Time Notifications in Client Portal
 
-### Problem
+### 1. Display Admin Replies Below Each Comment
 
-The `resolvePropertyFromDossiers` function looks for properties at `tab.properties[key]` (object keyed by property ID), but the actual data structure stores properties at `dossier_data.properties[tabKey]` as arrays where each item has an `id` field. This mismatch causes every comment to show the raw property ID (e.g., "o1") as the address and "UNKNOWN" as the builder.
+**File: `src/pages/ClientPortal.tsx`**
 
-### Fix
+- On initial load, fetch all `comment_replies` for the current user's `property_interactions` (RLS already allows this via the existing policy)
+- Store replies in state as `Record<string, Reply[]>` keyed by `interaction_id`
+- In the `PropertyCard` feedback section, below the comment textarea, render any admin replies for that property's interaction — each showing "Emily replied:" with the reply text and timestamp
+- Style replies as indented, slightly different background to distinguish from the client's own notes
 
-**File: `src/pages/AdminDashboard.tsx`**
+### 2. Real-Time Notifications for New Replies
 
-1. **Fix `resolvePropertyFromDossiers`** to match the actual data structure:
-   - Look in `data.properties[tabKey]` (arrays of property objects)
-   - Match on `property.id === propertyId`
-   - Return the property's `address` and the matching tab's `label` as the builder
-   - Also return the `dossierId` so we can navigate to it
+**Database migration**: Enable realtime on `comment_replies` table
 
-2. **Update `commentDetails` state** to include `dossierId` for each comment
+**File: `src/pages/ClientPortal.tsx`**
 
-3. **Make each comment card clickable** — clicking it closes the dialog and opens the PropertyEditor for that dossier (sets `propertyEditId` to the dossier ID), giving the admin direct access to edit the property being discussed
+- Subscribe to Supabase Realtime `postgres_changes` on `comment_replies` filtered to `INSERT` events
+- When a new reply arrives, check if the `interaction_id` matches one of the client's interactions
+- Fire a toast notification: "Emily replied to your comment on [property address]"
+- Update the replies state so it appears immediately without page refresh
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/pages/AdminDashboard.tsx` | Fix property resolution logic; add clickable navigation from comments to dossier |
+| Database migration | `ALTER PUBLICATION supabase_realtime ADD TABLE public.comment_replies;` |
+| `src/pages/ClientPortal.tsx` | Fetch replies on load; render below comments; subscribe to realtime for toast notifications |
 
