@@ -5,6 +5,7 @@ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import FilterSortToolbar from "@/components/portal/FilterSortToolbar";
 import RankBadge from "@/components/portal/RankBadge";
 import TabSummary from "@/components/portal/TabSummary";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   scorePrimaryResidence,
   scoreIncomeGeneration,
@@ -146,7 +147,14 @@ function PropertyRow({
               {prop.status}
             </span>
           </div>
-          <div className="text-xs ml-1 opacity-50">{isExpanded ? "▲" : "▼"}</div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-xs ml-1 opacity-50">{isExpanded ? "▲" : "▼"}</div>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs max-w-[200px]">
+              Click to see full details, rental estimates, and expenses.
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -391,6 +399,7 @@ export default function ClientPortal() {
       : null;
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="font-body min-h-screen" style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}>
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)", color: "#fff", padding: "32px 24px 0" }}>
@@ -437,26 +446,50 @@ export default function ClientPortal() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto">
-            {allTabs.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
-                style={{
-                  background: activeTab === tab.key ? tab.color : "rgba(255,255,255,0.06)",
-                  color: activeTab === tab.key ? "#fff" : "rgba(255,255,255,0.4)",
-                }}
-              >
-                {tab.label}{" "}
-                {!tab.key.startsWith("rank-") && tab.key !== "all-homes" && (
-                  <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
-                )}
-                {tab.key === "all-homes" && (
-                  <span className="opacity-50">({Object.values(dossier.properties).flat().length})</span>
-                )}
-              </button>
-            ))}
+          <div className="flex gap-1 overflow-x-auto items-end">
+            {allTabs.map((tab, idx) => {
+              const tooltipText = tab.key === "all-homes"
+                ? "View every property in your dossier in one place, regardless of builder."
+                : tab.key === "rank-primary"
+                  ? "Ranks ALL properties across every community for primary residence living."
+                  : tab.key === "rank-income"
+                    ? "Ranks ALL properties by rental income potential to help you compare."
+                    : idx === 0
+                      ? "Each tab represents a different builder or community — click to explore all your options →"
+                      : null;
+
+              const tabBtn = (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
+                  style={{
+                    background: activeTab === tab.key ? tab.color : "rgba(255,255,255,0.06)",
+                    color: activeTab === tab.key ? "#fff" : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  {tab.label}{" "}
+                  {!tab.key.startsWith("rank-") && tab.key !== "all-homes" && (
+                    <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
+                  )}
+                  {tab.key === "all-homes" && (
+                    <span className="opacity-50">({Object.values(dossier.properties).flat().length})</span>
+                  )}
+                </button>
+              );
+
+              if (tooltipText) {
+                return (
+                  <Tooltip key={tab.key}>
+                    <TooltipTrigger asChild>{tabBtn}</TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs max-w-[240px]">
+                      {tooltipText}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return tabBtn;
+            })}
           </div>
         </div>
       </div>
@@ -466,14 +499,26 @@ export default function ClientPortal() {
 
       {/* Content */}
       <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
-        <FilterSortToolbar
-          filters={filters}
-          sort={sort}
-          onFiltersChange={setFilters}
-          onSortChange={setSort}
-          cities={cities}
-          builders={builders}
-        />
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <FilterSortToolbar
+              filters={filters}
+              sort={sort}
+              onFiltersChange={setFilters}
+              onSortChange={setSort}
+              cities={cities}
+              builders={builders}
+            />
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="mt-1 text-muted-foreground hover:text-foreground cursor-help text-sm transition-colors">ℹ️</span>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs max-w-[220px]">
+              Use filters and sorting to narrow down by city, price, beds, or builder.
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         <h2 className="font-display text-lg font-semibold mb-3.5" style={{ color: currentTab.color }}>
           {currentTab.label}
@@ -607,5 +652,6 @@ export default function ClientPortal() {
         Logged in as {userEmail}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
