@@ -502,15 +502,8 @@ export default function ClientPortal() {
   }
 
   if (!dossier) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="text-center">
-          <h2 className="font-display text-2xl text-foreground mb-3">No Dossier Available</h2>
-          <p className="font-body text-sm text-muted-foreground mb-6">Your personalized dossier is being prepared. Please check back soon.</p>
-          <button onClick={handleLogout} className="btn-er-primary">Sign Out</button>
-        </div>
-      </div>
-    );
+    navigate("/portal/dashboard");
+    return null;
   }
 
   const currentTab = allTabs.find(t => t.key === activeTab) || allTabs[0];
