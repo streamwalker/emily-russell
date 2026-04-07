@@ -559,9 +559,11 @@ export default function ClientPortal() {
   const [userId, setUserId] = useState("");
   const [interactions, setInteractions] = useState<Record<string, PropertyInteraction>>({});
   const [savingFields, setSavingFields] = useState<Set<string>>(new Set());
+  const [replies, setReplies] = useState<Record<string, CommentReply[]>>({});
   const { isAdmin } = useAdminCheck();
   const navigate = useNavigate();
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const interactionIdsRef = useRef<Set<string>>(new Set());
 
   const toggleCompare = (id: string) => {
     setCompareIds(prev => {
