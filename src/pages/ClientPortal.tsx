@@ -101,11 +101,15 @@ function getRainbowColor(index: number) {
 function TabScrollContainer({ children }: { children: React.ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showFade, setShowFade] = useState(true);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(true);
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     setShowFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    setShowLeft(el.scrollLeft > 4);
+    setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   }, []);
 
   useEffect(() => {
@@ -114,20 +118,42 @@ function TabScrollContainer({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("resize", checkScroll);
   }, [checkScroll]);
 
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  };
+
   return (
-    <div className="relative">
-      <div
-        ref={scrollRef}
-        onScroll={checkScroll}
-        className="tab-scroll-container flex gap-1 overflow-x-auto items-end pb-1"
-      >
-        {children}
-      </div>
-      {showFade && (
+    <div className="relative flex items-end">
+      {showLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors mr-1 cursor-pointer border-none"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+      <div className="relative flex-1 min-w-0">
         <div
-          className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 transition-opacity duration-300"
-          style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }}
-        />
+          ref={scrollRef}
+          onScroll={checkScroll}
+          className="tab-scroll-container flex gap-1 overflow-x-auto items-end pb-1"
+        >
+          {children}
+        </div>
+        {showFade && (
+          <div
+            className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 transition-opacity duration-300"
+            style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }}
+          />
+        )}
+      </div>
+      {showRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors ml-1 cursor-pointer border-none"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       )}
     </div>
   );
