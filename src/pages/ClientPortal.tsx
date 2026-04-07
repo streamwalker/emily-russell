@@ -791,6 +791,12 @@ export default function ClientPortal() {
                 </Link>
               )}
               <div className="relative">
+                <Link
+                  to="/"
+                  className="font-body text-[11px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors no-underline"
+                >
+                  🏠 Home
+                </Link>
                 <button
                   onClick={() => setShowSettings(!showSettings)}
                   className="font-body text-[11px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors"
