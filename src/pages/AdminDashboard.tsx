@@ -6,7 +6,7 @@ import ExpenseEditor from "@/components/admin/ExpenseEditor";
 import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
 interface DossierRow {
@@ -86,18 +86,32 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
+  // Templates
+  const [templates, setTemplates] = useState<{ id: string; name: string; description: string | null; dossier_data: Record<string, unknown>; created_at: string; updated_at: string }[]>([]);
+  const [templateEditId, setTemplateEditId] = useState<string | null>(null);
+  const [showNewTemplate, setShowNewTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateDesc, setNewTemplateDesc] = useState("");
+  const [newTemplateData, setNewTemplateData] = useState<any>(null);
+  const [newTemplateRawText, setNewTemplateRawText] = useState("");
+  const [newTemplateUseRawJson, setNewTemplateUseRawJson] = useState(false);
+  const [newTemplateJson, setNewTemplateJson] = useState("{}");
+  const [templateExtracting, setTemplateExtracting] = useState(false);
+
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [dossierRes, profileRes, interactionsRes] = await Promise.all([
+    const [dossierRes, profileRes, interactionsRes, templatesRes] = await Promise.all([
       supabase.from("client_dossiers").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, email, full_name"),
       supabase.from("property_interactions").select("user_id, is_favorite, grade, preferred_tour_date, comments"),
+      supabase.from("dossier_templates").select("*").order("updated_at", { ascending: false }),
     ]);
     if (dossierRes.data) setDossiers(dossierRes.data as DossierRow[]);
     if (profileRes.data) setProfiles(profileRes.data);
+    if (templatesRes.data) setTemplates(templatesRes.data as any);
 
     // Aggregate interactions per user
     const summaries: Record<string, { favorites: number; grades: number; tours: number; comments: number }> = {};
@@ -165,6 +179,81 @@ export default function AdminDashboard() {
     if (!confirm("Delete this dossier? This cannot be undone.")) return;
     await supabase.from("client_dossiers").delete().eq("id", id);
     fetchData();
+  };
+
+  const saveAsTemplate = async (dossierData: Record<string, unknown>, defaultName: string) => {
+    const name = prompt("Template name:", defaultName);
+    if (!name) return;
+    const desc = prompt("Description (optional):", "") || null;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error: err } = await supabase.from("dossier_templates").insert({
+      name,
+      description: desc,
+      dossier_data: dossierData as any,
+      created_by: user.id,
+    });
+    if (err) { setError(err.message); return; }
+    fetchData();
+  };
+
+  const deleteTemplate = async (id: string) => {
+    if (!confirm("Delete this template? This cannot be undone.")) return;
+    await supabase.from("dossier_templates").delete().eq("id", id);
+    fetchData();
+  };
+
+  const saveTemplate = async (id: string, updatedData: any) => {
+    setSaving(true);
+    const { error: err } = await supabase.from("dossier_templates").update({ dossier_data: updatedData }).eq("id", id);
+    if (err) { setError(err.message); }
+    else { setTemplateEditId(null); fetchData(); }
+    setSaving(false);
+  };
+
+  const createTemplate = async (dossierDataOverride?: any) => {
+    setSaving(true);
+    setError("");
+    try {
+      if (!newTemplateName.trim()) throw new Error("Template name is required.");
+      const finalData = dossierDataOverride || (newTemplateUseRawJson ? JSON.parse(newTemplateJson) : newTemplateData);
+      if (!finalData) throw new Error("No template data. Extract properties or enter JSON first.");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { error: err } = await supabase.from("dossier_templates").insert({
+        name: newTemplateName,
+        description: newTemplateDesc || null,
+        dossier_data: finalData,
+        created_by: user.id,
+      });
+      if (err) throw err;
+      setShowNewTemplate(false);
+      setNewTemplateName("");
+      setNewTemplateDesc("");
+      setNewTemplateData(null);
+      setNewTemplateRawText("");
+      setNewTemplateJson("{}");
+      fetchData();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to create template");
+    }
+    setSaving(false);
+  };
+
+  const extractTemplateProperties = async () => {
+    setTemplateExtracting(true);
+    setError("");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
+        body: { rawText: newTemplateRawText },
+      });
+      if (fnErr) throw new Error(fnErr.message || "Extraction failed");
+      if (data?.error) throw new Error(data.error);
+      setNewTemplateData(data.dossierData);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to extract properties");
+    }
+    setTemplateExtracting(false);
   };
 
   const extractProperties = async () => {
@@ -250,7 +339,7 @@ export default function AdminDashboard() {
         <div className="max-w-[1200px] mx-auto flex justify-between items-center">
           <div>
             <h1 className="font-display text-2xl font-bold m-0">Admin Dashboard</h1>
-            <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Dossiers · Analytics · Engagement</p>
+            <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Dossiers · Templates · Analytics · Engagement</p>
           </div>
           <div className="flex gap-3 items-center">
             <Link to="/portal" className="font-body text-[11px] uppercase tracking-[2px] text-white/70 no-underline hover:text-white transition-colors">
@@ -271,6 +360,9 @@ export default function AdminDashboard() {
           <TabsList className="mb-6 bg-white border border-border">
             <TabsTrigger value="dossiers" className="flex items-center gap-1.5 text-xs">
               <Users className="w-3.5 h-3.5" /> Client Dossiers
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-1.5 text-xs">
+              <FileText className="w-3.5 h-3.5" /> Templates
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-xs">
               <BarChart3 className="w-3.5 h-3.5" /> Site Analytics
@@ -318,25 +410,36 @@ export default function AdminDashboard() {
                 </div>
                 {/* Template selector */}
                 <div className="mb-4">
-                  <label className="er-label block mb-1">Load Template from Existing Dossier</label>
+                  <label className="er-label block mb-1">Load Template</label>
                   <select
                     value=""
                     onChange={e => {
-                      const templateDossier = dossiers.find(d => d.id === e.target.value);
-                      if (templateDossier) {
-                        const clonedData = JSON.parse(JSON.stringify(templateDossier.dossier_data));
-                        setExtractedData(clonedData);
-                        setUseRawJson(false);
+                      const val = e.target.value;
+                      if (val.startsWith("tpl:")) {
+                        const tpl = templates.find(t => t.id === val.slice(4));
+                        if (tpl) { setExtractedData(JSON.parse(JSON.stringify(tpl.dossier_data))); setUseRawJson(false); }
+                      } else {
+                        const templateDossier = dossiers.find(d => d.id === val);
+                        if (templateDossier) { setExtractedData(JSON.parse(JSON.stringify(templateDossier.dossier_data))); setUseRawJson(false); }
                       }
                     }}
                     className="er-input"
                   >
                     <option value="">— None (start fresh) —</option>
-                    {dossiers.map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.title} — {getClientEmail(d.user_id)}
-                      </option>
-                    ))}
+                    {templates.length > 0 && (
+                      <optgroup label="Saved Templates">
+                        {templates.map(t => (
+                          <option key={`tpl:${t.id}`} value={`tpl:${t.id}`}>{t.name}{t.description ? ` — ${t.description}` : ""}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="From Existing Dossier">
+                      {dossiers.map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.title} — {getClientEmail(d.user_id)}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
                 {/* Smart Input / Raw JSON toggle */}
@@ -550,6 +653,12 @@ export default function AdminDashboard() {
                               >
                                 📋 Use as Template
                               </button>
+                              <button
+                                onClick={() => saveAsTemplate(d.dossier_data as Record<string, unknown>, d.title)}
+                                className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors"
+                              >
+                                💾 Save as Template
+                              </button>
                               <button onClick={() => deleteDossier(d.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
                                 Delete
                               </button>
@@ -581,7 +690,162 @@ export default function AdminDashboard() {
             )}
           </TabsContent>
 
-          {/* ═══════════ TAB 2: SITE ANALYTICS ═══════════ */}
+          {/* ═══════════ TAB 2: TEMPLATES ═══════════ */}
+          <TabsContent value="templates">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-display text-xl">Template Library ({templates.length})</h2>
+              <button onClick={() => { setShowNewTemplate(true); setError(""); }} className="btn-er-primary !py-2.5 !px-5 !text-[10px]">
+                + New Template
+              </button>
+            </div>
+
+            {error && <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>}
+
+            {/* New Template Form */}
+            {showNewTemplate && (
+              <div className="bg-white p-6 border border-border mb-6 shadow-sm">
+                <h3 className="font-display text-lg mb-4">Create New Template</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="er-label block mb-1">Template Name *</label>
+                    <input value={newTemplateName} onChange={e => setNewTemplateName(e.target.value)} className="er-input" placeholder="e.g. Georgetown New Construction" />
+                  </div>
+                  <div>
+                    <label className="er-label block mb-1">Description</label>
+                    <input value={newTemplateDesc} onChange={e => setNewTemplateDesc(e.target.value)} className="er-input" placeholder="Optional description" />
+                  </div>
+                </div>
+
+                {/* Smart Input / Raw JSON toggle */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <label className="er-label flex items-center gap-2 cursor-pointer">
+                      <Switch checked={newTemplateUseRawJson} onCheckedChange={setNewTemplateUseRawJson} />
+                      <span className="text-xs">{newTemplateUseRawJson ? "Raw JSON mode" : "Smart AI extraction"}</span>
+                    </label>
+                  </div>
+
+                  {newTemplateUseRawJson ? (
+                    <div>
+                      <label className="er-label block mb-1">Template Data (JSON)</label>
+                      <textarea value={newTemplateJson} onChange={e => setNewTemplateJson(e.target.value)} rows={12} className="er-input font-mono text-xs" style={{ resize: "vertical" }} />
+                    </div>
+                  ) : newTemplateData ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          <span className="font-body text-sm font-semibold text-foreground">Extracted Properties — Review & Edit</span>
+                        </div>
+                        <button onClick={() => setNewTemplateData(null)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-muted-foreground px-3 py-1.5 hover:border-primary transition-colors">
+                          ← Back to Input
+                        </button>
+                      </div>
+                      <PropertyEditor
+                        dossierData={newTemplateData}
+                        saving={saving}
+                        onCancel={() => setNewTemplateData(null)}
+                        onSave={(updatedData) => createTemplate(updatedData)}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="er-label block mb-1 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                        Paste property info (addresses, MLS data, listing descriptions, URLs)
+                      </label>
+                      <textarea
+                        value={newTemplateRawText}
+                        onChange={e => setNewTemplateRawText(e.target.value)}
+                        rows={12}
+                        placeholder="Paste listing info here…"
+                        className="er-input text-sm"
+                        style={{ resize: "vertical" }}
+                      />
+                      <button
+                        onClick={extractTemplateProperties}
+                        disabled={templateExtracting || newTemplateRawText.trim().length < 10}
+                        className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
+                      >
+                        {templateExtracting ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Extracting…</>
+                        ) : (
+                          <><Sparkles className="w-3.5 h-3.5" /> Extract Properties</>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {!newTemplateData && (
+                  <div className="flex gap-3">
+                    {newTemplateUseRawJson && (
+                      <button onClick={() => createTemplate()} disabled={saving || !newTemplateName.trim()} className="btn-er-primary !py-2.5 !px-6 !text-[10px]">
+                        {saving ? "Creating…" : "Create Template"}
+                      </button>
+                    )}
+                    <button onClick={() => { setShowNewTemplate(false); setNewTemplateData(null); }} className="btn-outline-light !text-charcoal !border-border !py-2.5 !px-6 !text-[10px]">Cancel</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Template List */}
+            {templates.length === 0 && !showNewTemplate ? (
+              <div className="text-center py-12 text-muted-foreground">No templates yet. Create one above or save an existing dossier as a template.</div>
+            ) : (
+              <div className="space-y-3">
+                {templates.map(t => {
+                  const data = t.dossier_data as any;
+                  const tabCount = data?.tabs ? Object.keys(data.tabs).length : 0;
+                  const propCount: number = data?.tabs ? (Object.values(data.tabs) as any[]).reduce((sum: number, tab: any) => sum + (Array.isArray(tab) ? tab.length : 0), 0) : 0;
+
+                  if (templateEditId === t.id) {
+                    return (
+                      <div key={t.id} className="bg-white border border-border p-5 shadow-sm">
+                        <button
+                          onClick={() => setTemplateEditId(null)}
+                          className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-[2px] text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none mb-4 transition-colors"
+                        >
+                          <ArrowLeft className="w-4 h-4" /> Back to Templates
+                        </button>
+                        <PropertyEditor
+                          dossierData={data}
+                          saving={saving}
+                          onCancel={() => setTemplateEditId(null)}
+                          onSave={(updatedData) => saveTemplate(t.id, updatedData)}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={t.id} className="bg-white border border-border p-5 shadow-sm">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-display text-base font-semibold">{t.name}</div>
+                          {t.description && <div className="font-body text-sm text-muted-foreground mt-1">{t.description}</div>}
+                          <div className="font-body text-xs text-muted-foreground mt-1 opacity-60">
+                            {tabCount} tab{tabCount !== 1 ? "s" : ""} · {propCount} propert{propCount !== 1 ? "ies" : "y"} · Updated: {new Date(t.updated_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setTemplateEditId(t.id); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
+                            <Pencil className="w-3 h-3 inline mr-1" /> Edit
+                          </button>
+                          <button onClick={() => deleteTemplate(t.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
+                            <Trash2 className="w-3 h-3 inline mr-1" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ═══════════ TAB 3: SITE ANALYTICS ═══════════ */}
           <TabsContent value="analytics">
             {analyticsLoading ? (
               <div className="text-center py-12 text-muted-foreground">Loading analytics…</div>
