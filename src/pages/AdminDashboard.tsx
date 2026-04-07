@@ -339,7 +339,7 @@ export default function AdminDashboard() {
         <div className="max-w-[1200px] mx-auto flex justify-between items-center">
           <div>
             <h1 className="font-display text-2xl font-bold m-0">Admin Dashboard</h1>
-            <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Dossiers · Analytics · Engagement</p>
+            <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Dossiers · Templates · Analytics · Engagement</p>
           </div>
           <div className="flex gap-3 items-center">
             <Link to="/portal" className="font-body text-[11px] uppercase tracking-[2px] text-white/70 no-underline hover:text-white transition-colors">
