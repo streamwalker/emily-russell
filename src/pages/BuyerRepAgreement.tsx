@@ -257,6 +257,43 @@ const BuyerRepAgreement = () => {
           </div>
         ) : (
           <>
+            {/* Admin: client selector */}
+            {isAdmin && (
+              <div className="bg-accent/30 border border-accent p-4 space-y-3">
+                <div className="text-xs font-semibold text-primary uppercase tracking-wider">Agent Controls</div>
+                <div>
+                  <label className={labelClass}>Select Client</label>
+                  <select
+                    className={cn(inputClass, "cursor-pointer")}
+                    value={selectedClientId || ""}
+                    onChange={e => setSelectedClientId(e.target.value || null)}
+                  >
+                    <option value="">— Choose a client —</option>
+                    {clients.map(c => (
+                      <option key={c.user_id} value={c.user_id}>
+                        {c.full_name || c.email} ({c.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {selectedClientId && (
+                  <button
+                    onClick={handleSaveConfig}
+                    className="px-4 py-2 bg-primary text-primary-foreground text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0"
+                  >
+                    Save End Date & Fee for Client
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Non-admin: show message if config not set */}
+            {!isAdmin && configLoaded && !termEnd && (
+              <div className="bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+                Your agent needs to configure the agreement terms (end date and commission) before you can sign. Please contact your agent.
+              </div>
+            )}
+
             {/* Form Title for print */}
             <div className="hidden print:block text-center mb-8">
               <div className="text-xs tracking-wider uppercase mb-1">TEXAS REALTORS®</div>
