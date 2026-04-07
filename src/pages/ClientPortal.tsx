@@ -452,6 +452,15 @@ export default function ClientPortal() {
           {currentTab.label}
         </h2>
 
+        {/* Tab Summary */}
+        {activeTab === "rank-primary" ? (
+          <TabSummary properties={primaryRanked} color={currentTab.color} label="Primary Residence Rankings" />
+        ) : activeTab === "rank-income" ? (
+          <TabSummary properties={incomeFiltered.fullRental} color={currentTab.color} label="Income Generation Rankings" />
+        ) : (
+          <TabSummary properties={builderProperties} color={currentTab.color} label={currentTab.label} />
+        )}
+
         {/* Rank: Primary Residence */}
         {activeTab === "rank-primary" && (
           <div>
