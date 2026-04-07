@@ -157,15 +157,15 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
             <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">
               Monthly Payment Breakdown
             </div>
-            <div className="relative" style={{ height: 220 }}>
+            <div className="relative" style={{ height: 260 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
+                    innerRadius={70}
+                    outerRadius={100}
                     paddingAngle={2}
                     dataKey="value"
                     stroke="none"
@@ -226,7 +226,7 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
                 ))}
               </div>
             </div>
-            <div style={{ height: 200 }}>
+            <div style={{ height: 220 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={amortData} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                   <XAxis
