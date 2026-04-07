@@ -60,6 +60,38 @@ Example property:
 
 Extract as many fields as you can from the text. Leave fields null/undefined if info is not available.`;
 
+const URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
+
+async function fetchUrlContent(url: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; PropertyBot/1.0)",
+        "Accept": "text/html,application/xhtml+xml,*/*",
+      },
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) return `[Failed to fetch ${url}: HTTP ${resp.status}]`;
+    const html = await resp.text();
+    // Limit to 50k chars of raw HTML
+    const trimmed = html.slice(0, 50000);
+    // Strip script/style tags and their content, then strip remaining HTML tags
+    const cleaned = trimmed
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    // Limit cleaned text to 15k chars
+    return cleaned.slice(0, 15000);
+  } catch (e) {
+    return `[Failed to fetch ${url}: ${e instanceof Error ? e.message : "unknown error"}]`;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -109,6 +141,24 @@ serve(async (req) => {
       });
     }
 
+    // Detect and fetch URLs
+    const urls = rawText.match(URL_REGEX) || [];
+    let enrichedText = rawText;
+
+    if (urls.length > 0) {
+      console.log(`Detected ${urls.length} URL(s), fetching content...`);
+      const fetches = await Promise.all(urls.slice(0, 5).map(async (url) => {
+        const content = await fetchUrlContent(url);
+        return { url, content };
+      }));
+
+      const urlContents = fetches
+        .map(({ url, content }) => `\n--- Content from ${url} ---\n${content}\n--- End ---`)
+        .join("\n");
+
+      enrichedText = rawText + "\n\n" + urlContents;
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
@@ -127,7 +177,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Extract property data from the following text:\n\n${rawText}` },
+          { role: "user", content: `Extract property data from the following text:\n\n${enrichedText}` },
         ],
         tools: [
           {

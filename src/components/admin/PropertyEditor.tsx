@@ -1,6 +1,14 @@
 import { useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical } from "lucide-react";
+import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   DndContext,
   closestCenter,
@@ -103,6 +111,17 @@ const ESTIMATE_FIELDS: { key: keyof Property; label: string }[] = [
   { key: "yieldEst", label: "Yield Estimate" },
   { key: "rentNote", label: "Rent Note" },
   { key: "sourceUrl", label: "Source Listing URL" },
+];
+
+const PREVIEW_FIELDS: { key: keyof Property; label: string }[] = [
+  { key: "address", label: "Address" },
+  { key: "city", label: "City" },
+  { key: "price", label: "Price" },
+  { key: "beds", label: "Beds" },
+  { key: "baths", label: "Baths" },
+  { key: "sqft", label: "Sq Ft" },
+  { key: "builder", label: "Builder" },
+  { key: "community", label: "Community" },
 ];
 
 const TAB_COLORS = [
@@ -222,17 +241,19 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
   const [smartAddText, setSmartAddText] = useState("");
   const [smartAdding, setSmartAdding] = useState(false);
   const [smartAddError, setSmartAddError] = useState("");
+  const [smartAddPreview, setSmartAddPreview] = useState<DossierData | null>(null);
   const [newTabLabel, setNewTabLabel] = useState("");
   const [showAddTab, setShowAddTab] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [renamingTab, setRenamingTab] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  // Build a flat map of sortable id → { tabKey, index } for dnd
   const propIdMap = useMemo(() => {
     const map: Record<string, { tabKey: string; index: number }> = {};
     data.tabs.forEach(tab => {
@@ -306,6 +327,29 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     setShowAddTab(false);
   };
 
+  const deleteTab = (tabKey: string) => {
+    const props = data.properties[tabKey] || [];
+    if (!confirm(`Delete "${data.tabs.find(t => t.key === tabKey)?.label}" tab and its ${props.length} properties?`)) return;
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      next.tabs = next.tabs.filter(t => t.key !== tabKey);
+      delete next.properties[tabKey];
+      return next;
+    });
+  };
+
+  const renameTab = (tabKey: string) => {
+    if (!renameValue.trim()) return;
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      const tab = next.tabs.find(t => t.key === tabKey);
+      if (tab) tab.label = renameValue.trim();
+      return next;
+    });
+    setRenamingTab(null);
+    setRenameValue("");
+  };
+
   const smartAdd = async () => {
     setSmartAdding(true);
     setSmartAddError("");
@@ -316,28 +360,66 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
       if (error) throw new Error(error.message || "Extraction failed");
       if (result?.error) throw new Error(result.error);
       const parsed = result.dossierData as DossierData;
-      setData(prev => {
-        const next = JSON.parse(JSON.stringify(prev)) as DossierData;
-        (parsed.tabs || []).forEach(newTab => {
-          const existing = next.tabs.find(t => t.key === newTab.key);
-          if (existing) {
-            next.properties[existing.key] = [
-              ...(next.properties[existing.key] || []),
-              ...(parsed.properties[newTab.key] || []),
-            ];
-          } else {
-            next.tabs.push(newTab);
-            next.properties[newTab.key] = parsed.properties[newTab.key] || [];
-          }
-        });
-        return next;
-      });
-      setSmartAddText("");
-      setShowSmartAdd(false);
+      setSmartAddPreview(parsed);
     } catch (e: unknown) {
       setSmartAddError(e instanceof Error ? e.message : "Failed to extract properties");
     }
     setSmartAdding(false);
+  };
+
+  const confirmSmartAdd = () => {
+    if (!smartAddPreview) return;
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      (smartAddPreview.tabs || []).forEach(newTab => {
+        const existing = next.tabs.find(t => t.key === newTab.key);
+        if (existing) {
+          next.properties[existing.key] = [
+            ...(next.properties[existing.key] || []),
+            ...(smartAddPreview.properties[newTab.key] || []),
+          ];
+        } else {
+          next.tabs.push(newTab);
+          next.properties[newTab.key] = smartAddPreview.properties[newTab.key] || [];
+        }
+      });
+      return next;
+    });
+    setSmartAddPreview(null);
+    setSmartAddText("");
+    setShowSmartAdd(false);
+  };
+
+  const updatePreviewField = (tabKey: string, propIndex: number, field: string, value: string) => {
+    setSmartAddPreview(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      (next.properties[tabKey][propIndex] as any)[field] = value;
+      return next;
+    });
+  };
+
+  const removePreviewProperty = (tabKey: string, propIndex: number) => {
+    setSmartAddPreview(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      next.properties[tabKey].splice(propIndex, 1);
+      if (next.properties[tabKey].length === 0) {
+        next.tabs = next.tabs.filter(t => t.key !== tabKey);
+        delete next.properties[tabKey];
+      }
+      return next;
+    });
+  };
+
+  const removePreviewTab = (tabKey: string) => {
+    setSmartAddPreview(prev => {
+      if (!prev) return prev;
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      next.tabs = next.tabs.filter(t => t.key !== tabKey);
+      delete next.properties[tabKey];
+      return next;
+    });
   };
 
   // ── Drag handlers ──
@@ -359,7 +441,6 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     const activeTabKey = findTabForPropId(active.id as string);
     let overTabKey: string | null = null;
 
-    // Check if over a tab container
     const overId = over.id as string;
     if (overId.startsWith("tab-")) {
       overTabKey = overId.replace("tab-", "");
@@ -369,7 +450,6 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
 
     if (!activeTabKey || !overTabKey || activeTabKey === overTabKey) return;
 
-    // Move property to new tab
     setData(prev => {
       const next = JSON.parse(JSON.stringify(prev)) as DossierData;
       const srcArr = next.properties[activeTabKey];
@@ -378,7 +458,6 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
       const [moved] = srcArr.splice(srcIdx, 1);
       const destArr = next.properties[overTabKey!] || [];
 
-      // Find insert position
       if (overId.startsWith("tab-")) {
         destArr.push(moved);
       } else {
@@ -418,6 +497,10 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     }
     return null;
   })() : null;
+
+  const previewTotalCount = smartAddPreview
+    ? smartAddPreview.tabs.reduce((sum, tab) => sum + (smartAddPreview.properties[tab.key]?.length || 0), 0)
+    : 0;
 
   return (
     <div>
@@ -459,13 +542,13 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         <div className="bg-muted/30 border border-border rounded p-4 mb-4">
           <label className="er-label block mb-1 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            Paste property info to add via AI
+            Paste property info or URLs to add via AI
           </label>
           <textarea
             value={smartAddText}
             onChange={e => setSmartAddText(e.target.value)}
             rows={6}
-            placeholder="Paste addresses, listing descriptions, URLs..."
+            placeholder="Paste addresses, listing descriptions, or URLs (e.g. https://builder-site.com/listing)..."
             className="er-input text-sm w-full mb-2"
             style={{ resize: "vertical" }}
           />
@@ -476,7 +559,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
               disabled={smartAdding || smartAddText.trim().length < 10}
               className="btn-er-primary !py-2 !px-4 !text-[10px] flex items-center gap-1.5"
             >
-              {smartAdding ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Extracting…</> : <><Sparkles className="w-3.5 h-3.5" /> Extract & Add</>}
+              {smartAdding ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Extracting…</> : <><Sparkles className="w-3.5 h-3.5" /> Extract & Preview</>}
             </button>
             <button
               onClick={() => { setShowSmartAdd(false); setSmartAddText(""); setSmartAddError(""); }}
@@ -487,6 +570,94 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
           </div>
         </div>
       )}
+
+      {/* Smart Add Preview Modal */}
+      <Dialog open={!!smartAddPreview} onOpenChange={(open) => { if (!open) setSmartAddPreview(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Preview Extracted Properties ({previewTotalCount})
+            </DialogTitle>
+            <DialogDescription>
+              Review and edit extracted properties before adding them to the dossier.
+            </DialogDescription>
+          </DialogHeader>
+
+          {smartAddPreview && smartAddPreview.tabs.length > 0 ? (
+            <div className="space-y-4">
+              {smartAddPreview.tabs.map(tab => {
+                const props = smartAddPreview.properties[tab.key] || [];
+                if (props.length === 0) return null;
+                return (
+                  <div key={tab.key} className="border border-border rounded p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span
+                        className="text-[10px] uppercase tracking-[2px] font-body font-semibold"
+                        style={{ color: tab.color }}
+                      >
+                        {tab.label} ({props.length})
+                      </span>
+                      <button
+                        onClick={() => removePreviewTab(tab.key)}
+                        className="text-destructive/50 hover:text-destructive bg-transparent border-none cursor-pointer p-1 text-xs flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Remove Tab
+                      </button>
+                    </div>
+                    {props.map((prop, i) => (
+                      <div key={prop.id || i} className="border border-border rounded p-3 mb-2 bg-card">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-sm font-semibold text-foreground">
+                            {prop.address || "(no address)"}
+                          </span>
+                          <button
+                            onClick={() => removePreviewProperty(tab.key, i)}
+                            className="text-destructive/50 hover:text-destructive bg-transparent border-none cursor-pointer p-1"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {PREVIEW_FIELDS.map(({ key, label }) => (
+                            <div key={key}>
+                              <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
+                              <input
+                                type="text"
+                                value={prop[key] != null ? String(prop[key]) : ""}
+                                onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
+                                className="er-input !py-1 !text-xs w-full"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-sm text-center py-6">No properties extracted.</div>
+          )}
+
+          <DialogFooter>
+            <button
+              onClick={() => setSmartAddPreview(null)}
+              className="btn-outline-light !text-charcoal !border-border !py-2 !px-4 !text-[10px]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmSmartAdd}
+              disabled={previewTotalCount === 0}
+              className="btn-er-primary !py-2 !px-4 !text-[10px] flex items-center gap-1.5"
+            >
+              <Check className="w-3.5 h-3.5" /> Confirm & Add {previewTotalCount} Properties
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <DndContext
         sensors={sensors}
@@ -507,7 +678,36 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                   className="text-[10px] uppercase tracking-[2px] font-body font-semibold py-2 px-1 border-b border-border mb-1 flex justify-between items-center"
                   style={{ color: tab.color }}
                 >
-                  <span>{tab.label} ({props.length})</span>
+                  {renamingTab === tab.key ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Enter") renameTab(tab.key); if (e.key === "Escape") { setRenamingTab(null); setRenameValue(""); } }}
+                        onBlur={() => renameTab(tab.key)}
+                        autoFocus
+                        className="er-input !py-0.5 !px-1.5 !text-xs w-40"
+                      />
+                    </div>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      {tab.label} ({props.length})
+                      <button
+                        onClick={() => { setRenamingTab(tab.key); setRenameValue(tab.label); }}
+                        className="bg-transparent border-none cursor-pointer p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                        title="Rename tab"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    onClick={() => deleteTab(tab.key)}
+                    className="text-destructive/40 hover:text-destructive bg-transparent border-none cursor-pointer p-1 transition-colors"
+                    title="Delete tab"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <DroppableTab tabKey={tab.key}>
                   <SortableContext items={props.map(p => p.id)} strategy={verticalListSortingStrategy}>
