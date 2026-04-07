@@ -103,6 +103,48 @@ export type Database = {
         }
         Relationships: []
       }
+      property_interactions: {
+        Row: {
+          comments: string | null
+          created_at: string | null
+          dossier_id: string | null
+          grade: string | null
+          id: string
+          is_favorite: boolean | null
+          preferred_tour_date: string | null
+          preferred_tour_time: string | null
+          property_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string | null
+          dossier_id?: string | null
+          grade?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          preferred_tour_date?: string | null
+          preferred_tour_time?: string | null
+          property_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string | null
+          dossier_id?: string | null
+          grade?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          preferred_tour_date?: string | null
+          preferred_tour_time?: string | null
+          property_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_estimates: {
         Row: {
           created_at: string
