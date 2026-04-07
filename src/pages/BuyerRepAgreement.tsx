@@ -73,6 +73,8 @@ const BuyerRepAgreement = () => {
 
   const handleSubmit = async () => {
     if (!clientName.trim()) { toast.error("Please enter your full name."); return; }
+    if (!clientInitials.trim()) { toast.error("Please enter your initials."); return; }
+    if (hasSecondClient && !client2Initials.trim()) { toast.error("Please enter the second client's initials."); return; }
     if (!signatureData) { toast.error("Please provide your signature."); return; }
     if (!termEnd) { toast.error("Please select an agreement end date."); return; }
     if (!userId) return;
