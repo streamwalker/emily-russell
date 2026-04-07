@@ -499,14 +499,26 @@ export default function ClientPortal() {
 
       {/* Content */}
       <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
-        <FilterSortToolbar
-          filters={filters}
-          sort={sort}
-          onFiltersChange={setFilters}
-          onSortChange={setSort}
-          cities={cities}
-          builders={builders}
-        />
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <FilterSortToolbar
+              filters={filters}
+              sort={sort}
+              onFiltersChange={setFilters}
+              onSortChange={setSort}
+              cities={cities}
+              builders={builders}
+            />
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="mt-1 text-muted-foreground hover:text-foreground cursor-help text-sm transition-colors">ℹ️</span>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs max-w-[220px]">
+              Use filters and sorting to narrow down by city, price, beds, or builder.
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         <h2 className="font-display text-lg font-semibold mb-3.5" style={{ color: currentTab.color }}>
           {currentTab.label}
