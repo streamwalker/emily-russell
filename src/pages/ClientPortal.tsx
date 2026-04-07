@@ -69,6 +69,8 @@ interface DossierData {
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+const ALL_HOMES_TAB: Tab = { key: "all-homes", label: "📋 All Homes", color: "#6B7280" };
+
 const RANK_TABS: Tab[] = [
   { key: "rank-primary", label: "🏠 Primary Residence", color: "#5B7FA5" },
   { key: "rank-income", label: "💰 Income Generation", color: "#2e7d32" },
