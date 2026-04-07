@@ -5,7 +5,8 @@ import { useAdminCheck } from "@/hooks/useAdminCheck";
 import ExpenseEditor from "@/components/admin/ExpenseEditor";
 import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
 interface DossierRow {
@@ -76,6 +77,10 @@ export default function AdminDashboard() {
   const [newTitle, setNewTitle] = useState("Client Property Dossier");
   const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
   const [newJson, setNewJson] = useState("{}");
+  const [newRawText, setNewRawText] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [useRawJson, setUseRawJson] = useState(false);
 
   // Analytics
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -162,20 +167,39 @@ export default function AdminDashboard() {
     fetchData();
   };
 
-  const createDossier = async () => {
+  const extractProperties = async () => {
+    setExtracting(true);
+    setError("");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
+        body: { rawText: newRawText },
+      });
+      if (fnErr) throw new Error(fnErr.message || "Extraction failed");
+      if (data?.error) throw new Error(data.error);
+      setExtractedData(data.dossierData);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to extract properties");
+    }
+    setExtracting(false);
+  };
+
+  const createDossier = async (dossierDataOverride?: any) => {
     setSaving(true);
     setError("");
     try {
-      const parsed = JSON.parse(newJson);
+      const finalData = dossierDataOverride || (useRawJson ? JSON.parse(newJson) : extractedData);
+      if (!finalData) throw new Error("No dossier data. Extract properties or enter JSON first.");
       const { error: err } = await supabase.from("client_dossiers").insert({
         user_id: newUserId,
         title: newTitle,
         prepared_date: newDate,
-        dossier_data: parsed,
+        dossier_data: finalData,
       });
       if (err) throw err;
       setShowNew(false);
       setNewJson("{}");
+      setNewRawText("");
+      setExtractedData(null);
       fetchData();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create dossier");
@@ -292,16 +316,89 @@ export default function AdminDashboard() {
                     <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="er-input" />
                   </div>
                 </div>
+                {/* Smart Input / Raw JSON toggle */}
                 <div className="mb-4">
-                  <label className="er-label block mb-1">Dossier Data (JSON)</label>
-                  <textarea value={newJson} onChange={e => setNewJson(e.target.value)} rows={12} className="er-input font-mono text-xs" style={{ resize: "vertical" }} />
+                  <div className="flex items-center gap-3 mb-3">
+                    <label className="er-label flex items-center gap-2 cursor-pointer">
+                      <Switch checked={useRawJson} onCheckedChange={setUseRawJson} />
+                      <span className="text-xs">{useRawJson ? "Raw JSON mode" : "Smart AI extraction"}</span>
+                    </label>
+                  </div>
+
+                  {useRawJson ? (
+                    <div>
+                      <label className="er-label block mb-1">Dossier Data (JSON)</label>
+                      <textarea value={newJson} onChange={e => setNewJson(e.target.value)} rows={12} className="er-input font-mono text-xs" style={{ resize: "vertical" }} />
+                    </div>
+                  ) : extractedData ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          <span className="font-body text-sm font-semibold text-foreground">
+                            Extracted Properties — Review & Edit
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setExtractedData(null)}
+                          className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-muted-foreground px-3 py-1.5 hover:border-primary transition-colors"
+                        >
+                          ← Back to Input
+                        </button>
+                      </div>
+                      <PropertyEditor
+                        dossierData={extractedData}
+                        saving={saving}
+                        onCancel={() => setExtractedData(null)}
+                        onSave={(updatedData) => createDossier(updatedData)}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="er-label block mb-1 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                        Paste property info (addresses, MLS data, listing descriptions, URLs)
+                      </label>
+                      <textarea
+                        value={newRawText}
+                        onChange={e => setNewRawText(e.target.value)}
+                        rows={12}
+                        placeholder={"Paste listing info here. For example:\n\n1234 Oak Lane, Round Rock TX 78665\n$385,000 | 4 bed 2.5 bath | 2,400 sqft\nBuilder: Meritage Homes | Plan: The Aspen\nCommunity: Siena\nhttps://zillow.com/listing/1234\n\n5678 Elm Dr, Georgetown TX 78626\n$420,000 | 3 bed 2 bath | 1,800 sqft\nBuilder: Taylor Morrison"}
+                        className="er-input text-sm"
+                        style={{ resize: "vertical" }}
+                      />
+                      <button
+                        onClick={extractProperties}
+                        disabled={extracting || newRawText.trim().length < 10}
+                        className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
+                      >
+                        {extracting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Extracting…
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            Extract Properties
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={createDossier} disabled={saving || !newUserId} className="btn-er-primary !py-2.5 !px-6 !text-[10px]">
-                    {saving ? "Creating…" : "Create Dossier"}
-                  </button>
-                  <button onClick={() => setShowNew(false)} className="btn-outline-light !text-charcoal !border-border !py-2.5 !px-6 !text-[10px]">Cancel</button>
-                </div>
+
+                {/* Show Create/Cancel only when NOT in extracted review mode (PropertyEditor has its own save) */}
+                {!extractedData && (
+                  <div className="flex gap-3">
+                    {useRawJson && (
+                      <button onClick={() => createDossier()} disabled={saving || !newUserId} className="btn-er-primary !py-2.5 !px-6 !text-[10px]">
+                        {saving ? "Creating…" : "Create Dossier"}
+                      </button>
+                    )}
+                    <button onClick={() => { setShowNew(false); setExtractedData(null); }} className="btn-outline-light !text-charcoal !border-border !py-2.5 !px-6 !text-[10px]">Cancel</button>
+                  </div>
+                )}
               </div>
             )}
 
