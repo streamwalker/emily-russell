@@ -1,79 +1,63 @@
 
 
-## Fix Signature Placement + Agent-Only Fields for End Date and Commission
+## Add Favorites, Tour Scheduling, Comments & Grading to Dossier Properties
 
 ### Summary
 
-Three changes: (1) fix the client signature position on the PDF so it sits on the correct signature line, (2) remove the broker printed name from the PDF (leave blank for DocuSign later), and (3) make the end date and commission percentage fields editable only by the admin/agent — the buyer sees them as read-only display values.
+Three new client-facing features on each property card: (1) favorite/heart toggle, (2) preferred tour day/time input, and (3) a comments section with letter grading. All data persists per-user per-property in a new database table. Grade limits (max 3 each for A+, A, A-) are enforced client-side.
 
-### Changes
+### Database
 
-**1. PDF Signature Block Fix (`generate-agreement-pdf/index.ts`)**
+New table `property_interactions` to store all three features in one row per user+property:
 
-- Remove line 133 that draws `broker.name` ("Fathom Realty") on the Broker's Printed Name line — leave it blank for the broker to fill via DocuSign
-- Move the client signature image position: currently at `x: 360, y: y(260)` which overlaps the printed name. Shift to `x: 324, y: y(250)` so the signature sits above the "Client's Signature" label line, not on top of the printed name
-- Adjust signature scaling: use `width: Math.min(sigDims.width, 180)` for a wider, more natural signature
-
-**2. Agent-Only Fields: End Date + Commission (`BuyerRepAgreement.tsx`)**
-
-- Use the existing `useAdminCheck` hook to detect if the current user is an admin (agent)
-- For the **End Date** picker (line 298-311): if not admin, render as a read-only display showing the value (or "Not yet set by agent") instead of a date picker
-- For the **Broker's Fee** input (line 333-334): if not admin, render as a read-only display instead of an editable input
-- The agent will need to pre-configure these values before the buyer signs. Store them in a new approach: the agent sets these values on the `signed_agreements` table or a config, and the buyer's form loads them.
-
-**Approach for agent-configurable values:** Since we need the agent to set end date and commission *before* the buyer sees the form, the simplest approach is:
-- Create a new database table `agreement_settings` with columns: `id`, `user_id` (the client's user ID), `term_end`, `broker_fee_pct`, `created_by` (admin user ID), `created_at`
-- The admin dashboard gets a small UI to set these per-client
-- When the buyer loads the agreement page, it fetches their settings and pre-fills end date and fee as read-only
-- If no settings exist yet, those fields show "Pending — your agent will configure this" and the sign button is disabled
-
-**However**, this adds significant complexity. A simpler alternative:
-
-**Simpler approach:** Keep the fields on the same page but lock them based on role. The agent navigates to the same `/portal/agreement` URL while logged in as admin, fills in the end date and commission for the client (stored in a lightweight `agreement_config` table keyed by client user_id), then the client sees those values as read-only when they open the form.
-
-### Technical Details
-
-**Database migration:**
 ```sql
-CREATE TABLE public.agreement_config (
+CREATE TABLE public.property_interactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_user_id UUID NOT NULL,
-  term_end DATE,
-  broker_fee_pct NUMERIC(5,2) DEFAULT 3.0,
-  updated_by UUID REFERENCES auth.users(id),
+  user_id UUID NOT NULL,
+  property_id TEXT NOT NULL,
+  dossier_id UUID,
+  is_favorite BOOLEAN DEFAULT false,
+  preferred_tour_date DATE,
+  preferred_tour_time TEXT,
+  comments TEXT,
+  grade TEXT, -- 'A+','A','A-','B+','B','B-','C+','C','C-','D+','D','D-','F','F-'
+  created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(client_user_id)
+  UNIQUE(user_id, property_id)
 );
-
-ALTER TABLE public.agreement_config ENABLE ROW LEVEL SECURITY;
-
--- Admins can read/write all configs
-CREATE POLICY "Admins manage configs" ON public.agreement_config
-  FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'));
-
--- Clients can read their own config
-CREATE POLICY "Clients read own config" ON public.agreement_config
-  FOR SELECT TO authenticated
-  USING (client_user_id = auth.uid());
 ```
 
-**Frontend flow:**
-- On page load, fetch `agreement_config` for the current user (client) or selected client (admin)
-- Admin sees editable end date + fee fields, with a "Save Settings" button that upserts to `agreement_config`
-- Client sees read-only display of those values; if not yet configured, sign button is disabled with message "Your agent needs to configure the agreement terms first"
-- Admin also needs a way to select which client they're configuring — add a client selector dropdown when admin is viewing the agreement page
+RLS: users can CRUD their own rows; admins can read all.
 
-**PDF changes:**
-- Remove broker printed name draw call (line 133)
-- Reposition client signature to `x: 324, y: y(248)` with wider dimensions
+### Frontend Changes (`ClientPortal.tsx`)
+
+**1. Favorites**
+- Heart icon button on each property row header (next to the Compare checkbox)
+- Filled red heart = favorited; outline = not
+- Clicking toggles `is_favorite` in `property_interactions` via upsert
+
+**2. Tour Day/Time**
+- In the expanded property detail area, add a small section: "When would you like to see this home?"
+- Date picker (using Shadcn Calendar/Popover) + time input (text, e.g. "10:00 AM")
+- Auto-saves on change via upsert
+
+**3. Comments & Grading**
+- In the expanded property detail area, below Agent Notes, add "Your Feedback" section
+- Textarea for comments
+- Dropdown/select for grade (A+ through F-)
+- Grade validation: when selecting A+, A, or A-, check how many other properties already have that grade. If >= 3, show toast error and reject
+- Auto-save with debounce (or explicit "Save" button)
+
+**Data flow:**
+- On page load, fetch all `property_interactions` for the current user in one query
+- Store in a `Record<propertyId, Interaction>` state map
+- Each interaction update does an upsert to `property_interactions`
+- Favorites count shown in a small badge on the header (e.g. "❤ 5 Favorites")
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `supabase/functions/generate-agreement-pdf/index.ts` | Edit — remove broker name, fix signature position |
-| `src/pages/BuyerRepAgreement.tsx` | Edit — add admin check, lock end date + fee for non-admins, add client selector for admins, fetch/save agreement_config |
-| Database migration | Create `agreement_config` table with RLS |
+| Database migration | Create `property_interactions` table with RLS |
+| `src/pages/ClientPortal.tsx` | Add favorites, tour scheduling, comments/grading UI; fetch/save interactions |
 
