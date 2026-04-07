@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 /* ── Types ── */
 interface Property {
@@ -150,6 +151,8 @@ export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [userEmail, setUserEmail] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const { isAdmin } = useAdminCheck();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -244,17 +247,34 @@ export default function ClientPortal() {
                 {dossier.subtitle || `Multi-Builder New Construction · San Antonio Metro & Beyond · ${totalProps} Properties`}
               </p>
             </div>
-            <div className="text-right flex items-start gap-6">
+            <div className="text-right flex items-start gap-4">
               <div className="opacity-45 text-[11px] leading-relaxed">
                 <div>{dossier.date || "April 6, 2026"}</div>
                 <div>{dossier.phone || "(210) 912-0806"}</div>
               </div>
-              <button
-                onClick={handleLogout}
-                className="font-body text-[11px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors"
-              >
-                Sign Out
-              </button>
+              {isAdmin && (
+                <Link to="/portal/admin" className="font-body text-[11px] uppercase tracking-[2px] no-underline bg-transparent border border-gold/50 text-gold-light px-4 py-2 hover:border-gold hover:text-white transition-colors">
+                  Admin
+                </Link>
+              )}
+              <div className="relative">
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="font-body text-[11px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors"
+                >
+                  ⚙ Account
+                </button>
+                {showSettings && (
+                  <div className="absolute right-0 top-full mt-2 bg-charcoal border border-white/10 rounded shadow-xl min-w-[180px] py-1 z-50">
+                    <Link to="/portal/change-email" className="block px-4 py-2 text-[12px] text-white/70 no-underline hover:text-white hover:bg-white/5 font-body transition-colors">
+                      Change Email
+                    </Link>
+                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-[12px] text-white/70 bg-transparent border-none cursor-pointer hover:text-white hover:bg-white/5 font-body transition-colors">
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
