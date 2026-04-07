@@ -352,18 +352,24 @@ const BuyerRepAgreement = () => {
                   </Popover>
                 </div>
                 <div>
-                  <label className={labelClass}>End Date</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className={cn(inputClass, "flex items-center justify-between cursor-pointer", !termEnd && "text-muted-foreground")}>
-                        {termEnd ? format(termEnd, "PPP") : "Select end date"}
-                        <CalendarIcon className="w-4 h-4 opacity-50" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={termEnd} onSelect={setTermEnd} initialFocus className="p-3 pointer-events-auto" />
-                    </PopoverContent>
-                  </Popover>
+                  <label className={labelClass}>End Date {!isAdmin && <span className="text-muted-foreground normal-case tracking-normal font-normal">(set by your agent)</span>}</label>
+                  {isAdmin ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className={cn(inputClass, "flex items-center justify-between cursor-pointer", !termEnd && "text-muted-foreground")}>
+                          {termEnd ? format(termEnd, "PPP") : "Select end date"}
+                          <CalendarIcon className="w-4 h-4 opacity-50" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={termEnd} onSelect={setTermEnd} initialFocus className="p-3 pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="px-3 py-2 bg-muted text-foreground text-sm border border-border">
+                      {termEnd ? format(termEnd, "PPP") : <span className="text-muted-foreground italic">Pending — your agent will configure this</span>}
+                    </div>
+                  )}
                 </div>
               </div>
               <p className={legalClass}>This agreement begins on the start date and ends at 11:59 p.m. on the end date.</p>
@@ -386,8 +392,14 @@ const BuyerRepAgreement = () => {
               <h2 className={headingClass}>7. Broker Compensation</h2>
               <p className={legalClass}>Broker compensation or the sharing of compensation between brokers is not set by law nor fixed, controlled, recommended, or suggested, by the Association of REALTORS®, MLS, or any listing service. Broker compensation is fully negotiable.</p>
               <div className="mt-3">
-                <label className={labelClass}>Broker's Fee (% of sales price)</label>
-                <input type="text" className={cn(inputClass, "w-32")} value={brokerFeePct} onChange={e => setBrokerFeePct(e.target.value)} />
+                <label className={labelClass}>Broker's Fee (% of sales price) {!isAdmin && <span className="text-muted-foreground normal-case tracking-normal font-normal">(set by your agent)</span>}</label>
+                {isAdmin ? (
+                  <input type="text" className={cn(inputClass, "w-32")} value={brokerFeePct} onChange={e => setBrokerFeePct(e.target.value)} />
+                ) : (
+                  <div className="px-3 py-2 bg-muted text-foreground text-sm border border-border w-32">
+                    {brokerFeePct}%
+                  </div>
+                )}
               </div>
               <div className={legalClass + " space-y-2 mt-3"}>
                 <p><strong>B. Source of Compensation:</strong> Broker will seek to obtain payment of the fees specified first from the seller, landlord, or their agents. If such persons refuse or fail to pay Broker the amount specified, Client will pay Broker the amount specified less any amounts Broker receives from such persons.</p>
