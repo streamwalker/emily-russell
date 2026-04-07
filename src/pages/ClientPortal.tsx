@@ -732,6 +732,9 @@ export default function ClientPortal() {
                     onToggle={() => toggle(p.id)}
                     accentColor="#1565c0"
                     rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
+                    isCompareSelected={compareIds.has(p.id)}
+                    onCompareToggle={() => toggleCompare(p.id)}
+                    userId={userId}
                   />
                 ))}
               </div>
