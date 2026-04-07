@@ -129,10 +129,9 @@ Deno.serve(async (req) => {
     // ─── PAGE 6 — Signature block ───
     const p6 = pages[5];
 
-    // Broker's Printed Name (above the label line)
-    p6.drawText(broker.associate || "Emily Russell", { x: 36, y: y(230), font, size: fontSize, color });
-    // License No
-    p6.drawText(broker.license || "791742", { x: 252, y: y(230), font, size: fontSize, color });
+    // Broker's Printed Name (the brokerage firm, not the associate)
+    p6.drawText(broker.name || "Fathom Realty", { x: 36, y: y(230), font, size: fontSize, color });
+    // Broker License No — leave blank (brokerage license is pre-printed on form)
 
     // Client's Printed Name
     p6.drawText(clientName, { x: 324, y: y(230), font, size: fontSize, color });
