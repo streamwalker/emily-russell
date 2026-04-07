@@ -1,7 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
+import FilterSortToolbar from "@/components/portal/FilterSortToolbar";
+import RankBadge from "@/components/portal/RankBadge";
+import {
+  scorePrimaryResidence,
+  scoreIncomeGeneration,
+  applyFilters,
+  applySort,
+  getUniqueCities,
+  getUniqueBuilders,
+  defaultFilters,
+  type FilterState,
+  type SortField,
+  type RankedProperty,
+} from "@/lib/dossierScoring";
 
 /* ── Types ── */
 interface Property {
@@ -44,14 +58,36 @@ interface DossierData {
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+const RANK_TABS: Tab[] = [
+  { key: "rank-primary", label: "🏠 Primary Residence", color: "#5B7FA5" },
+  { key: "rank-income", label: "💰 Income Generation", color: "#2e7d32" },
+];
+
 /* ── Property Row ── */
-function PropertyRow({ prop, isExpanded, onToggle, accentColor }: { prop: Property; isExpanded: boolean; onToggle: () => void; accentColor: string }) {
+function PropertyRow({
+  prop,
+  isExpanded,
+  onToggle,
+  accentColor,
+  rankInfo,
+}: {
+  prop: Property;
+  isExpanded: boolean;
+  onToggle: () => void;
+  accentColor: string;
+  rankInfo?: { rank: number; scoreSummary: string; sourceTab: string };
+}) {
   return (
-    <div className="bg-white rounded border border-border mb-3.5 overflow-hidden shadow-sm">
+    <div className="bg-card rounded border border-border mb-3.5 overflow-hidden shadow-sm">
+      {rankInfo && (
+        <div className="px-5 pt-3 pb-1">
+          <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />
+        </div>
+      )}
       <div
         onClick={onToggle}
         className="flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
-        style={{ background: isExpanded ? accentColor : "#fff", color: isExpanded ? "#fff" : "hsl(var(--charcoal))" }}
+        style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))" }}
       >
         <div className="flex-1 min-w-0">
           <div className="text-[17px] font-bold font-display">{prop.address}</div>
@@ -104,7 +140,7 @@ function PropertyRow({ prop, isExpanded, onToggle, accentColor }: { prop: Proper
         <div className="px-5 py-4 border-t" style={{ borderColor: `${accentColor}15` }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <div className="text-[10px] uppercase tracking-[2px] text-slate-er mb-2 font-body">Property Details</div>
+              <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Property Details</div>
               <div className="font-body text-[13px]">
                 {([
                   ["Area", prop.area],
@@ -117,15 +153,15 @@ function PropertyRow({ prop, isExpanded, onToggle, accentColor }: { prop: Proper
                   .filter(([, v]) => v)
                   .map(([label, value], i) => (
                     <div key={i} className="flex justify-between py-1.5 border-b border-border/50">
-                      <span className="text-slate-er">{label}</span>
-                      <span className="font-semibold text-charcoal text-right max-w-[65%] text-xs">{value}</span>
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="font-semibold text-foreground text-right max-w-[65%] text-xs">{value}</span>
                     </div>
                   ))}
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-[2px] text-slate-er mb-2 font-body">Agent Notes</div>
-              <div className="text-[12.5px] leading-relaxed text-charcoal font-body bg-warm p-3 rounded border border-border/50">
+              <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Agent Notes</div>
+              <div className="text-[12.5px] leading-relaxed text-foreground font-body bg-muted p-3 rounded border border-border/50">
                 {prop.notes}
               </div>
               {(prop.rentEst || prop.yieldEst) && (
@@ -148,7 +184,7 @@ function PropertyRow({ prop, isExpanded, onToggle, accentColor }: { prop: Proper
                       </div>
                     )}
                   </div>
-                  {prop.rentNote && <div className="text-[11px] text-slate-er mt-1 italic">{prop.rentNote}</div>}
+                  {prop.rentNote && <div className="text-[11px] text-muted-foreground mt-1 italic">{prop.rentNote}</div>}
                 </div>
               )}
             </div>
@@ -167,6 +203,8 @@ export default function ClientPortal() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [userEmail, setUserEmail] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [sort, setSort] = useState<SortField>("price-asc");
   const { isAdmin } = useAdminCheck();
   const navigate = useNavigate();
 
@@ -190,7 +228,6 @@ export default function ClientPortal() {
         setDossier(d);
         if (d.tabs?.length) {
           setActiveTab(d.tabs[0].key);
-          // Expand first property of each tab
           const firstIds = Object.values(d.properties).map(arr => arr[0]?.id).filter(Boolean);
           setExpandedIds(new Set(firstIds));
         }
@@ -213,33 +250,66 @@ export default function ClientPortal() {
     });
   };
 
+  // Derived data
+  const allTabs = useMemo(() => (dossier ? [...dossier.tabs, ...RANK_TABS] : []), [dossier]);
+  const tabLabels = useMemo(() => {
+    if (!dossier) return {};
+    const map: Record<string, string> = {};
+    dossier.tabs.forEach(t => (map[t.key] = t.label));
+    return map;
+  }, [dossier]);
+
+  const cities = useMemo(() => (dossier ? getUniqueCities(dossier.properties) : []), [dossier]);
+  const builders = useMemo(() => (dossier ? getUniqueBuilders(dossier.properties) : []), [dossier]);
+
+  const primaryRanked = useMemo(
+    () => (dossier ? applyFilters(scorePrimaryResidence(dossier.properties, tabLabels), filters) : []),
+    [dossier, tabLabels, filters]
+  );
+  const incomeRanked = useMemo(
+    () => (dossier ? scoreIncomeGeneration(dossier.properties, tabLabels) : { fullRental: [], airbnbPotential: [] }),
+    [dossier, tabLabels]
+  );
+  const incomeFiltered = useMemo(() => ({
+    fullRental: applyFilters(incomeRanked.fullRental, filters),
+    airbnbPotential: applyFilters(incomeRanked.airbnbPotential, filters),
+  }), [incomeRanked, filters]);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream">
-        <div className="text-gold font-body text-lg">Loading your dossier…</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-primary font-body text-lg">Loading your dossier…</div>
       </div>
     );
   }
 
   if (!dossier) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-cream px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="text-center">
-          <h2 className="font-display text-2xl text-charcoal mb-3">No Dossier Available</h2>
-          <p className="font-body text-sm text-slate-er mb-6">Your personalized dossier is being prepared. Please check back soon.</p>
+          <h2 className="font-display text-2xl text-foreground mb-3">No Dossier Available</h2>
+          <p className="font-body text-sm text-muted-foreground mb-6">Your personalized dossier is being prepared. Please check back soon.</p>
           <button onClick={handleLogout} className="btn-er-primary">Sign Out</button>
         </div>
       </div>
     );
   }
 
-  const currentTab = dossier.tabs.find(t => t.key === activeTab) || dossier.tabs[0];
-  const properties = dossier.properties[activeTab] || [];
+  const currentTab = allTabs.find(t => t.key === activeTab) || allTabs[0];
+  const isRankTab = activeTab.startsWith("rank-");
+
+  // For regular builder tabs: apply filters + sort
+  const builderProperties = useMemo(() => {
+    if (isRankTab) return [];
+    const raw = dossier.properties[activeTab] || [];
+    return applySort(applyFilters(raw, filters), sort);
+  }, [dossier, activeTab, filters, sort, isRankTab]);
+
   const totalProps = Object.values(dossier.properties).flat().length;
 
   const outOfTownByCity =
-    activeTab === "outoftown"
-      ? properties.reduce<Record<string, Property[]>>((acc, p) => {
+    activeTab === "outoftown" && !isRankTab
+      ? builderProperties.reduce<Record<string, Property[]>>((acc, p) => {
           const city = p.city.split(",")[0].trim();
           if (!acc[city]) acc[city] = [];
           acc[city].push(p);
@@ -248,7 +318,7 @@ export default function ClientPortal() {
       : null;
 
   return (
-    <div className="font-body min-h-screen" style={{ background: "#f4f2ee", color: "#1a1a1a" }}>
+    <div className="font-body min-h-screen" style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}>
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)", color: "#fff", padding: "32px 24px 0" }}>
         <div className="max-w-[960px] mx-auto">
@@ -257,7 +327,7 @@ export default function ClientPortal() {
               <div className="text-[10px] tracking-[3px] uppercase opacity-45 mb-1.5">
                 {dossier.preparedBy || "Prepared by Emily Russell · Fathom Realty · TREC #791742"}
               </div>
-              <h1 className="font-display text-[26px] font-bold m-0">{dossier.tabs ? "Client Property Dossier" : "Dossier"}</h1>
+              <h1 className="font-display text-[26px] font-bold m-0">Client Property Dossier</h1>
               <p className="text-xs opacity-55 mt-1">
                 {dossier.subtitle || `Multi-Builder New Construction · San Antonio Metro & Beyond · ${totalProps} Properties`}
               </p>
@@ -268,7 +338,7 @@ export default function ClientPortal() {
                 <div>{dossier.phone || "(210) 912-0806"}</div>
               </div>
               {isAdmin && (
-                <Link to="/portal/admin" className="font-body text-[11px] uppercase tracking-[2px] no-underline bg-transparent border border-gold/50 text-gold-light px-4 py-2 hover:border-gold hover:text-white transition-colors">
+                <Link to="/portal/admin" className="font-body text-[11px] uppercase tracking-[2px] no-underline bg-transparent border border-primary/50 text-primary px-4 py-2 hover:border-primary hover:text-white transition-colors">
                   Admin
                 </Link>
               )}
@@ -280,7 +350,7 @@ export default function ClientPortal() {
                   ⚙ Account
                 </button>
                 {showSettings && (
-                  <div className="absolute right-0 top-full mt-2 bg-charcoal border border-white/10 rounded shadow-xl min-w-[180px] py-1 z-50">
+                  <div className="absolute right-0 top-full mt-2 bg-foreground border border-white/10 rounded shadow-xl min-w-[180px] py-1 z-50">
                     <Link to="/portal/change-email" className="block px-4 py-2 text-[12px] text-white/70 no-underline hover:text-white hover:bg-white/5 font-body transition-colors">
                       Change Email
                     </Link>
@@ -295,7 +365,7 @@ export default function ClientPortal() {
 
           {/* Tabs */}
           <div className="flex gap-1 overflow-x-auto">
-            {dossier.tabs.map(tab => (
+            {allTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -306,7 +376,9 @@ export default function ClientPortal() {
                 }}
               >
                 {tab.label}{" "}
-                <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
+                {!tab.key.startsWith("rank-") && (
+                  <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
+                )}
               </button>
             ))}
           </div>
@@ -318,36 +390,114 @@ export default function ClientPortal() {
 
       {/* Content */}
       <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
+        <FilterSortToolbar
+          filters={filters}
+          sort={sort}
+          onFiltersChange={setFilters}
+          onSortChange={setSort}
+          cities={cities}
+          builders={builders}
+        />
+
         <h2 className="font-display text-lg font-semibold mb-3.5" style={{ color: currentTab.color }}>
           {currentTab.label}
         </h2>
 
-        {activeTab === "outoftown" && outOfTownByCity ? (
-          Object.entries(outOfTownByCity).map(([city, props]) => (
-            <div key={city} className="mb-5">
-              <div className="text-[11px] font-bold uppercase tracking-[2px] text-slate-er mb-2 pb-1 border-b border-border">
-                {city}
-              </div>
-              {props.map(p => (
-                <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+        {/* Rank: Primary Residence */}
+        {activeTab === "rank-primary" && (
+          <div>
+            <p className="text-xs text-muted-foreground font-body mb-4">
+              All {primaryRanked.length} properties ranked best-to-worst for primary residence living — based on size, layout, value per sq ft, and move-in readiness.
+            </p>
+            {primaryRanked.map(p => (
+              <PropertyRow
+                key={p.id}
+                prop={p}
+                isExpanded={expandedIds.has(p.id)}
+                onToggle={() => toggle(p.id)}
+                accentColor={currentTab.color}
+                rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Rank: Income Generation */}
+        {activeTab === "rank-income" && (
+          <div>
+            <div className="mb-6">
+              <h3 className="font-display text-base font-semibold mb-1" style={{ color: "#2e7d32" }}>
+                Full Rental
+              </h3>
+              <p className="text-xs text-muted-foreground font-body mb-3">
+                Ranked by gross yield, rental income, and barrier to entry — {incomeFiltered.fullRental.length} properties.
+              </p>
+              {incomeFiltered.fullRental.map(p => (
+                <PropertyRow
+                  key={`fr-${p.id}`}
+                  prop={p}
+                  isExpanded={expandedIds.has(p.id)}
+                  onToggle={() => toggle(p.id)}
+                  accentColor={currentTab.color}
+                  rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
+                />
               ))}
             </div>
-          ))
-        ) : (
-          properties.map(p => (
-            <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
-          ))
+
+            {incomeFiltered.airbnbPotential.length > 0 && (
+              <div>
+                <h3 className="font-display text-base font-semibold mb-1" style={{ color: "#1565c0" }}>
+                  Airbnb / House-Hack Potential
+                </h3>
+                <p className="text-xs text-muted-foreground font-body mb-3">
+                  Properties suited for short-term rentals or renting out part of the home — {incomeFiltered.airbnbPotential.length} properties.
+                </p>
+                {incomeFiltered.airbnbPotential.map(p => (
+                  <PropertyRow
+                    key={`ab-${p.id}`}
+                    prop={p}
+                    isExpanded={expandedIds.has(p.id)}
+                    onToggle={() => toggle(p.id)}
+                    accentColor="#1565c0"
+                    rankInfo={{ rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Regular builder tabs */}
+        {!isRankTab && (
+          <>
+            {activeTab === "outoftown" && outOfTownByCity ? (
+              Object.entries(outOfTownByCity).map(([city, props]) => (
+                <div key={city} className="mb-5">
+                  <div className="text-[11px] font-bold uppercase tracking-[2px] text-muted-foreground mb-2 pb-1 border-b border-border">
+                    {city}
+                  </div>
+                  {props.map(p => (
+                    <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+                  ))}
+                </div>
+              ))
+            ) : (
+              builderProperties.map(p => (
+                <PropertyRow key={p.id} prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+              ))
+            )}
+          </>
         )}
 
         {/* Disclaimer */}
-        <div className="mt-6 p-3.5 bg-white rounded border border-border text-[10px] text-slate-er leading-relaxed">
+        <div className="mt-6 p-3.5 bg-card rounded border border-border text-[10px] text-muted-foreground leading-relaxed">
           <span className="font-bold uppercase tracking-wider" style={{ color: "#666" }}>Disclaimer: </span>
           Pricing, availability, and specifications subject to change without notice. Rental estimates based on comparables as of April 2026. Not financial or investment advice. Builder incentives subject to lender approval. Consult a financial advisor before investing. Prepared by Emily Russell, REALTOR® — Fathom Realty · (210) 912-0806 · emily@streamwalkers.com · alamocitydesigns.com
         </div>
       </div>
 
       {/* Logged-in indicator */}
-      <div className="fixed bottom-4 left-4 font-body text-[10px] text-slate-er opacity-50">
+      <div className="fixed bottom-4 left-4 font-body text-[10px] text-muted-foreground opacity-50">
         Logged in as {userEmail}
       </div>
     </div>
