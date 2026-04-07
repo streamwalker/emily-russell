@@ -23,7 +23,8 @@ const BuyerRepAgreement = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [printMode, setPrintMode] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Client fields
   const [clientName, setClientName] = useState("");
