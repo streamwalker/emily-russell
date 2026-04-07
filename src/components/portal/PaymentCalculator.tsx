@@ -259,6 +259,9 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
                 <span className="text-[10px] text-muted-foreground font-body">Interest</span>
               </div>
             </div>
+            <div className="text-center text-[10px] text-muted-foreground font-body mt-2">
+              Total Interest Over {loanTerm} Years: <span className="font-semibold text-foreground">${amortData.reduce((sum, d) => sum + d.interest, 0).toLocaleString()}</span>
+            </div>
           </div>
         </div>
 
@@ -301,6 +304,24 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
             <div>
               <label className="text-[10px] text-muted-foreground font-body block mb-1">Monthly HOA $</label>
               <Input type="number" value={hoa} onChange={e => setHoa(Number(e.target.value) || 0)} className="h-8 text-xs font-body" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-[10px] text-muted-foreground font-body block mb-1">Loan Term</label>
+              <div className="flex gap-1">
+                {TERM_OPTIONS.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setLoanTerm(t)}
+                    className={`px-3 py-1 text-[11px] font-body rounded transition-colors ${
+                      loanTerm === t
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {t} yr
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
