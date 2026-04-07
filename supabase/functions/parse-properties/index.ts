@@ -58,7 +58,13 @@ Example property:
   "sourceUrl": "https://example.com/listing/1234"
 }
 
-Extract as many fields as you can from the text. Leave fields null/undefined if info is not available.`;
+Extract as many fields as you can from the text. Leave fields null/undefined if info is not available.
+
+CRITICAL RULES:
+- Even if you only have an address (and optionally a city/state/zip), you MUST still create a property entry with whatever fields are available.
+- NEVER return an empty properties map if you can identify at least one address in the input.
+- Every tab in the tabs array MUST have at least one corresponding entry in the properties map.
+- When in doubt, create a property with just the address field filled in.`;
 
 const URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
 
@@ -286,6 +292,28 @@ serve(async (req) => {
         status: 422,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Fallback: if AI returned tabs but empty properties, extract addresses from raw text
+    const totalBeforeFallback = Object.values(dossierData.properties).reduce(
+      (sum: number, arr: any) => sum + arr.length, 0
+    );
+
+    if (totalBeforeFallback === 0) {
+      console.log("AI returned 0 properties, applying fallback extraction");
+      // Simple regex to find address-like patterns
+      const addressPattern = /(\d+\s+[\w\s]+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Ln|Lane|Rd|Road|Ct|Court|Way|Pl|Place|Cir|Circle|Crossing|Xing|Loop|Trail|Trl|Run|Pass|Path|Pkwy|Parkway)\.?(?:,?\s*[\w\s]+)?(?:,?\s*(?:TX|Texas)\s*\d{5})?)/gi;
+      const matches = rawText.match(addressPattern) || [];
+      
+      if (matches.length > 0) {
+        // Ensure a "general" tab exists
+        if (!dossierData.tabs.some((t: any) => t.key === "general")) {
+          dossierData.tabs = [{ key: "general", label: "General", color: "#8B7355" }];
+        }
+        dossierData.properties["general"] = matches.map((addr: string) => ({
+          address: addr.trim(),
+        }));
+      }
     }
 
     // Add IDs to each property
