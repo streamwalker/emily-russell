@@ -1,31 +1,26 @@
 
 
-## Add Favorites Filter + Grade Badge on Property Headers
+## Add Interaction Summary + Back-to-Dossier Button on Main Site
 
 ### Changes
 
-**1. Add `favoritesOnly` to FilterState (`src/lib/dossierScoring.ts`)**
-- Add `favoritesOnly: boolean` to the `FilterState` interface and `defaultFilters`
-- The actual filtering by favorites will happen in `ClientPortal.tsx` since `applyFilters` doesn't have access to the interactions map
+**1. Interaction Summary Section (`src/pages/ClientPortal.tsx`)**
 
-**2. Add Favorites toggle to toolbar (`src/components/portal/FilterSortToolbar.tsx`)**
-- Add a new prop `favCount: number` to show how many favorites exist
-- Add a heart toggle button next to the existing Filters button: "❤ Favorites (N)" that toggles `favoritesOnly` in the filter state
-- Include `favoritesOnly` in the `hasActive` check
+Add a summary bar below the header (above the tabs) showing three stats:
+- **Favorited**: count of properties with `is_favorite === true`
+- **Graded**: count of properties with a non-null `grade`
+- **Tours Scheduled**: count of properties with a non-null `preferred_tour_date`
 
-**3. Apply favorites filter in ClientPortal (`src/pages/ClientPortal.tsx`)**
-- After `applyFilters`, if `filters.favoritesOnly` is true, further filter the list to only properties where `interactions[prop.id]?.is_favorite === true`
+These counts are derived from the existing `interactions` state. Render as a compact row of three stat cards with icons (Heart, Star/GraduationCap, Calendar) styled to match the dark header theme.
 
-**4. Show grade badge on property card header (`src/pages/ClientPortal.tsx`)**
-- In the `PropertyCard` component, next to the Heart icon (line ~260), render the grade as a small colored badge if `interaction?.grade` exists
-- Color coding: A-range = green, B-range = blue, C-range = yellow, D-range = orange, F-range = red
-- Small pill badge, e.g. `<span className="text-[10px] font-bold px-1.5 py-0.5 rounded ...">A+</span>`
+**2. Back-to-Dossier Button on Main Site (`src/pages/Index.tsx`)**
+
+The nav already has a "Client Portal" text link. Enhance it by making it more prominent — change it to a styled button (matching the phone CTA style but secondary) so it stands out as a clear navigation path back to the portal/dossier. This applies to both desktop and mobile nav.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/lib/dossierScoring.ts` | Add `favoritesOnly` to `FilterState` and `defaultFilters` |
-| `src/components/portal/FilterSortToolbar.tsx` | Add favorites toggle button, accept `favCount` prop |
-| `src/pages/ClientPortal.tsx` | Apply favorites filter after `applyFilters`, add grade badge to card header |
+| `src/pages/ClientPortal.tsx` | Add summary stats bar below header with graded/favorited/tours counts |
+| `src/pages/Index.tsx` | Style the existing "Client Portal" link as a more prominent button in both desktop and mobile nav |
 
