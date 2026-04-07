@@ -1,38 +1,49 @@
 
 
-## PropertyEditor Enhancements + Add Properties for gomezurita@gmail.com
+## Smart Add Preview, Tab Management, and URL Parsing Fix
 
-### Three items to implement
+### 1. Smart Add Preview Modal
 
-**1. Search/filter bar in PropertyEditor**
+Currently, `smartAdd()` immediately merges extracted properties into the dossier. Change this to a two-step flow:
 
-Add a search input at the top of PropertyEditor (next to the Smart Add button). It filters the visible properties in real-time by matching against `address`, `city`, `builder`, and `community` fields (case-insensitive). Tabs with zero matching properties are hidden. The filter state resets when cleared.
+- After AI extraction succeeds, store the parsed result in a new `smartAddPreview` state instead of merging immediately
+- Show a preview modal/panel displaying all extracted properties grouped by tab — each property shows address, city, price, beds, baths, sqft, builder
+- Admin can edit fields inline in the preview, remove individual properties, or remove entire tabs before confirming
+- "Confirm & Add" button merges the previewed data into the dossier; "Cancel" discards
+- Reuse the same field layout from the existing property rows for consistency
 
-**2. Drag-and-drop reordering**
+**File**: `src/components/admin/PropertyEditor.tsx`
 
-Install `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities`. Wrap each tab's property list in a `SortableContext` with vertical sorting. Each property row becomes a draggable item with a grip handle. For cross-tab moves, use `DndContext` with an `onDragEnd` handler that detects when a property is dropped into a different tab's droppable area and moves it accordingly. Each tab section is also a droppable container.
+### 2. Rename and Delete Tabs
 
-**3. Add 4 properties to gomezurita@gmail.com's dossier**
+Add controls to each tab header row (line ~507-511):
 
-This is a data task. After the code changes are made, use the Smart Add / parse-properties edge function (or direct database update) to add these addresses to the client's existing dossier:
-- 9208 Carmel View, Schertz
-- 2715 Clapbread Ln, Rosenberg TX
-- 5815 Chamberlain Crossing, Rosenberg TX 77471
-- 12309 Horowitz, San Antonio TX 78254
+- **Rename**: Click the tab label to enter inline edit mode (input replaces the label text). On blur or Enter, update the tab's `label` in state. The `key` stays the same.
+- **Delete**: Add a trash icon next to the tab label. Clicking it shows a confirmation ("Delete tab and its N properties?"). On confirm, remove the tab from `data.tabs` and delete `data.properties[tabKey]`.
 
-This requires looking up the dossier for gomezurita@gmail.com via profile → user_id → client_dossiers, then appending these properties.
+**File**: `src/components/admin/PropertyEditor.tsx`
+
+### 3. Fix URL-based Smart Add (parse-properties edge function)
+
+The AI prompt currently says "You will receive raw text that contains property listings." URLs like `https://www.highlandhomes.com/...` don't contain property data themselves — they're just links. Update the edge function to:
+
+- Detect if the input contains URLs (regex for http/https links)
+- For each URL found, fetch the page content (HTML → extract text) before sending to the AI
+- Include the fetched page text alongside any raw text in the AI prompt
+- This way the AI has actual listing data to extract from, not just a URL string
+
+**File**: `supabase/functions/parse-properties/index.ts`
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `package.json` | Add `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` |
-| `src/components/admin/PropertyEditor.tsx` | Add search bar, integrate dnd-kit drag-and-drop |
-| Database script (runtime) | Query gomezurita dossier and add 4 properties via edge function or direct JSONB update |
+| `src/components/admin/PropertyEditor.tsx` | Add preview modal for Smart Add results; add rename/delete controls on tab headers |
+| `supabase/functions/parse-properties/index.ts` | Add URL detection and page fetching before AI extraction |
 
 ### Technical Details
 
-- **Search**: New `searchQuery` state, `filteredProperties` useMemo that filters `data.properties` per tab. Only the rendering loop changes — the underlying `data` state stays unfiltered so edits work correctly.
-- **Drag-and-drop**: `DndContext` wraps the entire tab list. Each tab is a `useDroppable` container. Each property row uses `useSortable`. `onDragEnd` handles both intra-tab reorder (splice + insert) and cross-tab move (remove from source tab, insert into target tab).
-- **Data addition**: Will query `profiles` for gomezurita@gmail.com to get `user_id`, then query `client_dossiers` for that user, and append the 4 properties (using the Smart Add AI extraction or manual JSONB append).
+- Preview state: `smartAddPreview: DossierData | null` — when non-null, renders a modal overlay with the extracted data in editable form
+- Tab rename uses a `renamingTab: string | null` state to track which tab is in edit mode
+- URL fetching in the edge function uses `fetch()` (available in Deno) to get page HTML, then strips tags to extract text content before passing to the AI. Has a timeout and size limit to avoid hanging on large pages.
 
