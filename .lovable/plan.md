@@ -1,75 +1,57 @@
 
 
-## Client Portal with Authentication & Personalized Dossiers
+## Rack & Stack + Filter/Sort for Client Portal
 
-### Overview
-Create a password-protected client portal where clients log in with email/password and see a personalized property dossier prepared for them. The first client is **gomezurita@gmail.com** with the uploaded dossier data.
+### What it does
+Adds two new special tabs to the portal — **"🏠 Primary Residence"** and **"💰 Income Generation"** — that pull ALL properties from every builder tab and rank them best-to-worst for each use case. Also adds filter/sort controls to the existing builder tabs.
 
-### Architecture
+### Ranking Logic
 
-Dossier data will be stored in the database so you can add new clients and update dossiers without code changes.
+**Primary Residence score** (higher = better):
+- Square footage (weighted)
+- Bedroom count
+- Bathroom count
+- Garage count
+- Stories (more = better for families)
+- Lower price per sqft = better value
+- Status bonus (Move-In Ready scores higher)
 
-```text
-┌─────────────┐     ┌──────────────┐     ┌──────────────────┐
-│  /portal     │────▸│  Auth Gate   │────▸│  Client Dossier  │
-│  (login)     │     │  (Supabase)  │     │  (per-client)    │
-└─────────────┘     └──────────────┘     └──────────────────┘
-```
+**Income Generation score** (higher = better):
+- Gross yield % (parsed from `yieldEst`) — heaviest weight
+- Monthly rent estimate (parsed from `rentEst`)
+- Lower purchase price = lower barrier to entry
+- Bed count (more rooms = Airbnb/house-hack potential)
+- Bonus for properties with rent notes mentioning "Airbnb" or "house hack"
 
-### Database Setup
+Each property card in these views will show its **rank number** and a brief rationale badge (e.g., "Best Yield: 7.2%" or "Best Value/SqFt").
 
-**1. `profiles` table** — auto-created on signup via trigger
-- `id` (uuid, FK to auth.users)
-- `email` (text)
-- `full_name` (text, nullable)
-- `created_at` (timestamptz)
-- RLS: users can only read/update their own row
+### Filter/Sort Controls (all tabs)
+A toolbar below the tab bar with:
+- **Sort by**: Price (↑↓), Beds, SqFt, Yield, Status
+- **Filter by**: Min/Max Price, Min Beds, City, Builder
+- Filters apply to builder tabs AND the rack-and-stack views
 
-**2. `client_dossiers` table** — stores the dossier JSON per client
-- `id` (uuid, PK)
-- `user_id` (uuid, FK to profiles.id)
-- `title` (text) — e.g. "Client Property Dossier"
-- `dossier_data` (jsonb) — the full tabs + properties data from the JSX file
-- `prepared_date` (date)
-- `created_at` / `updated_at` (timestamptz)
-- RLS: users can only SELECT their own dossiers
+### UI Changes — `src/pages/ClientPortal.tsx`
 
-**3. Seed data** — insert the first dossier for gomezurita@gmail.com after they sign up (or via a migration that references their user ID once created)
+1. **Add two synthetic tabs** appended after the builder tabs:
+   - `{ key: "rank-primary", label: "🏠 Primary Residence", color: "#5B7FA5" }`
+   - `{ key: "rank-income", label: "💰 Income Generation", color: "#2e7d32" }`
 
-### Frontend Changes
+2. **Scoring functions** — pure utility functions that take `Property[]` and return sorted arrays with a `rank` and `scoreSummary` field.
 
-**4. Auth pages** — `src/pages/ClientLogin.tsx`
-- Email + password login form (branded to match the site)
-- No public signup — clients are created by Emily (admin) only
-- "Forgot password" link for password reset
+3. **Filter/Sort toolbar** — a collapsible row of controls rendered between the accent bar and the content area. State managed with `useState` for sort field, sort direction, and filter values.
 
-**5. Client Dashboard** — `src/pages/ClientPortal.tsx`
-- Protected route; redirects to login if unauthenticated
-- Fetches dossier(s) for the logged-in user from `client_dossiers`
-- Renders the dossier UI (adapted from the uploaded JSX — converted to TypeScript, using Tailwind instead of inline styles)
-- Tabs for builders, expandable property cards, rental estimates, agent notes, disclaimer
+4. **Ranked property cards** — in rank views, each `PropertyRow` gets a rank badge (#1, #2, etc.) and a small tag explaining why it ranked there (top metric).
 
-**6. Routes** — update `App.tsx`
-- `/portal` → ClientLogin (if not authenticated) or ClientPortal (if authenticated)
-- `/portal/reset-password` → password reset page
-
-**7. Navigation** — add a "Client Portal" link in the site header/nav
-
-### Client Onboarding Flow
-Since there's no public signup, you'll manually create client accounts:
-1. Go to backend Users section to create a user with their email
-2. Insert a row in `client_dossiers` with their dossier JSON data
-3. Share login credentials with the client
+5. **Sub-categories in Income Generation** — two sections within the income tab:
+   - "Full Rental" — ranked by gross yield
+   - "Airbnb / House-Hack Potential" — ranked by bed count + rent estimate, with bonus for properties whose notes mention flexible rental strategies
 
 ### Files
 
 | File | Action |
 |------|--------|
-| Migration | Create `profiles`, `client_dossiers` tables + trigger + RLS |
-| `src/pages/ClientLogin.tsx` | Create — login form |
-| `src/pages/ClientPortal.tsx` | Create — dossier viewer (adapted from uploaded JSX) |
-| `src/pages/ResetPassword.tsx` | Create — password reset page |
-| `src/components/ProtectedRoute.tsx` | Create — auth guard component |
-| `src/App.tsx` | Edit — add portal routes |
-| `src/pages/Index.tsx` | Edit — add "Client Portal" nav link |
+| `src/pages/ClientPortal.tsx` | Edit — add ranking tabs, scoring logic, filter/sort toolbar, rank badges |
+
+No database changes needed — all computed client-side from existing dossier data.
 
