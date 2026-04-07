@@ -68,6 +68,58 @@ CRITICAL RULES:
 
 const URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
 
+// ── Firecrawl helpers ──────────────────────────────────────────────────
+
+async function firecrawlSearch(query: string, apiKey: string): Promise<any[]> {
+  console.log("Firecrawl search:", query);
+  const resp = await fetch("https://api.firecrawl.dev/v1/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query,
+      limit: 3,
+      scrapeOptions: { formats: ["markdown"] },
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("Firecrawl search error:", resp.status, errText);
+    return [];
+  }
+  const data = await resp.json();
+  return data.data || [];
+}
+
+async function firecrawlScrape(url: string, apiKey: string): Promise<string> {
+  console.log("Firecrawl scrape:", url);
+  const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url,
+      formats: ["markdown"],
+      onlyMainContent: true,
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error("Firecrawl scrape error:", resp.status, errText);
+    return `[Failed to scrape ${url}]`;
+  }
+  const data = await resp.json();
+  const markdown = data.data?.markdown || data.markdown || "";
+  // Limit to 15k chars
+  return markdown.slice(0, 15000);
+}
+
+// ── Legacy URL fetcher (fallback when Firecrawl unavailable) ───────────
+
 async function fetchUrlContent(url: string): Promise<string> {
   try {
     const controller = new AbortController();
@@ -76,27 +128,26 @@ async function fetchUrlContent(url: string): Promise<string> {
       signal: controller.signal,
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; PropertyBot/1.0)",
-        "Accept": "text/html,application/xhtml+xml,*/*",
+        Accept: "text/html,application/xhtml+xml,*/*",
       },
     });
     clearTimeout(timeout);
     if (!resp.ok) return `[Failed to fetch ${url}: HTTP ${resp.status}]`;
     const html = await resp.text();
-    // Limit to 50k chars of raw HTML
     const trimmed = html.slice(0, 50000);
-    // Strip script/style tags and their content, then strip remaining HTML tags
     const cleaned = trimmed
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s{2,}/g, " ")
       .trim();
-    // Limit cleaned text to 15k chars
     return cleaned.slice(0, 15000);
   } catch (e) {
     return `[Failed to fetch ${url}: ${e instanceof Error ? e.message : "unknown error"}]`;
   }
 }
+
+// ── Main handler ───────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -127,7 +178,6 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role
     const { data: roleData } = await supabase.rpc("has_role", {
       _user_id: user.id,
       _role: "admin",
@@ -147,14 +197,34 @@ serve(async (req) => {
       });
     }
 
-    // Detect and fetch URLs
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const urls = rawText.match(URL_REGEX) || [];
     let enrichedText = rawText;
 
-    if (urls.length > 0) {
-      console.log(`Detected ${urls.length} URL(s), fetching content...`);
+    if (urls.length === 0 && FIRECRAWL_API_KEY) {
+      // ── Research Agent: address-only input → search the web ──────────
+      console.log("No URLs detected — triggering research agent");
+      const searchQuery = `${rawText.trim()} property listing real estate`;
+      const searchResults = await firecrawlSearch(searchQuery, FIRECRAWL_API_KEY);
+
+      if (searchResults.length > 0) {
+        const resultContents = searchResults.map((r: any) => {
+          const url = r.url || "";
+          const markdown = r.markdown || r.description || "";
+          return `\n--- Content from ${url} ---\n${markdown.slice(0, 15000)}\n--- End ---`;
+        }).join("\n");
+        enrichedText = rawText + "\n\n[Research Agent found the following listings:]\n" + resultContents;
+        console.log(`Research agent found ${searchResults.length} results`);
+      } else {
+        console.log("Research agent found no results, proceeding with raw text");
+      }
+    } else if (urls.length > 0) {
+      // ── URLs present: scrape them (prefer Firecrawl, fallback to fetch) ──
+      console.log(`Detected ${urls.length} URL(s), scraping...`);
       const fetches = await Promise.all(urls.slice(0, 5).map(async (url) => {
-        const content = await fetchUrlContent(url);
+        const content = FIRECRAWL_API_KEY
+          ? await firecrawlScrape(url, FIRECRAWL_API_KEY)
+          : await fetchUrlContent(url);
         return { url, content };
       }));
 
@@ -301,28 +371,19 @@ serve(async (req) => {
 
     if (totalBeforeFallback === 0) {
       console.log("AI returned 0 properties, applying fallback extraction");
-      
-      // Split input into address segments by newline or semicolon (not comma, as commas are part of addresses)
       const segments = rawText.split(/[;\n]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 3);
-      // If only one segment, treat the whole input as one address
       const addressSegments = segments.length > 0 ? segments : [rawText.trim()];
-      
+
       const properties: any[] = [];
       for (const seg of addressSegments) {
-        // Skip if it doesn't contain any numbers (likely not an address)
         if (!/\d/.test(seg)) continue;
-        
-        // Parse: "11310 Coppola, San Antonio, TX 78254"
         const parts = seg.split(/,\s*/);
         const address = parts[0]?.trim();
         if (!address) continue;
-        
+
         const prop: any = { address };
-        
-        // Try to extract city from remaining parts
         const remaining = parts.slice(1);
         if (remaining.length > 0) {
-          // Find city (first non-state, non-zip part)
           const cityParts: string[] = [];
           for (const part of remaining) {
             if (/^\s*(?:TX|Texas)\s*$/i.test(part)) continue;
@@ -333,7 +394,6 @@ serve(async (req) => {
           const city = cityParts.filter(Boolean).join(", ");
           if (city) prop.city = city;
         }
-        
         properties.push(prop);
       }
 
