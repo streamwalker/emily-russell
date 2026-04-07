@@ -693,14 +693,18 @@ export default function ClientPortal() {
       ...p,
       _builderTag: dossier.tabs.find(t => (dossier.properties[t.key] || []).some(pp => pp.id === p.id))?.label || "",
     }));
-    return applySort(applyFilters(all, filters), sort);
-  }, [dossier, isAllHomes, filters, sort]);
+    let result = applySort(applyFilters(all, filters), sort);
+    if (filters.favoritesOnly) result = result.filter(p => interactions[p.id]?.is_favorite);
+    return result;
+  }, [dossier, isAllHomes, filters, sort, interactions]);
 
   const builderProperties = useMemo(() => {
     if (!dossier || isRankTab || isAllHomes) return [];
     const raw = dossier.properties[activeTab] || [];
-    return applySort(applyFilters(raw, filters), sort);
-  }, [dossier, activeTab, filters, sort, isRankTab, isAllHomes]);
+    let result = applySort(applyFilters(raw, filters), sort);
+    if (filters.favoritesOnly) result = result.filter(p => interactions[p.id]?.is_favorite);
+    return result;
+  }, [dossier, activeTab, filters, sort, isRankTab, isAllHomes, interactions]);
 
   if (loading) {
     return (
