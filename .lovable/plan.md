@@ -1,46 +1,26 @@
 
 
-## Add PITI Pie Chart + Amortization Bar Chart to Payment Estimator
+## Payment Estimator: Loan Term Selector + Total Interest Stat
 
-### What changes
+### Changes to `src/components/portal/PaymentCalculator.tsx`
 
-Enhance the Payment Estimator layout to use the empty left column for two visualizations:
+**1. Add Loan Term selector to the inputs section (right column)**
 
-1. **PITI Breakdown Pie Chart** — shows the percentage of each monthly payment component: Principal, Interest, Taxes, Insurance, and HOA
-2. **Principal vs Interest Bar Chart** — stacked bar chart showing annual principal vs interest over the loan term, with term selector buttons (5, 15, 20, 30 years) matching the reference screenshot
+Add a new input row in the inputs grid (after the HOA field) with a "Loan Term" label and the same term buttons (5, 15, 20, 30 yr) that currently exist on the bar chart. The `loanTerm` state already drives the P&I calculation on line 115, so no computation changes needed — just exposing the control in the inputs area.
 
-### Layout
+**2. Add total interest stat below the bar chart**
 
-The current estimator is a single-column block. Change it to a two-column layout:
-- **Left column**: Pie chart (top) + bar chart (bottom)
-- **Right column**: Existing inputs and result summary (unchanged)
+Compute total interest from the existing `amortData` array: `amortData.reduce((sum, d) => sum + d.interest, 0)`. Display it as a small summary line below the bar chart legend, e.g.:
 
-On mobile (< md), stack vertically: inputs first, then charts below.
+```
+Total Interest Over 30 Years: $287,432
+```
 
-### Technical details
-
-**Pie chart** — Use Recharts `PieChart` + `Pie` + `Cell` with the existing chart components from `src/components/ui/chart.tsx`. Segments:
-- Principal (blue) — derived by splitting P&I into principal and interest for month 1
-- Interest (red/coral)
-- Taxes (amber)
-- Insurance (green)
-- HOA (purple, only shown if > 0)
-
-Center label shows total monthly payment. Legend below the pie.
-
-**Bar chart** — Use Recharts `BarChart` with stacked `Bar` for Principal (blue) and Interest (red). Generate amortization schedule data (annual totals) based on current loan params. Add term selector buttons (5, 15, 20, 30 years) in the top-right of the chart area. Tooltip shows Year, Interest, and Principal amounts. Dark background card matching the reference screenshot style.
-
-**Month-1 principal/interest split for pie chart:**
-- Monthly interest = loanAmount * (rate/100/12)
-- Monthly principal = P&I payment - monthly interest
-
-**Amortization data generation:**
-- Loop through each year, calculate annual principal and interest totals from the amortization schedule
-- Recalculate when offerPrice, downPct, rate, or loan term changes
+Styled consistently with the existing `text-[10px] text-muted-foreground font-body`.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/components/portal/PaymentCalculator.tsx` | Edit — add two-column layout, pie chart, bar chart with term selector, amortization data generation |
+| `src/components/portal/PaymentCalculator.tsx` | Edit — add loan term buttons to inputs grid, add total interest stat below bar chart |
 
