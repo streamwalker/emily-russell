@@ -39,6 +39,10 @@ const BuyerRepAgreement = () => {
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [signatureType, setSignatureType] = useState<"draw" | "typed">("draw");
 
+  // Initials
+  const [clientInitials, setClientInitials] = useState("");
+  const [client2Initials, setClient2Initials] = useState("");
+
   // Second client
   const [hasSecondClient, setHasSecondClient] = useState(false);
   const [client2Name, setClient2Name] = useState("");
@@ -78,8 +82,8 @@ const BuyerRepAgreement = () => {
       clientName, clientAddress, clientCityStateZip, clientPhone, clientEmail,
       marketArea, termStart: termStart ? format(termStart, "yyyy-MM-dd") : null,
       termEnd: format(termEnd, "yyyy-MM-dd"), brokerFeePct,
-      broker: BROKER,
-      secondClient: hasSecondClient ? { name: client2Name, signatureData: signature2Data, signatureType: signature2Type } : null,
+      broker: BROKER, clientInitials,
+      secondClient: hasSecondClient ? { name: client2Name, signatureData: signature2Data, signatureType: signature2Type, initials: client2Initials } : null,
     };
 
     const { error } = await supabase.from("signed_agreements").insert({
@@ -123,8 +127,9 @@ const BuyerRepAgreement = () => {
         clientName, clientAddress, clientCityStateZip, clientPhone, clientEmail,
         marketArea, termStart: termStart ? format(termStart, "yyyy-MM-dd") : "",
         termEnd: termEnd ? format(termEnd, "yyyy-MM-dd") : "",
-        brokerFeePct, signatureData, broker: BROKER,
-        secondClient: hasSecondClient ? { name: client2Name, signatureData: signature2Data, signatureType: signature2Type } : null,
+        brokerFeePct, signatureData, broker: BROKER, clientInitials,
+        client2Initials: hasSecondClient ? client2Initials : "",
+        secondClient: hasSecondClient ? { name: client2Name, signatureData: signature2Data, signatureType: signature2Type, initials: client2Initials } : null,
       };
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/generate-agreement-pdf`, {
@@ -388,6 +393,16 @@ const BuyerRepAgreement = () => {
                   <div className="px-3 py-2 bg-muted text-foreground text-sm border border-border">{format(new Date(), "MMMM d, yyyy")}</div>
                 </div>
                 <div>
+                  <label className={labelClass}>Your Initials (for page footers)</label>
+                  <input
+                    className={cn(inputClass, "w-24 text-center text-lg font-semibold uppercase tracking-widest")}
+                    value={clientInitials}
+                    onChange={e => setClientInitials(e.target.value.toUpperCase().slice(0, 4))}
+                    placeholder="e.g. JD"
+                    maxLength={4}
+                  />
+                </div>
+                <div>
                   <label className={labelClass}>Client's Signature</label>
                   <SignaturePad onSignatureChange={handleSignatureChange} />
                 </div>
@@ -404,6 +419,16 @@ const BuyerRepAgreement = () => {
                     <div>
                       <label className={labelClass}>Second Client's Printed Name</label>
                       <input className={inputClass} value={client2Name} onChange={e => setClient2Name(e.target.value)} placeholder="Full legal name" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Second Client's Initials</label>
+                      <input
+                        className={cn(inputClass, "w-24 text-center text-lg font-semibold uppercase tracking-widest")}
+                        value={client2Initials}
+                        onChange={e => setClient2Initials(e.target.value.toUpperCase().slice(0, 4))}
+                        placeholder="e.g. JS"
+                        maxLength={4}
+                      />
                     </div>
                     <div>
                       <label className={labelClass}>Second Client's Signature</label>

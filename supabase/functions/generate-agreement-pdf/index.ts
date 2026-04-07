@@ -25,6 +25,8 @@ Deno.serve(async (req) => {
       signatureData = null,
       broker = {},
       secondClient = null,
+      clientInitials = "",
+      client2Initials = "",
     } = body;
 
     // Fetch blank PDF template from storage
@@ -53,8 +55,8 @@ Deno.serve(async (req) => {
     // Helper: pdfplumber top → pdf-lib y (bottom-left origin)
     const y = (top: number) => PAGE_H - top;
 
-    const fontSize = 10;
-    const smallSize = 8;
+    const fontSize = 15;
+    const smallSize = 12;
     const color = rgb(0.05, 0.05, 0.35); // dark navy for filled text
 
     // ─── PAGE 1 ───
@@ -101,15 +103,31 @@ Deno.serve(async (req) => {
 
     // Client name at top of page 2 header (top=34.4, x=288)
     const p2 = pages[1];
-    p2.drawText(clientName, { x: 288, y: y(34.4 + 8), font, size: 8, color });
+    p2.drawText(clientName, { x: 288, y: y(34.4 + 12), font, size: 12, color });
 
     // ─── PAGE 2 — Broker fee (Section 7A, Purchases) ───
     // "(1) (Purchases) ___% " → blank at x=180, top=220.4
     p2.drawText(brokerFeePct, { x: 162, y: y(220.4 + 10), font: fontBold, size: fontSize, color });
 
-    // Fill client name on header of pages 3-6
+    // Fill client name on header of pages 3-6 + stamp initials on pages 1-5 footer
     for (let i = 2; i < pages.length; i++) {
-      pages[i].drawText(clientName, { x: 288, y: y(34.4 + 8), font, size: 8, color });
+      pages[i].drawText(clientName, { x: 288, y: y(34.4 + 12), font, size: 12, color });
+    }
+
+    // Stamp initials on pages 1-5 (indices 0-4) footer
+    const brokerInitials = (broker.associate || "Emily Russell").split(" ").map((n: string) => n[0]).join("");
+    for (let i = 0; i < Math.min(5, pages.length); i++) {
+      const pg = pages[i];
+      // Footer initials line at approximately top ≈ 745
+      if (brokerInitials) {
+        pg.drawText(brokerInitials, { x: 310, y: y(745 + 12), font: fontBold, size: smallSize, color });
+      }
+      if (clientInitials) {
+        pg.drawText(clientInitials, { x: 450, y: y(745 + 12), font: fontBold, size: smallSize, color });
+      }
+      if (client2Initials) {
+        pg.drawText(client2Initials, { x: 510, y: y(745 + 12), font: fontBold, size: smallSize, color });
+      }
     }
 
     // ─── PAGE 6 — Signature block ───
