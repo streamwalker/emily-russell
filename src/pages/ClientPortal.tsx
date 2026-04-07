@@ -69,6 +69,8 @@ interface DossierData {
 const fmt = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
+const ALL_HOMES_TAB: Tab = { key: "all-homes", label: "📋 All Homes", color: "#6B7280" };
+
 const RANK_TABS: Tab[] = [
   { key: "rank-primary", label: "🏠 Primary Residence", color: "#5B7FA5" },
   { key: "rank-income", label: "💰 Income Generation", color: "#2e7d32" },
@@ -300,7 +302,7 @@ export default function ClientPortal() {
   };
 
   // Derived data
-  const allTabs = useMemo(() => (dossier ? [...dossier.tabs, ...RANK_TABS] : []), [dossier]);
+  const allTabs = useMemo(() => (dossier ? [...dossier.tabs, ALL_HOMES_TAB, ...RANK_TABS] : []), [dossier]);
   const tabLabels = useMemo(() => {
     if (!dossier) return {};
     const map: Record<string, string> = {};
@@ -325,12 +327,22 @@ export default function ClientPortal() {
   }), [incomeRanked, filters]);
 
   const isRankTab = activeTab.startsWith("rank-");
+  const isAllHomes = activeTab === "all-homes";
+
+  const allHomesProperties = useMemo(() => {
+    if (!dossier || !isAllHomes) return [];
+    const all = Object.values(dossier.properties).flat().map(p => ({
+      ...p,
+      _builderTag: dossier.tabs.find(t => (dossier.properties[t.key] || []).some(pp => pp.id === p.id))?.label || "",
+    }));
+    return applySort(applyFilters(all, filters), sort);
+  }, [dossier, isAllHomes, filters, sort]);
 
   const builderProperties = useMemo(() => {
-    if (!dossier || isRankTab) return [];
+    if (!dossier || isRankTab || isAllHomes) return [];
     const raw = dossier.properties[activeTab] || [];
     return applySort(applyFilters(raw, filters), sort);
-  }, [dossier, activeTab, filters, sort, isRankTab]);
+  }, [dossier, activeTab, filters, sort, isRankTab, isAllHomes]);
 
   if (loading) {
     return (
@@ -425,8 +437,11 @@ export default function ClientPortal() {
                 }}
               >
                 {tab.label}{" "}
-                {!tab.key.startsWith("rank-") && (
+                {!tab.key.startsWith("rank-") && tab.key !== "all-homes" && (
                   <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
+                )}
+                {tab.key === "all-homes" && (
+                  <span className="opacity-50">({Object.values(dossier.properties).flat().length})</span>
                 )}
               </button>
             ))}
@@ -457,6 +472,8 @@ export default function ClientPortal() {
           <TabSummary properties={primaryRanked} color={currentTab.color} label="Primary Residence Rankings" />
         ) : activeTab === "rank-income" ? (
           <TabSummary properties={incomeFiltered.fullRental} color={currentTab.color} label="Income Generation Rankings" />
+        ) : activeTab === "all-homes" ? (
+          <TabSummary properties={allHomesProperties} color={currentTab.color} label="All Homes" />
         ) : (
           <TabSummary properties={builderProperties} color={currentTab.color} label={currentTab.label} />
         )}
@@ -525,8 +542,27 @@ export default function ClientPortal() {
           </div>
         )}
 
+        {/* All Homes tab */}
+        {isAllHomes && (
+          <div>
+            <p className="text-xs text-muted-foreground font-body mb-4">
+              All {allHomesProperties.length} properties from every builder in one view.
+            </p>
+            {allHomesProperties.map((p: any) => (
+              <div key={p.id} className="relative">
+                {p._builderTag && (
+                  <div className="absolute top-2 right-2 z-10 text-[9px] uppercase tracking-wider font-body font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+                    {p._builderTag}
+                  </div>
+                )}
+                <PropertyRow prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Regular builder tabs */}
-        {!isRankTab && (
+        {!isRankTab && !isAllHomes && (
           <>
             {activeTab === "outoftown" && outOfTownByCity ? (
               Object.entries(outOfTownByCity).map(([city, props]) => (

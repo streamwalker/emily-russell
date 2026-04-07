@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
+import ExpenseEditor from "@/components/admin/ExpenseEditor";
 
 interface DossierRow {
   id: string;
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   const [editDate, setEditDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [expenseEditId, setExpenseEditId] = useState<string | null>(null);
 
   // New dossier form
   const [showNew, setShowNew] = useState(false);
@@ -204,7 +206,29 @@ export default function AdminDashboard() {
           <div className="space-y-3">
             {dossiers.map(d => (
               <div key={d.id} className="bg-white border border-border p-5 shadow-sm">
-                {editingId === d.id ? (
+                {expenseEditId === d.id ? (
+                  <ExpenseEditor
+                    dossierData={d.dossier_data as any}
+                    saving={saving}
+                    onCancel={() => setExpenseEditId(null)}
+                    onSave={async (updatedData) => {
+                      setSaving(true);
+                      setError("");
+                      try {
+                        const { error: err } = await supabase
+                          .from("client_dossiers")
+                          .update({ dossier_data: updatedData as any })
+                          .eq("id", d.id);
+                        if (err) throw err;
+                        setExpenseEditId(null);
+                        fetchData();
+                      } catch (e: unknown) {
+                        setError(e instanceof Error ? e.message : "Failed to save expenses");
+                      }
+                      setSaving(false);
+                    }}
+                  />
+                ) : editingId === d.id ? (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       <div>
@@ -252,6 +276,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <button onClick={() => { setExpenseEditId(d.id); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
+                        💰 Expenses
+                      </button>
                       <button onClick={() => startEdit(d)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-charcoal px-3 py-1.5 hover:border-gold transition-colors">
                         Edit
                       </button>
