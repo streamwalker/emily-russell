@@ -301,29 +301,45 @@ serve(async (req) => {
 
     if (totalBeforeFallback === 0) {
       console.log("AI returned 0 properties, applying fallback extraction");
-      // Try regex for address-like patterns with known street suffixes
-      const addressPattern = /(\d+\s+[\w\s]+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Ln|Lane|Rd|Road|Ct|Court|Way|Pl|Place|Cir|Circle|Crossing|Xing|Loop|Trail|Trl|Run|Pass|Path|Pkwy|Parkway)\.?(?:,?\s*[\w\s]+)?(?:,?\s*(?:TX|Texas)\s*\d{5})?)/gi;
-      let matches = rawText.match(addressPattern) || [];
       
-      // If regex didn't match (e.g. street name without suffix like "11310 Coppola"),
-      // fall back to treating any line/segment starting with a number as an address
-      if (matches.length === 0) {
-        const lines = rawText.split(/[,;\n]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 3);
-        matches = lines.filter((line: string) => /^\d+\s+\w/.test(line));
+      // Split input into address segments by newline or semicolon (not comma, as commas are part of addresses)
+      const segments = rawText.split(/[;\n]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 3);
+      // If only one segment, treat the whole input as one address
+      const addressSegments = segments.length > 0 ? segments : [rawText.trim()];
+      
+      const properties: any[] = [];
+      for (const seg of addressSegments) {
+        // Skip if it doesn't contain any numbers (likely not an address)
+        if (!/\d/.test(seg)) continue;
+        
+        // Parse: "11310 Coppola, San Antonio, TX 78254"
+        const parts = seg.split(/,\s*/);
+        const address = parts[0]?.trim();
+        if (!address) continue;
+        
+        const prop: any = { address };
+        
+        // Try to extract city from remaining parts
+        const remaining = parts.slice(1);
+        if (remaining.length > 0) {
+          // Find city (first non-state, non-zip part)
+          const cityParts: string[] = [];
+          for (const part of remaining) {
+            if (/^\s*(?:TX|Texas)\s*$/i.test(part)) continue;
+            if (/^\s*\d{5}(-\d{4})?\s*$/.test(part)) continue;
+            if (/^\s*(?:TX|Texas)\s+\d{5}/i.test(part)) continue;
+            cityParts.push(part.replace(/\s*(?:TX|Texas)\s*\d{0,5}.*/i, "").trim());
+          }
+          const city = cityParts.filter(Boolean).join(", ");
+          if (city) prop.city = city;
+        }
+        
+        properties.push(prop);
       }
 
-      if (matches.length > 0) {
+      if (properties.length > 0) {
         dossierData.tabs = [{ key: "general", label: "General", color: "#8B7355" }];
-        dossierData.properties["general"] = matches.map((addr: string) => {
-          const parts = addr.split(/,\s*/);
-          const address = parts[0]?.trim() || addr.trim();
-          const cityState = parts.slice(1).join(", ").trim();
-          const cityMatch = cityState.match(/^([\w\s]+?)(?:[,\s]+(?:TX|Texas))?(?:[,\s]+\d{5})?$/i);
-          return {
-            address,
-            ...(cityMatch ? { city: cityMatch[1].trim() } : cityState ? { city: cityState } : {}),
-          };
-        });
+        dossierData.properties["general"] = properties;
       }
     }
 
