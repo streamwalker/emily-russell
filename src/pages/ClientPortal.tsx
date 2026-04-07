@@ -399,6 +399,7 @@ export default function ClientPortal() {
       : null;
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="font-body min-h-screen" style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}>
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)", color: "#fff", padding: "32px 24px 0" }}>
@@ -445,26 +446,50 @@ export default function ClientPortal() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto">
-            {allTabs.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
-                style={{
-                  background: activeTab === tab.key ? tab.color : "rgba(255,255,255,0.06)",
-                  color: activeTab === tab.key ? "#fff" : "rgba(255,255,255,0.4)",
-                }}
-              >
-                {tab.label}{" "}
-                {!tab.key.startsWith("rank-") && tab.key !== "all-homes" && (
-                  <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
-                )}
-                {tab.key === "all-homes" && (
-                  <span className="opacity-50">({Object.values(dossier.properties).flat().length})</span>
-                )}
-              </button>
-            ))}
+          <div className="flex gap-1 overflow-x-auto items-end">
+            {allTabs.map((tab, idx) => {
+              const tooltipText = tab.key === "all-homes"
+                ? "View every property in your dossier in one place, regardless of builder."
+                : tab.key === "rank-primary"
+                  ? "Ranks ALL properties across every community for primary residence living."
+                  : tab.key === "rank-income"
+                    ? "Ranks ALL properties by rental income potential to help you compare."
+                    : idx === 0
+                      ? "Each tab represents a different builder or community — click to explore all your options →"
+                      : null;
+
+              const tabBtn = (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
+                  style={{
+                    background: activeTab === tab.key ? tab.color : "rgba(255,255,255,0.06)",
+                    color: activeTab === tab.key ? "#fff" : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  {tab.label}{" "}
+                  {!tab.key.startsWith("rank-") && tab.key !== "all-homes" && (
+                    <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
+                  )}
+                  {tab.key === "all-homes" && (
+                    <span className="opacity-50">({Object.values(dossier.properties).flat().length})</span>
+                  )}
+                </button>
+              );
+
+              if (tooltipText) {
+                return (
+                  <Tooltip key={tab.key}>
+                    <TooltipTrigger asChild>{tabBtn}</TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs max-w-[240px]">
+                      {tooltipText}
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              }
+              return tabBtn;
+            })}
           </div>
         </div>
       </div>
