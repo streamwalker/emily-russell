@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import SignaturePad from "@/components/portal/SignaturePad";
 import { toast } from "sonner";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 const BROKER = {
   name: "Fathom Realty",
@@ -20,11 +21,17 @@ const BROKER = {
 
 const BuyerRepAgreement = () => {
   const navigate = useNavigate();
+  const { isAdmin, loading: adminLoading } = useAdminCheck();
   const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  // Admin: client selector
+  const [clients, setClients] = useState<{ user_id: string; full_name: string | null; email: string }[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Client fields
   const [clientName, setClientName] = useState("");
@@ -49,6 +56,7 @@ const BuyerRepAgreement = () => {
   const [signature2Data, setSignature2Data] = useState<string | null>(null);
   const [signature2Type, setSignature2Type] = useState<"draw" | "typed">("draw");
 
+  // Load user + admin client list
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -60,6 +68,54 @@ const BuyerRepAgreement = () => {
     };
     check();
   }, [navigate]);
+
+  // Admin: load client list
+  useEffect(() => {
+    if (!isAdmin || adminLoading) return;
+    const loadClients = async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email");
+      if (data) setClients(data);
+    };
+    loadClients();
+  }, [isAdmin, adminLoading]);
+
+  // Load agreement_config for the relevant user
+  useEffect(() => {
+    const targetUserId = isAdmin ? selectedClientId : userId;
+    if (!targetUserId || adminLoading) return;
+
+    const loadConfig = async () => {
+      const { data } = await supabase
+        .from("agreement_config")
+        .select("term_end, broker_fee_pct")
+        .eq("client_user_id", targetUserId)
+        .maybeSingle();
+
+      if (data) {
+        if (data.term_end) setTermEnd(new Date(data.term_end + "T00:00:00"));
+        if (data.broker_fee_pct !== null) setBrokerFeePct(String(data.broker_fee_pct));
+      }
+      setConfigLoaded(true);
+    };
+    loadConfig();
+  }, [isAdmin, adminLoading, userId, selectedClientId]);
+
+  // Admin: save config for selected client
+  const handleSaveConfig = async () => {
+    if (!selectedClientId || !isAdmin) return;
+    const { error } = await supabase.from("agreement_config").upsert({
+      client_user_id: selectedClientId,
+      term_end: termEnd ? format(termEnd, "yyyy-MM-dd") : null,
+      broker_fee_pct: parseFloat(brokerFeePct) || 3.0,
+      updated_by: userId,
+    }, { onConflict: "client_user_id" });
+
+    if (error) {
+      toast.error("Failed to save agreement settings.");
+    } else {
+      toast.success("Agreement settings saved for this client.");
+    }
+  };
 
   const handleSignatureChange = useCallback((dataUrl: string | null, type: "draw" | "typed") => {
     setSignatureData(dataUrl);
