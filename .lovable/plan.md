@@ -1,53 +1,38 @@
 
 
-## Reusable Dossier Template Library
+## PropertyEditor Enhancements + Add Properties for gomezurita@gmail.com
 
-### Summary
+### Three items to implement
 
-Add a new `dossier_templates` table and a "Templates" tab in the Admin Dashboard where admins can save, name, edit, and delete reusable templates. Templates are standalone dossier data structures not tied to any client. The existing "Load Template" dropdown in the new dossier form will pull from this library instead of (or in addition to) existing client dossiers.
+**1. Search/filter bar in PropertyEditor**
 
-### Database
+Add a search input at the top of PropertyEditor (next to the Smart Add button). It filters the visible properties in real-time by matching against `address`, `city`, `builder`, and `community` fields (case-insensitive). Tabs with zero matching properties are hidden. The filter state resets when cleared.
 
-**New table: `dossier_templates`**
+**2. Drag-and-drop reordering**
 
-```sql
-CREATE TABLE public.dossier_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  description TEXT,
-  dossier_data JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_by UUID NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+Install `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities`. Wrap each tab's property list in a `SortableContext` with vertical sorting. Each property row becomes a draggable item with a grip handle. For cross-tab moves, use `DndContext` with an `onDragEnd` handler that detects when a property is dropped into a different tab's droppable area and moves it accordingly. Each tab section is also a droppable container.
 
-ALTER TABLE public.dossier_templates ENABLE ROW LEVEL SECURITY;
+**3. Add 4 properties to gomezurita@gmail.com's dossier**
 
--- Admin-only CRUD
-CREATE POLICY "Admins can manage templates" ON public.dossier_templates
-  FOR ALL TO authenticated
-  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
-```
+This is a data task. After the code changes are made, use the Smart Add / parse-properties edge function (or direct database update) to add these addresses to the client's existing dossier:
+- 9208 Carmel View, Schertz
+- 2715 Clapbread Ln, Rosenberg TX
+- 5815 Chamberlain Crossing, Rosenberg TX 77471
+- 12309 Horowitz, San Antonio TX 78254
 
-### Frontend Changes
-
-**1. AdminDashboard.tsx**
-
-- Add a 4th tab: "Templates" (with a `FileText` icon) alongside Dossiers, Analytics, Engagement
-- **Templates tab content**:
-  - List all templates (name, description, property count, last updated)
-  - "Save as Template" button on each existing client dossier row — copies the dossier_data into a new template with a name prompt
-  - "+ New Template" button — opens a form with name, description, and the same smart input / PropertyEditor / raw JSON workflow used for dossier creation
-  - Edit button — opens template in PropertyEditor for modification
-  - Delete button with confirmation
-- **New Dossier form** — update the "Load Template" dropdown to show templates from `dossier_templates` in a separate optgroup labeled "Templates", above the existing client dossiers group
-
-**2. No other files need changes** — PropertyEditor already supports standalone use with `dossierData` + `onSave` props.
+This requires looking up the dossier for gomezurita@gmail.com via profile → user_id → client_dossiers, then appending these properties.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| Database migration | Create `dossier_templates` table with RLS |
-| `src/pages/AdminDashboard.tsx` | Add Templates tab, save-as-template on dossier rows, update template dropdown in new dossier form |
+| `package.json` | Add `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` |
+| `src/components/admin/PropertyEditor.tsx` | Add search bar, integrate dnd-kit drag-and-drop |
+| Database script (runtime) | Query gomezurita dossier and add 4 properties via edge function or direct JSONB update |
+
+### Technical Details
+
+- **Search**: New `searchQuery` state, `filteredProperties` useMemo that filters `data.properties` per tab. Only the rendering loop changes — the underlying `data` state stays unfiltered so edits work correctly.
+- **Drag-and-drop**: `DndContext` wraps the entire tab list. Each tab is a `useDroppable` container. Each property row uses `useSortable`. `onDragEnd` handles both intra-tab reorder (splice + insert) and cross-tab move (remove from source tab, insert into target tab).
+- **Data addition**: Will query `profiles` for gomezurita@gmail.com to get `user_id`, then query `client_dossiers` for that user, and append the 4 properties (using the Smart Add AI extraction or manual JSONB append).
 
