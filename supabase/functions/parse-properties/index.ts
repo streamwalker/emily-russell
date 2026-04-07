@@ -301,18 +301,29 @@ serve(async (req) => {
 
     if (totalBeforeFallback === 0) {
       console.log("AI returned 0 properties, applying fallback extraction");
-      // Simple regex to find address-like patterns
+      // Try regex for address-like patterns with known street suffixes
       const addressPattern = /(\d+\s+[\w\s]+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Ln|Lane|Rd|Road|Ct|Court|Way|Pl|Place|Cir|Circle|Crossing|Xing|Loop|Trail|Trl|Run|Pass|Path|Pkwy|Parkway)\.?(?:,?\s*[\w\s]+)?(?:,?\s*(?:TX|Texas)\s*\d{5})?)/gi;
-      const matches = rawText.match(addressPattern) || [];
+      let matches = rawText.match(addressPattern) || [];
       
+      // If regex didn't match (e.g. street name without suffix like "11310 Coppola"),
+      // fall back to treating any line/segment starting with a number as an address
+      if (matches.length === 0) {
+        const lines = rawText.split(/[,;\n]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 3);
+        matches = lines.filter((line: string) => /^\d+\s+\w/.test(line));
+      }
+
       if (matches.length > 0) {
-        // Ensure a "general" tab exists
-        if (!dossierData.tabs.some((t: any) => t.key === "general")) {
-          dossierData.tabs = [{ key: "general", label: "General", color: "#8B7355" }];
-        }
-        dossierData.properties["general"] = matches.map((addr: string) => ({
-          address: addr.trim(),
-        }));
+        dossierData.tabs = [{ key: "general", label: "General", color: "#8B7355" }];
+        dossierData.properties["general"] = matches.map((addr: string) => {
+          const parts = addr.split(/,\s*/);
+          const address = parts[0]?.trim() || addr.trim();
+          const cityState = parts.slice(1).join(", ").trim();
+          const cityMatch = cityState.match(/^([\w\s]+?)(?:\s+(?:TX|Texas))?(?:\s+\d{5})?$/i);
+          return {
+            address,
+            ...(cityMatch ? { city: cityMatch[1].trim() } : cityState ? { city: cityState } : {}),
+          };
+        });
       }
     }
 
