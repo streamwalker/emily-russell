@@ -20,6 +20,16 @@ interface Property {
   rentEst?: string;
   rentNote?: string;
   yieldEst?: string;
+  expenses?: {
+    piti?: number;
+    hoa?: number;
+    gas?: number;
+    electric?: number;
+    water?: number;
+    trash?: number;
+    other?: number;
+    otherLabel?: string;
+  };
 }
 
 export interface RankedProperty extends Property {
