@@ -640,5 +640,6 @@ export default function ClientPortal() {
         Logged in as {userEmail}
       </div>
     </div>
+    </TooltipProvider>
   );
 }
