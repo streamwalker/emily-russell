@@ -316,6 +316,29 @@ export default function AdminDashboard() {
                     <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="er-input" />
                   </div>
                 </div>
+                {/* Template selector */}
+                <div className="mb-4">
+                  <label className="er-label block mb-1">Load Template from Existing Dossier</label>
+                  <select
+                    value=""
+                    onChange={e => {
+                      const templateDossier = dossiers.find(d => d.id === e.target.value);
+                      if (templateDossier) {
+                        const clonedData = JSON.parse(JSON.stringify(templateDossier.dossier_data));
+                        setExtractedData(clonedData);
+                        setUseRawJson(false);
+                      }
+                    }}
+                    className="er-input"
+                  >
+                    <option value="">— None (start fresh) —</option>
+                    {dossiers.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.title} — {getClientEmail(d.user_id)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {/* Smart Input / Raw JSON toggle */}
                 <div className="mb-4">
                   <div className="flex items-center gap-3 mb-3">
