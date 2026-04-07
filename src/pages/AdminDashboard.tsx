@@ -7,7 +7,7 @@ import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
 
@@ -105,8 +105,10 @@ export default function AdminDashboard() {
 
   // Comment detail dialog
   const [commentDialogUserId, setCommentDialogUserId] = useState<string | null>(null);
-  const [commentDetails, setCommentDetails] = useState<{ propertyId: string; address: string; builder: string; comment: string; updatedAt: string; dossierId: string | null }[]>([]);
+  const [commentDetails, setCommentDetails] = useState<{ interactionId: string; propertyId: string; address: string; builder: string; comment: string; updatedAt: string; dossierId: string | null; replies: { id: string; reply_text: string; created_at: string }[] }[]>([]);
   const [commentDetailsLoading, setCommentDetailsLoading] = useState(false);
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
+  const [replyingSaving, setReplyingSaving] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -167,27 +169,66 @@ export default function AdminDashboard() {
   const openCommentDialog = useCallback(async (userId: string) => {
     setCommentDialogUserId(userId);
     setCommentDetailsLoading(true);
+    setReplyTexts({});
     const { data } = await supabase
       .from("property_interactions")
-      .select("property_id, comments, updated_at")
+      .select("id, property_id, comments, updated_at")
       .eq("user_id", userId)
       .not("comments", "is", null);
     
+    // Fetch replies for all interactions
+    const interactionIds = (data || []).map(r => r.id);
+    let repliesMap: Record<string, { id: string; reply_text: string; created_at: string }[]> = {};
+    if (interactionIds.length > 0) {
+      const { data: repliesData } = await supabase
+        .from("comment_replies")
+        .select("id, interaction_id, reply_text, created_at")
+        .in("interaction_id", interactionIds)
+        .order("created_at", { ascending: true });
+      for (const r of repliesData || []) {
+        if (!repliesMap[r.interaction_id]) repliesMap[r.interaction_id] = [];
+        repliesMap[r.interaction_id].push({ id: r.id, reply_text: r.reply_text, created_at: r.created_at });
+      }
+    }
+
     const details = (data || []).map(row => {
       const resolved = resolvePropertyFromDossiers(row.property_id, userId);
       return {
+        interactionId: row.id,
         propertyId: row.property_id,
         address: resolved.address,
         builder: resolved.builder,
         comment: row.comments!,
         updatedAt: row.updated_at || "",
         dossierId: resolved.dossierId,
+        replies: repliesMap[row.id] || [],
       };
     }).sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     
     setCommentDetails(details);
     setCommentDetailsLoading(false);
   }, [resolvePropertyFromDossiers]);
+
+  const submitReply = useCallback(async (interactionId: string) => {
+    const text = replyTexts[interactionId]?.trim();
+    if (!text) return;
+    setReplyingSaving(interactionId);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("comment_replies").insert({
+      interaction_id: interactionId,
+      admin_user_id: userData.user?.id || "",
+      reply_text: text,
+    });
+    if (error) {
+      toast.error("Failed to send reply");
+    } else {
+      toast.success("Reply sent");
+      setReplyTexts(prev => ({ ...prev, [interactionId]: "" }));
+      // Refresh replies
+      if (commentDialogUserId) openCommentDialog(commentDialogUserId);
+    }
+    setReplyingSaving(null);
+  }, [replyTexts, commentDialogUserId, openCommentDialog]);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate("/portal", { replace: true });
