@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import PaymentCalculator from "@/components/portal/PaymentCalculator";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
@@ -124,6 +125,23 @@ function TabScrollContainer({ children }: { children: React.ReactNode }) {
           style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }}
         />
       )}
+    </div>
+  );
+}
+
+/* ── Payment Calculator Toggle ── */
+function PaymentCalculatorToggle({ price, hoaFee, accentColor }: { price: number; hoaFee?: number; accentColor: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-[11px] font-semibold font-body cursor-pointer bg-transparent border-none p-0 transition-colors hover:opacity-80"
+        style={{ color: accentColor }}
+      >
+        {open ? "▾ Hide Payment Estimator" : "▸ Estimate Monthly Payment"}
+      </button>
+      {open && <PaymentCalculator price={price} hoaFee={hoaFee} />}
     </div>
   );
 }
@@ -297,6 +315,10 @@ function PropertyRow({
                   </div>
                 );
               })()}
+              {/* Payment Calculator Toggle */}
+              {prop.price && (
+                <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} />
+              )}
               {prop.sourceUrl && (
                 <a
                   href={prop.sourceUrl}
