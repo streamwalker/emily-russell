@@ -542,8 +542,27 @@ export default function ClientPortal() {
           </div>
         )}
 
+        {/* All Homes tab */}
+        {isAllHomes && (
+          <div>
+            <p className="text-xs text-muted-foreground font-body mb-4">
+              All {allHomesProperties.length} properties from every builder in one view.
+            </p>
+            {allHomesProperties.map((p: any) => (
+              <div key={p.id} className="relative">
+                {p._builderTag && (
+                  <div className="absolute top-2 right-2 z-10 text-[9px] uppercase tracking-wider font-body font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+                    {p._builderTag}
+                  </div>
+                )}
+                <PropertyRow prop={p} isExpanded={expandedIds.has(p.id)} onToggle={() => toggle(p.id)} accentColor={currentTab.color} />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Regular builder tabs */}
-        {!isRankTab && (
+        {!isRankTab && !isAllHomes && (
           <>
             {activeTab === "outoftown" && outOfTownByCity ? (
               Object.entries(outOfTownByCity).map(([city, props]) => (
