@@ -201,6 +201,12 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userI
   );
 }
 
+interface CommentReply {
+  id: string;
+  reply_text: string;
+  created_at: string;
+}
+
 /* ── Property Row ── */
 function PropertyRow({
   prop,
@@ -214,6 +220,7 @@ function PropertyRow({
   interaction,
   onInteractionChange,
   gradeCounts,
+  replies,
 }: {
   prop: Property;
   isExpanded: boolean;
@@ -226,6 +233,7 @@ function PropertyRow({
   interaction?: PropertyInteraction;
   onInteractionChange?: (propertyId: string, field: string, value: any) => void;
   gradeCounts?: Record<string, number>;
+  replies?: CommentReply[];
 }) {
   const isFav = interaction?.is_favorite || false;
 
