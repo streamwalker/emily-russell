@@ -1,59 +1,29 @@
 
 
-## Smart Dossier Creation: AI-Powered Property Import
-
-### Summary
-
-Replace the raw JSON textarea in the "New Dossier" form with a smart input that accepts free-form text (addresses, listing URLs, pasted MLS descriptions, or any block of property info). An edge function powered by Lovable AI extracts structured property data matching the existing dossier schema. The admin reviews the extracted properties, makes corrections, then saves.
-
-### Flow
-
-```text
-Admin clicks "+ New Dossier"
-  → Selects client, title, date (same as today)
-  → Pastes raw text into a large textarea
-     (addresses, URLs, listing descriptions, etc.)
-  → Clicks "Extract Properties"
-  → Edge function sends text to Lovable AI with schema instructions
-  → Returns structured JSON with tabs and properties
-  → Admin sees extracted properties in an editable preview
-     (uses existing PropertyEditor component)
-  → Admin can fix/add/remove before saving
-  → Clicks "Create Dossier" to save
-```
+## Back Buttons + Add Properties to Existing Dossier
 
 ### Changes
 
-**1. New Edge Function: `supabase/functions/parse-properties/index.ts`**
+**1. Back buttons in sub-views (`src/pages/AdminDashboard.tsx`)**
 
-- Accepts `{ rawText: string }` in the body
-- Sends to Lovable AI (`google/gemini-3-flash-preview`) with a system prompt that:
-  - Explains the exact property schema (address, city, price, beds, baths, sqft, stories, garages, builder, plan, type, status, community, area, rentEst, yieldEst, rentNote, notes)
-  - Instructs the model to group properties by builder into tabs with keys, labels, and colors
-  - Uses tool calling for structured output (no freeform JSON)
-- Returns the structured dossier data `{ tabs: [...], properties: { ... } }`
-- Authenticated (admin only via auth header check)
+When the admin enters PropertyEditor, ExpenseEditor, or raw JSON edit mode for a dossier, add a prominent "← Back to Dossiers" button at the top of that view. This replaces the current "Cancel" being buried at the bottom:
+- Add a back button row above each sub-editor (PropertyEditor, ExpenseEditor, JSON edit) with an `ArrowLeft` icon + "Back to Dossiers"
+- Clicking it calls the same cancel/close logic already in place (`setPropertyEditId(null)`, etc.)
+- Also update the PropertyEditor component itself to show the back button more prominently in its header
 
-**2. Update `src/pages/AdminDashboard.tsx` — New Dossier Form**
+**2. Add properties to existing dossier (`src/pages/AdminDashboard.tsx` + `src/components/admin/PropertyEditor.tsx`)**
 
-Replace the current raw JSON textarea (lines 295-298) with a two-step flow:
+Add an "Add Properties" feature inside PropertyEditor that lets admins add new properties without touching JSON:
 
-- **Step 1 — Input**: Large textarea for pasting raw text + an "Extract Properties" button. Show a loading spinner while AI processes.
-- **Step 2 — Review**: Once extraction completes, show the parsed data using the existing `PropertyEditor` component in read/edit mode so the admin can review and fix before saving. Also keep a "Switch to raw JSON" toggle for power users.
-- The existing client selector, title, and date fields remain unchanged.
+- **Add to existing tab**: A "＋ Add Property" button at the bottom of each tab section in PropertyEditor. Clicking it appends a blank property with just an empty address to that tab's array and auto-expands it for editing.
+- **Add new tab**: A "＋ Add Tab" button at the bottom of the PropertyEditor that lets admins create a new tab (builder group) by entering a label. Auto-generates a key and assigns a color from a preset palette.
+- **Smart add via AI**: An "＋ Smart Add" button at the top of PropertyEditor that opens a small textarea. Admin pastes raw text, it calls the same `parse-properties` edge function, and the returned properties get merged into the existing dossier data (appended to matching tabs or creating new ones).
+- **Delete property**: Add a small trash icon on each property header to remove it from the dossier.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `supabase/functions/parse-properties/index.ts` | New edge function — AI property extraction |
-| `src/pages/AdminDashboard.tsx` | Replace JSON textarea with smart input + review flow in new dossier form |
-
-### Technical Details
-
-- Uses Lovable AI tool calling for reliable structured output (not freeform JSON)
-- The system prompt includes one example property so the model understands the exact field format
-- If the AI can't determine a field (e.g., rent estimate), it leaves it null for the admin to fill in
-- Error handling: if extraction fails, show error and let admin retry or fall back to raw JSON
-- No new database tables needed
+| `src/pages/AdminDashboard.tsx` | Add back button rows above each sub-editor view |
+| `src/components/admin/PropertyEditor.tsx` | Add "Add Property" per tab, "Add Tab", "Smart Add" via AI, and delete property buttons |
 
