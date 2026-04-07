@@ -36,6 +36,7 @@ interface Property {
   plan: string;
   type: string;
   notes: string;
+  sourceUrl?: string;
   rentEst?: string;
   rentNote?: string;
   yieldEst?: string;
@@ -238,6 +239,17 @@ function PropertyRow({
                   </div>
                 );
               })()}
+              {prop.sourceUrl && (
+                <a
+                  href={prop.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-3 text-[12px] font-semibold font-body transition-colors hover:opacity-80"
+                  style={{ color: accentColor }}
+                >
+                  View Listing →
+                </a>
+              )}
             </div>
           </div>
         </div>

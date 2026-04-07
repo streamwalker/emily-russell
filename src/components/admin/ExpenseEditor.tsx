@@ -17,6 +17,7 @@ interface Property {
   city?: string;
   price?: number;
   rentEst?: string;
+  sourceUrl?: string;
   expenses?: Expenses;
   [key: string]: unknown;
 }
