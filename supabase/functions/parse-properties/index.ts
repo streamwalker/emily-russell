@@ -58,7 +58,13 @@ Example property:
   "sourceUrl": "https://example.com/listing/1234"
 }
 
-Extract as many fields as you can from the text. Leave fields null/undefined if info is not available.`;
+Extract as many fields as you can from the text. Leave fields null/undefined if info is not available.
+
+CRITICAL RULES:
+- Even if you only have an address (and optionally a city/state/zip), you MUST still create a property entry with whatever fields are available.
+- NEVER return an empty properties map if you can identify at least one address in the input.
+- Every tab in the tabs array MUST have at least one corresponding entry in the properties map.
+- When in doubt, create a property with just the address field filled in.`;
 
 const URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
 
@@ -286,6 +292,55 @@ serve(async (req) => {
         status: 422,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Fallback: if AI returned tabs but empty properties, extract addresses from raw text
+    const totalBeforeFallback = Object.values(dossierData.properties).reduce(
+      (sum: number, arr: any) => sum + arr.length, 0
+    );
+
+    if (totalBeforeFallback === 0) {
+      console.log("AI returned 0 properties, applying fallback extraction");
+      
+      // Split input into address segments by newline or semicolon (not comma, as commas are part of addresses)
+      const segments = rawText.split(/[;\n]+/).map((s: string) => s.trim()).filter((s: string) => s.length > 3);
+      // If only one segment, treat the whole input as one address
+      const addressSegments = segments.length > 0 ? segments : [rawText.trim()];
+      
+      const properties: any[] = [];
+      for (const seg of addressSegments) {
+        // Skip if it doesn't contain any numbers (likely not an address)
+        if (!/\d/.test(seg)) continue;
+        
+        // Parse: "11310 Coppola, San Antonio, TX 78254"
+        const parts = seg.split(/,\s*/);
+        const address = parts[0]?.trim();
+        if (!address) continue;
+        
+        const prop: any = { address };
+        
+        // Try to extract city from remaining parts
+        const remaining = parts.slice(1);
+        if (remaining.length > 0) {
+          // Find city (first non-state, non-zip part)
+          const cityParts: string[] = [];
+          for (const part of remaining) {
+            if (/^\s*(?:TX|Texas)\s*$/i.test(part)) continue;
+            if (/^\s*\d{5}(-\d{4})?\s*$/.test(part)) continue;
+            if (/^\s*(?:TX|Texas)\s+\d{5}/i.test(part)) continue;
+            cityParts.push(part.replace(/\s*(?:TX|Texas)\s*\d{0,5}.*/i, "").trim());
+          }
+          const city = cityParts.filter(Boolean).join(", ");
+          if (city) prop.city = city;
+        }
+        
+        properties.push(prop);
+      }
+
+      if (properties.length > 0) {
+        dossierData.tabs = [{ key: "general", label: "General", color: "#8B7355" }];
+        dossierData.properties["general"] = properties;
+      }
     }
 
     // Add IDs to each property
