@@ -129,9 +129,7 @@ Deno.serve(async (req) => {
     // ─── PAGE 6 — Signature block ───
     const p6 = pages[5];
 
-    // Broker's Printed Name (the brokerage firm, not the associate)
-    p6.drawText(broker.name || "Fathom Realty", { x: 36, y: y(230), font, size: fontSize, color });
-    // Broker License No — leave blank (brokerage license is pre-printed on form)
+    // Broker's Printed Name — left blank for broker to fill via DocuSign
 
     // Client's Printed Name
     p6.drawText(clientName, { x: 324, y: y(230), font, size: fontSize, color });
@@ -146,12 +144,12 @@ Deno.serve(async (req) => {
       try {
         const sigBytes = base64ToUint8Array(signatureData);
         const sigImage = await pdfDoc.embedPng(sigBytes);
-        const sigDims = sigImage.scale(0.3);
+        const sigDims = sigImage.scale(0.35);
         p6.drawImage(sigImage, {
-          x: 360,
-          y: y(260),
-          width: Math.min(sigDims.width, 160),
-          height: Math.min(sigDims.height, 40),
+          x: 324,
+          y: y(248),
+          width: Math.min(sigDims.width, 180),
+          height: Math.min(sigDims.height, 44),
         });
       } catch (_e) {
         // signature embed failed, continue without

@@ -8,6 +8,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import SignaturePad from "@/components/portal/SignaturePad";
 import { toast } from "sonner";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 const BROKER = {
   name: "Fathom Realty",
@@ -20,11 +21,17 @@ const BROKER = {
 
 const BuyerRepAgreement = () => {
   const navigate = useNavigate();
+  const { isAdmin, loading: adminLoading } = useAdminCheck();
   const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
+
+  // Admin: client selector
+  const [clients, setClients] = useState<{ user_id: string; full_name: string | null; email: string }[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Client fields
   const [clientName, setClientName] = useState("");
@@ -49,6 +56,7 @@ const BuyerRepAgreement = () => {
   const [signature2Data, setSignature2Data] = useState<string | null>(null);
   const [signature2Type, setSignature2Type] = useState<"draw" | "typed">("draw");
 
+  // Load user + admin client list
   useEffect(() => {
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -60,6 +68,54 @@ const BuyerRepAgreement = () => {
     };
     check();
   }, [navigate]);
+
+  // Admin: load client list
+  useEffect(() => {
+    if (!isAdmin || adminLoading) return;
+    const loadClients = async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name, email");
+      if (data) setClients(data);
+    };
+    loadClients();
+  }, [isAdmin, adminLoading]);
+
+  // Load agreement_config for the relevant user
+  useEffect(() => {
+    const targetUserId = isAdmin ? selectedClientId : userId;
+    if (!targetUserId || adminLoading) return;
+
+    const loadConfig = async () => {
+      const { data } = await supabase
+        .from("agreement_config")
+        .select("term_end, broker_fee_pct")
+        .eq("client_user_id", targetUserId)
+        .maybeSingle();
+
+      if (data) {
+        if (data.term_end) setTermEnd(new Date(data.term_end + "T00:00:00"));
+        if (data.broker_fee_pct !== null) setBrokerFeePct(String(data.broker_fee_pct));
+      }
+      setConfigLoaded(true);
+    };
+    loadConfig();
+  }, [isAdmin, adminLoading, userId, selectedClientId]);
+
+  // Admin: save config for selected client
+  const handleSaveConfig = async () => {
+    if (!selectedClientId || !isAdmin) return;
+    const { error } = await supabase.from("agreement_config").upsert({
+      client_user_id: selectedClientId,
+      term_end: termEnd ? format(termEnd, "yyyy-MM-dd") : null,
+      broker_fee_pct: parseFloat(brokerFeePct) || 3.0,
+      updated_by: userId,
+    }, { onConflict: "client_user_id" });
+
+    if (error) {
+      toast.error("Failed to save agreement settings.");
+    } else {
+      toast.success("Agreement settings saved for this client.");
+    }
+  };
 
   const handleSignatureChange = useCallback((dataUrl: string | null, type: "draw" | "typed") => {
     setSignatureData(dataUrl);
@@ -201,6 +257,43 @@ const BuyerRepAgreement = () => {
           </div>
         ) : (
           <>
+            {/* Admin: client selector */}
+            {isAdmin && (
+              <div className="bg-accent/30 border border-accent p-4 space-y-3">
+                <div className="text-xs font-semibold text-primary uppercase tracking-wider">Agent Controls</div>
+                <div>
+                  <label className={labelClass}>Select Client</label>
+                  <select
+                    className={cn(inputClass, "cursor-pointer")}
+                    value={selectedClientId || ""}
+                    onChange={e => setSelectedClientId(e.target.value || null)}
+                  >
+                    <option value="">— Choose a client —</option>
+                    {clients.map(c => (
+                      <option key={c.user_id} value={c.user_id}>
+                        {c.full_name || c.email} ({c.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {selectedClientId && (
+                  <button
+                    onClick={handleSaveConfig}
+                    className="px-4 py-2 bg-primary text-primary-foreground text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0"
+                  >
+                    Save End Date & Fee for Client
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Non-admin: show message if config not set */}
+            {!isAdmin && configLoaded && !termEnd && (
+              <div className="bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+                Your agent needs to configure the agreement terms (end date and commission) before you can sign. Please contact your agent.
+              </div>
+            )}
+
             {/* Form Title for print */}
             <div className="hidden print:block text-center mb-8">
               <div className="text-xs tracking-wider uppercase mb-1">TEXAS REALTORS®</div>
@@ -296,18 +389,24 @@ const BuyerRepAgreement = () => {
                   </Popover>
                 </div>
                 <div>
-                  <label className={labelClass}>End Date</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button className={cn(inputClass, "flex items-center justify-between cursor-pointer", !termEnd && "text-muted-foreground")}>
-                        {termEnd ? format(termEnd, "PPP") : "Select end date"}
-                        <CalendarIcon className="w-4 h-4 opacity-50" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={termEnd} onSelect={setTermEnd} initialFocus className="p-3 pointer-events-auto" />
-                    </PopoverContent>
-                  </Popover>
+                  <label className={labelClass}>End Date {!isAdmin && <span className="text-muted-foreground normal-case tracking-normal font-normal">(set by your agent)</span>}</label>
+                  {isAdmin ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className={cn(inputClass, "flex items-center justify-between cursor-pointer", !termEnd && "text-muted-foreground")}>
+                          {termEnd ? format(termEnd, "PPP") : "Select end date"}
+                          <CalendarIcon className="w-4 h-4 opacity-50" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={termEnd} onSelect={setTermEnd} initialFocus className="p-3 pointer-events-auto" />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="px-3 py-2 bg-muted text-foreground text-sm border border-border">
+                      {termEnd ? format(termEnd, "PPP") : <span className="text-muted-foreground italic">Pending — your agent will configure this</span>}
+                    </div>
+                  )}
                 </div>
               </div>
               <p className={legalClass}>This agreement begins on the start date and ends at 11:59 p.m. on the end date.</p>
@@ -330,8 +429,14 @@ const BuyerRepAgreement = () => {
               <h2 className={headingClass}>7. Broker Compensation</h2>
               <p className={legalClass}>Broker compensation or the sharing of compensation between brokers is not set by law nor fixed, controlled, recommended, or suggested, by the Association of REALTORS®, MLS, or any listing service. Broker compensation is fully negotiable.</p>
               <div className="mt-3">
-                <label className={labelClass}>Broker's Fee (% of sales price)</label>
-                <input type="text" className={cn(inputClass, "w-32")} value={brokerFeePct} onChange={e => setBrokerFeePct(e.target.value)} />
+                <label className={labelClass}>Broker's Fee (% of sales price) {!isAdmin && <span className="text-muted-foreground normal-case tracking-normal font-normal">(set by your agent)</span>}</label>
+                {isAdmin ? (
+                  <input type="text" className={cn(inputClass, "w-32")} value={brokerFeePct} onChange={e => setBrokerFeePct(e.target.value)} />
+                ) : (
+                  <div className="px-3 py-2 bg-muted text-foreground text-sm border border-border w-32">
+                    {brokerFeePct}%
+                  </div>
+                )}
               </div>
               <div className={legalClass + " space-y-2 mt-3"}>
                 <p><strong>B. Source of Compensation:</strong> Broker will seek to obtain payment of the fees specified first from the seller, landlord, or their agents. If such persons refuse or fail to pay Broker the amount specified, Client will pay Broker the amount specified less any amounts Broker receives from such persons.</p>
@@ -446,13 +551,17 @@ const BuyerRepAgreement = () => {
               <Link to="/portal/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors no-underline">
                 ← Back to Dashboard
               </Link>
-              <button
-                onClick={handleSubmit}
-                disabled={saving}
-                className="px-8 py-3 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0 disabled:opacity-50"
-              >
-                {saving ? "Saving…" : "Sign Agreement"}
-              </button>
+              {isAdmin ? (
+                <div className="text-xs text-muted-foreground italic">Admin mode — use "Save End Date & Fee" above</div>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={saving || (!termEnd && configLoaded)}
+                  className="px-8 py-3 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0 disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Sign Agreement"}
+                </button>
+              )}
             </div>
           </>
         )}
