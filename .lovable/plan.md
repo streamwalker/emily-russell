@@ -1,29 +1,53 @@
 
 
-## Back Buttons + Add Properties to Existing Dossier
+## Reusable Dossier Template Library
 
-### Changes
+### Summary
 
-**1. Back buttons in sub-views (`src/pages/AdminDashboard.tsx`)**
+Add a new `dossier_templates` table and a "Templates" tab in the Admin Dashboard where admins can save, name, edit, and delete reusable templates. Templates are standalone dossier data structures not tied to any client. The existing "Load Template" dropdown in the new dossier form will pull from this library instead of (or in addition to) existing client dossiers.
 
-When the admin enters PropertyEditor, ExpenseEditor, or raw JSON edit mode for a dossier, add a prominent "← Back to Dossiers" button at the top of that view. This replaces the current "Cancel" being buried at the bottom:
-- Add a back button row above each sub-editor (PropertyEditor, ExpenseEditor, JSON edit) with an `ArrowLeft` icon + "Back to Dossiers"
-- Clicking it calls the same cancel/close logic already in place (`setPropertyEditId(null)`, etc.)
-- Also update the PropertyEditor component itself to show the back button more prominently in its header
+### Database
 
-**2. Add properties to existing dossier (`src/pages/AdminDashboard.tsx` + `src/components/admin/PropertyEditor.tsx`)**
+**New table: `dossier_templates`**
 
-Add an "Add Properties" feature inside PropertyEditor that lets admins add new properties without touching JSON:
+```sql
+CREATE TABLE public.dossier_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  dossier_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_by UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
-- **Add to existing tab**: A "＋ Add Property" button at the bottom of each tab section in PropertyEditor. Clicking it appends a blank property with just an empty address to that tab's array and auto-expands it for editing.
-- **Add new tab**: A "＋ Add Tab" button at the bottom of the PropertyEditor that lets admins create a new tab (builder group) by entering a label. Auto-generates a key and assigns a color from a preset palette.
-- **Smart add via AI**: An "＋ Smart Add" button at the top of PropertyEditor that opens a small textarea. Admin pastes raw text, it calls the same `parse-properties` edge function, and the returned properties get merged into the existing dossier data (appended to matching tabs or creating new ones).
-- **Delete property**: Add a small trash icon on each property header to remove it from the dossier.
+ALTER TABLE public.dossier_templates ENABLE ROW LEVEL SECURITY;
+
+-- Admin-only CRUD
+CREATE POLICY "Admins can manage templates" ON public.dossier_templates
+  FOR ALL TO authenticated
+  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
+```
+
+### Frontend Changes
+
+**1. AdminDashboard.tsx**
+
+- Add a 4th tab: "Templates" (with a `FileText` icon) alongside Dossiers, Analytics, Engagement
+- **Templates tab content**:
+  - List all templates (name, description, property count, last updated)
+  - "Save as Template" button on each existing client dossier row — copies the dossier_data into a new template with a name prompt
+  - "+ New Template" button — opens a form with name, description, and the same smart input / PropertyEditor / raw JSON workflow used for dossier creation
+  - Edit button — opens template in PropertyEditor for modification
+  - Delete button with confirmation
+- **New Dossier form** — update the "Load Template" dropdown to show templates from `dossier_templates` in a separate optgroup labeled "Templates", above the existing client dossiers group
+
+**2. No other files need changes** — PropertyEditor already supports standalone use with `dossierData` + `onSave` props.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/pages/AdminDashboard.tsx` | Add back button rows above each sub-editor view |
-| `src/components/admin/PropertyEditor.tsx` | Add "Add Property" per tab, "Add Tab", "Smart Add" via AI, and delete property buttons |
+| Database migration | Create `dossier_templates` table with RLS |
+| `src/pages/AdminDashboard.tsx` | Add Templates tab, save-as-template on dossier rows, update template dropdown in new dossier form |
 
