@@ -1,34 +1,28 @@
 
 
-## AI-Powered Property Research Agent
+## Fix Comment Dialog: Show Property Addresses + Clickable Navigation
 
-### What it does
+### Problem
 
-When you type an address like "11310 Coppola, San Antonio, TX 78254" into Smart Add, the system will automatically search the web for that property's listing, find the best matching URL (Realtor.com, Zillow, builder sites, etc.), scrape the page content, and extract all available details (price, beds, baths, sqft, builder, community, etc.) — all before showing you the preview.
+The `resolvePropertyFromDossiers` function looks for properties at `tab.properties[key]` (object keyed by property ID), but the actual data structure stores properties at `dossier_data.properties[tabKey]` as arrays where each item has an `id` field. This mismatch causes every comment to show the raw property ID (e.g., "o1") as the address and "UNKNOWN" as the builder.
 
-### How it works
+### Fix
 
-The `parse-properties` edge function gets a new **research step** before the existing extraction step:
+**File: `src/pages/AdminDashboard.tsx`**
 
-1. **Detect if input is just an address** (no URLs present)
-2. **Use Firecrawl Search API** to search the web for that address + "listing" — returns ranked results with URLs
-3. **Scrape the top 2-3 results** using Firecrawl Scrape to get full page content (markdown format, much cleaner than raw HTML stripping)
-4. **Feed the scraped content** into the existing AI extraction pipeline, which already knows how to parse property data
+1. **Fix `resolvePropertyFromDossiers`** to match the actual data structure:
+   - Look in `data.properties[tabKey]` (arrays of property objects)
+   - Match on `property.id === propertyId`
+   - Return the property's `address` and the matching tab's `label` as the builder
+   - Also return the `dossierId` so we can navigate to it
 
-This requires connecting the **Firecrawl connector** (already available in your workspace) to the project so the edge function can use the Firecrawl API.
+2. **Update `commentDetails` state** to include `dossierId` for each comment
+
+3. **Make each comment card clickable** — clicking it closes the dialog and opens the PropertyEditor for that dossier (sets `propertyEditId` to the dossier ID), giving the admin direct access to edit the property being discussed
 
 ### Files
 
 | File | Action |
 |------|--------|
-| Firecrawl connector | Link to project (already in workspace) |
-| `supabase/functions/parse-properties/index.ts` | Add research step: detect address-only input → Firecrawl search → Firecrawl scrape top results → feed to AI extraction |
-
-### Technical details
-
-- **When research triggers**: If the input has no URLs (`URL_REGEX` finds nothing), the function assumes it's an address/description and triggers the research agent
-- **Firecrawl search query**: The AI first generates an optimal search query from the input (e.g., `"11310 Coppola San Antonio TX 78254 property listing"`), then calls `https://api.firecrawl.dev/v1/search` with domain filters for real estate sites
-- **Scraping**: Top 2-3 search results are scraped via `https://api.firecrawl.dev/v1/scrape` with `formats: ['markdown']` and `onlyMainContent: true` — much better content extraction than the current raw HTML stripping
-- **Existing URL flow**: If the user pastes a URL directly, the existing flow still works but upgrades to use Firecrawl scrape instead of basic `fetch()` for better content extraction
-- **The preview modal** still appears before anything is saved, so the admin can verify and edit
+| `src/pages/AdminDashboard.tsx` | Fix property resolution logic; add clickable navigation from comments to dossier |
 
