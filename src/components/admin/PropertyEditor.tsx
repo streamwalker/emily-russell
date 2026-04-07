@@ -160,7 +160,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                               <input
                                 type="text"
                                 value={(prop[key] as string) || ""}
-                                onChange={e => updateField(tab.key, i, key, e.target.value, false)}
+                                onChange={e => updateField(tab.key, i, key as string, e.target.value, false)}
                                 className="er-input !py-1.5 !text-sm w-full"
                               />
                             </div>
@@ -178,7 +178,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                                 type="number"
                                 min="0"
                                 value={prop[key] !== undefined && prop[key] !== null ? String(prop[key]) : ""}
-                                onChange={e => updateField(tab.key, i, key, e.target.value, true)}
+                                onChange={e => updateField(tab.key, i, key as string, e.target.value, true)}
                                 className="er-input !py-1.5 !text-sm w-full"
                               />
                             </div>
@@ -195,7 +195,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                               <input
                                 type="text"
                                 value={(prop[key] as string) || ""}
-                                onChange={e => updateField(tab.key, i, key, e.target.value, false)}
+                                onChange={e => updateField(tab.key, i, key as string, e.target.value, false)}
                                 className="er-input !py-1.5 !text-sm w-full"
                               />
                             </div>
