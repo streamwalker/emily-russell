@@ -1,29 +1,34 @@
 
 
-## Clickable Comments + Real-Time Comment Notifications
+## AI-Powered Property Research Agent
 
-### 1. Clickable Comments Detail View
+### What it does
 
-Make the "N comments" text in the dossier interaction summary bar clickable. Clicking it opens a dialog/modal that shows all comments left by that client, with:
-- Property address and builder for each comment
-- The comment text
-- Timestamp (from `updated_at`)
+When you type an address like "11310 Coppola, San Antonio, TX 78254" into Smart Add, the system will automatically search the web for that property's listing, find the best matching URL (Realtor.com, Zillow, builder sites, etc.), scrape the page content, and extract all available details (price, beds, baths, sqft, builder, community, etc.) — all before showing you the preview.
 
-**How**: In `AdminDashboard.tsx`, when the comments count is clicked, fetch `property_interactions` for that `user_id` where `comments IS NOT NULL`. Cross-reference `property_id` with the dossier's `dossier_data` to resolve property addresses. Display in a `Dialog` component.
+### How it works
 
-### 2. Real-Time Comment Notifications
+The `parse-properties` edge function gets a new **research step** before the existing extraction step:
 
-Subscribe to `property_interactions` changes via Supabase Realtime. When a new comment is inserted or updated (where `comments` field is non-null), show a toast notification to the admin with the client name and property address.
+1. **Detect if input is just an address** (no URLs present)
+2. **Use Firecrawl Search API** to search the web for that address + "listing" — returns ranked results with URLs
+3. **Scrape the top 2-3 results** using Firecrawl Scrape to get full page content (markdown format, much cleaner than raw HTML stripping)
+4. **Feed the scraped content** into the existing AI extraction pipeline, which already knows how to parse property data
 
-**How**:
-- Enable realtime on `property_interactions` table (migration: `ALTER PUBLICATION supabase_realtime ADD TABLE public.property_interactions`)
-- In `AdminDashboard.tsx`, set up a Realtime channel subscription on mount that listens for `UPDATE` and `INSERT` events where `comments` is present
-- On event, resolve the user's name from `profiles` state and the property address from dossiers state, then fire a toast
+This requires connecting the **Firecrawl connector** (already available in your workspace) to the project so the edge function can use the Firecrawl API.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| Database migration | Enable realtime on `property_interactions` |
-| `src/pages/AdminDashboard.tsx` | Add clickable comments with detail dialog; add Realtime subscription for comment notifications with toast alerts |
+| Firecrawl connector | Link to project (already in workspace) |
+| `supabase/functions/parse-properties/index.ts` | Add research step: detect address-only input → Firecrawl search → Firecrawl scrape top results → feed to AI extraction |
+
+### Technical details
+
+- **When research triggers**: If the input has no URLs (`URL_REGEX` finds nothing), the function assumes it's an address/description and triggers the research agent
+- **Firecrawl search query**: The AI first generates an optimal search query from the input (e.g., `"11310 Coppola San Antonio TX 78254 property listing"`), then calls `https://api.firecrawl.dev/v1/search` with domain filters for real estate sites
+- **Scraping**: Top 2-3 search results are scraped via `https://api.firecrawl.dev/v1/scrape` with `formats: ['markdown']` and `onlyMainContent: true` — much better content extraction than the current raw HTML stripping
+- **Existing URL flow**: If the user pastes a URL directly, the existing flow still works but upgrades to use Firecrawl scrape instead of basic `fetch()` for better content extraction
+- **The preview modal** still appears before anything is saved, so the admin can verify and edit
 
