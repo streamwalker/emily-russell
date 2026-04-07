@@ -318,7 +318,7 @@ serve(async (req) => {
           const parts = addr.split(/,\s*/);
           const address = parts[0]?.trim() || addr.trim();
           const cityState = parts.slice(1).join(", ").trim();
-          const cityMatch = cityState.match(/^([\w\s]+?)(?:\s+(?:TX|Texas))?(?:\s+\d{5})?$/i);
+          const cityMatch = cityState.match(/^([\w\s]+?)(?:[,\s]+(?:TX|Texas))?(?:[,\s]+\d{5})?$/i);
           return {
             address,
             ...(cityMatch ? { city: cityMatch[1].trim() } : cityState ? { city: cityState } : {}),
