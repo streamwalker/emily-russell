@@ -198,6 +198,44 @@ function PropertyRow({
                   {prop.rentNote && <div className="text-[11px] text-muted-foreground mt-1 italic">{prop.rentNote}</div>}
                 </div>
               )}
+              {prop.expenses && Object.values(prop.expenses).some(v => v && v !== 0) && (() => {
+                const e = prop.expenses!;
+                const items: [string, number][] = [
+                  ["PITI (Principal, Interest, Taxes, Insurance)", e.piti || 0],
+                  ["HOA Fees", e.hoa || 0],
+                  ["Gas", e.gas || 0],
+                  ["Electric", e.electric || 0],
+                  ["Water", e.water || 0],
+                  ["Trash Pickup", e.trash || 0],
+                  [e.otherLabel || "Other", e.other || 0],
+                ].filter(([, v]) => v > 0) as [string, number][];
+                const totalExpenses = items.reduce((sum, [, v]) => sum + v, 0);
+                const rentNum = (() => { const m = (prop.rentEst || "").replace(/,/g, "").match(/\$?([\d]+)/); return m ? parseInt(m[1], 10) : 0; })();
+                const netIncome = rentNum > 0 ? rentNum - totalExpenses : 0;
+                return (
+                  <div className="mt-2.5 p-2.5 rounded border border-border bg-card">
+                    <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Monthly Expenses</div>
+                    {items.map(([label, value], i) => (
+                      <div key={i} className="flex justify-between py-1 border-b border-border/30 text-[12px] font-body">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className="font-semibold text-foreground">${value.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between py-1.5 mt-1 text-[12px] font-body font-bold">
+                      <span className="text-muted-foreground">Total Expenses</span>
+                      <span className="text-foreground">${totalExpenses.toLocaleString()}/mo</span>
+                    </div>
+                    {netIncome !== 0 && (
+                      <div className="flex justify-between py-1.5 text-[12px] font-body font-bold border-t border-border">
+                        <span style={{ color: netIncome > 0 ? "#2e7d32" : "#c62828" }}>Net Cash Flow</span>
+                        <span style={{ color: netIncome > 0 ? "#2e7d32" : "#c62828" }}>
+                          {netIncome > 0 ? "+" : ""}${netIncome.toLocaleString()}/mo
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
