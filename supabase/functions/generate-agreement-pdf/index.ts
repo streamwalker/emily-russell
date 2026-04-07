@@ -1,0 +1,199 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { PDFDocument, rgb, StandardFonts } from "npm:pdf-lib@1.17.1";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const body = await req.json();
+    const {
+      clientName = "",
+      clientAddress = "",
+      clientCityStateZip = "",
+      clientPhone = "",
+      clientEmail = "",
+      marketArea = "",
+      termStart = "",
+      termEnd = "",
+      brokerFeePct = "3.0",
+      signatureData = null,
+      broker = {},
+      secondClient = null,
+    } = body;
+
+    // Fetch blank PDF template from storage
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, serviceKey);
+
+    const { data: fileData, error: dlError } = await sb.storage
+      .from("agreement-templates")
+      .download("TXR-1501-blank.pdf");
+
+    if (dlError || !fileData) {
+      return new Response(
+        JSON.stringify({ error: "Could not load PDF template" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const templateBytes = await fileData.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(templateBytes);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const pages = pdfDoc.getPages();
+    const PAGE_H = 792;
+
+    // Helper: pdfplumber top → pdf-lib y (bottom-left origin)
+    const y = (top: number) => PAGE_H - top;
+
+    const fontSize = 10;
+    const smallSize = 8;
+    const color = rgb(0.05, 0.05, 0.35); // dark navy for filled text
+
+    // ─── PAGE 1 ───
+    const p1 = pages[0];
+
+    // Client name (top=169.8 → two lines, first at 169.8, second at 182.4)
+    p1.drawText(clientName, { x: 108, y: y(169.8 + 10), font, size: fontSize, color });
+
+    // Client address (top=195.1)
+    p1.drawText(clientAddress, { x: 144, y: y(195.1 + 10), font, size: fontSize, color });
+
+    // Client city/state/zip (top=207.7)
+    p1.drawText(clientCityStateZip, { x: 180, y: y(207.7 + 10), font, size: fontSize, color });
+
+    // Client phone (top=220.4)
+    p1.drawText(clientPhone, { x: 144, y: y(220.4 + 10), font, size: fontSize, color });
+
+    // Client email (top=233.0)
+    p1.drawText(clientEmail, { x: 144, y: y(233.0 + 10), font, size: fontSize, color });
+
+    // Broker name (top=251.4)
+    p1.drawText(broker.name || "Fathom Realty", { x: 108, y: y(251.4 + 10), font, size: fontSize, color });
+
+    // Broker associate (second line top=264.1)
+    p1.drawText(`Associate: ${broker.associate || "Emily Russell"}`, { x: 108, y: y(264.1 + 10), font, size: smallSize, color });
+
+    // Broker address (top=276.7)
+    p1.drawText(broker.address || "Virtual Office — San Antonio, TX", { x: 144, y: y(276.7 + 10), font, size: fontSize, color });
+
+    // Broker city/state/zip (top=289.4) — same line as address for broker
+    // Broker phone (top=302.0)
+    p1.drawText(broker.phone || "(210) 912-0806", { x: 144, y: y(302.0 + 10), font, size: fontSize, color });
+
+    // Broker email (top=314.6)
+    p1.drawText(broker.email || "emily@streamwalkers.com", { x: 144, y: y(314.6 + 10), font, size: fontSize, color });
+
+    // Market Area — Section 3C (top=459.5, blank line at 472.1)
+    p1.drawText(marketArea, { x: 95, y: y(472.1 + 10), font, size: fontSize, color });
+
+    // Term — Section 4 (top=626.3)
+    // "begins on ____" at x=252, "ends at ... on ____" at x=468
+    p1.drawText(termStart, { x: 252, y: y(626.3 + 10), font, size: fontSize, color });
+    p1.drawText(termEnd, { x: 468, y: y(626.3 + 10), font, size: fontSize, color });
+
+    // Client name at top of page 2 header (top=34.4, x=288)
+    const p2 = pages[1];
+    p2.drawText(clientName, { x: 288, y: y(34.4 + 8), font, size: 8, color });
+
+    // ─── PAGE 2 — Broker fee (Section 7A, Purchases) ───
+    // "(1) (Purchases) ___% " → blank at x=180, top=220.4
+    p2.drawText(brokerFeePct, { x: 162, y: y(220.4 + 10), font: fontBold, size: fontSize, color });
+
+    // Fill client name on header of pages 3-6
+    for (let i = 2; i < pages.length; i++) {
+      pages[i].drawText(clientName, { x: 288, y: y(34.4 + 8), font, size: 8, color });
+    }
+
+    // ─── PAGE 6 — Signature block ───
+    const p6 = pages[5];
+
+    // Broker's Printed Name (top=235.0, x=36) — fill above
+    p6.drawText(broker.associate || "Emily Russell", { x: 36, y: y(224.6 + 10), font, size: fontSize, color });
+    // License No (x=238.6, top=235.0)
+    p6.drawText(broker.license || "791742", { x: 252, y: y(224.6 + 10), font, size: fontSize, color });
+
+    // Client's Printed Name (x=324, top=235.0)
+    p6.drawText(clientName, { x: 324, y: y(224.6 + 10), font, size: fontSize, color });
+
+    // Date next to broker signature (x=252, top=266.1)
+    const signedDate = new Date().toLocaleDateString("en-US");
+    p6.drawText(signedDate, { x: 270, y: y(266.1 + 10), font, size: smallSize, color });
+    // Date next to client signature (x=540, top=266.1)
+    p6.drawText(signedDate, { x: 548, y: y(266.1 + 10), font, size: smallSize, color });
+
+    // Embed client signature image
+    if (signatureData) {
+      try {
+        const sigBytes = base64ToUint8Array(signatureData);
+        const sigImage = await pdfDoc.embedPng(sigBytes);
+        const sigDims = sigImage.scale(0.3);
+        // Client signature area: x=324..540, top=255.6 (above the "Client's Signature" label at 266.1)
+        p6.drawImage(sigImage, {
+          x: 360,
+          y: y(266.1) - 5,
+          width: Math.min(sigDims.width, 160),
+          height: Math.min(sigDims.height, 30),
+        });
+      } catch (_e) {
+        // signature embed failed, continue without
+      }
+    }
+
+    // Broker's Associate printed name (top=307.4)
+    p6.drawText(`${broker.associate || "Emily Russell"}, License #${broker.license || "791742"}`, {
+      x: 36, y: y(297.0 + 10), font, size: smallSize, color,
+    });
+
+    // Second client if present
+    if (secondClient?.name) {
+      p6.drawText(secondClient.name, { x: 324, y: y(307.4 + 10), font, size: fontSize, color });
+
+      if (secondClient.signatureData) {
+        try {
+          const sig2Bytes = base64ToUint8Array(secondClient.signatureData);
+          const sig2Image = await pdfDoc.embedPng(sig2Bytes);
+          p6.drawImage(sig2Image, {
+            x: 360,
+            y: y(348.8) - 5,
+            width: 160,
+            height: 30,
+          });
+        } catch (_e) { /* */ }
+      }
+      p6.drawText(signedDate, { x: 548, y: y(348.8 + 10), font, size: smallSize, color });
+    }
+
+    const pdfBytes = await pdfDoc.save();
+
+    return new Response(pdfBytes, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="TXR-1501-Signed.pdf"`,
+      },
+    });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
+
+function base64ToUint8Array(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
+  const binaryStr = atob(base64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  return bytes;
+}

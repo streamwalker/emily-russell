@@ -23,7 +23,8 @@ const BuyerRepAgreement = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [printMode, setPrintMode] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   // Client fields
   const [clientName, setClientName] = useState("");
@@ -108,9 +109,42 @@ const BuyerRepAgreement = () => {
     setSaving(false);
   };
 
-  const handlePrint = () => {
-    setPrintMode(true);
-    setTimeout(() => { window.print(); setPrintMode(false); }, 300);
+  const handleDownloadPdf = async () => {
+    if (pdfBlobUrl) {
+      const a = document.createElement("a");
+      a.href = pdfBlobUrl;
+      a.download = "TXR-1501-Signed.pdf";
+      a.click();
+      return;
+    }
+    setGeneratingPdf(true);
+    try {
+      const formPayload = {
+        clientName, clientAddress, clientCityStateZip, clientPhone, clientEmail,
+        marketArea, termStart: termStart ? format(termStart, "yyyy-MM-dd") : "",
+        termEnd: termEnd ? format(termEnd, "yyyy-MM-dd") : "",
+        brokerFeePct, signatureData, broker: BROKER,
+        secondClient: hasSecondClient ? { name: client2Name, signatureData: signature2Data, signatureType: signature2Type } : null,
+      };
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const resp = await fetch(`https://${projectId}.supabase.co/functions/v1/generate-agreement-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}` },
+        body: JSON.stringify(formPayload),
+      });
+      if (!resp.ok) throw new Error("PDF generation failed");
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfBlobUrl(url);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "TXR-1501-Signed.pdf";
+      a.click();
+    } catch {
+      toast.error("Failed to generate PDF. Please try again.");
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   const inputClass = "w-full px-3 py-2 border border-border bg-white text-foreground font-body text-sm focus:outline-none focus:border-primary";
@@ -120,7 +154,7 @@ const BuyerRepAgreement = () => {
   const legalClass = "text-xs text-muted-foreground leading-relaxed";
 
   return (
-    <div className={cn("font-body min-h-screen bg-background text-foreground", printMode && "print-mode")}>
+    <div className="font-body min-h-screen bg-background text-foreground">
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)" }} className="text-white px-6 py-6 print:hidden">
         <div className="max-w-[800px] mx-auto flex items-center justify-between">
@@ -134,8 +168,8 @@ const BuyerRepAgreement = () => {
             </div>
           </div>
           {saved && (
-            <button onClick={handlePrint} className="flex items-center gap-2 text-[11px] uppercase tracking-[2px] border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors bg-transparent cursor-pointer">
-              <Download className="w-3.5 h-3.5" /> Print / Save PDF
+            <button onClick={handleDownloadPdf} disabled={generatingPdf} className="flex items-center gap-2 text-[11px] uppercase tracking-[2px] border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors bg-transparent cursor-pointer disabled:opacity-50">
+              <Download className="w-3.5 h-3.5" /> {generatingPdf ? "Generating…" : "Download PDF"}
             </button>
           )}
         </div>
@@ -148,10 +182,10 @@ const BuyerRepAgreement = () => {
               <Check className="w-8 h-8" />
             </div>
             <h2 className="font-display text-2xl font-semibold mb-2">Agreement Signed</h2>
-            <p className="text-sm text-muted-foreground mb-6">Your Buyer Representation Agreement has been saved. You can print or save a PDF copy for your records.</p>
+            <p className="text-sm text-muted-foreground mb-6">Your Buyer Representation Agreement has been saved. Download your signed PDF copy for your records.</p>
             <div className="flex items-center justify-center gap-3">
-              <button onClick={handlePrint} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0">
-                <Download className="w-3.5 h-3.5" /> Print / Save PDF
+              <button onClick={handleDownloadPdf} disabled={generatingPdf} className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0 disabled:opacity-50">
+                <Download className="w-3.5 h-3.5" /> {generatingPdf ? "Generating…" : "Download PDF"}
               </button>
               <Link to="/portal/dashboard" className="px-6 py-2.5 border border-border text-foreground font-body text-xs uppercase tracking-wider hover:border-primary transition-colors no-underline">
                 Back to Dashboard
@@ -397,15 +431,6 @@ const BuyerRepAgreement = () => {
         )}
       </div>
 
-      {/* Print styles */}
-      <style>{`
-        @media print {
-          .print\\:hidden { display: none !important; }
-          .print\\:block { display: block !important; }
-          body { font-size: 11px; }
-          * { border-color: #ccc !important; }
-        }
-      `}</style>
     </div>
   );
 };
