@@ -17,6 +17,7 @@ interface Property {
   plan: string;
   type: string;
   notes: string;
+  sourceUrl?: string;
   rentEst?: string;
   rentNote?: string;
   yieldEst?: string;

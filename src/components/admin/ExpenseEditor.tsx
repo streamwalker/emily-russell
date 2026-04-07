@@ -17,6 +17,7 @@ interface Property {
   city?: string;
   price?: number;
   rentEst?: string;
+  sourceUrl?: string;
   expenses?: Expenses;
   [key: string]: unknown;
 }
@@ -83,6 +84,14 @@ export default function ExpenseEditor({ dossierData, onSave, onCancel, saving }:
       } else {
         prop.expenses[field] = value === "" ? undefined : Number(value);
       }
+      return next;
+    });
+  };
+
+  const updateSourceUrl = (tabKey: string, propIndex: number, value: string) => {
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      next.properties[tabKey][propIndex].sourceUrl = value || undefined;
       return next;
     });
   };
@@ -160,7 +169,20 @@ export default function ExpenseEditor({ dossierData, onSave, onCancel, saving }:
                                   placeholder="0"
                                   className="er-input !py-1.5 !text-sm w-full"
                                 />
-                              </div>
+                        </div>
+
+                        <div className="mb-3">
+                          <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-body block mb-1">
+                            Source Listing URL
+                          </label>
+                          <input
+                            type="url"
+                            value={prop.sourceUrl || ""}
+                            onChange={e => updateSourceUrl(tab.key, i, e.target.value)}
+                            placeholder="https://..."
+                            className="er-input !py-1.5 !text-sm w-full"
+                          />
+                        </div>
                               {key === "other" && (
                                 <input
                                   type="text"
