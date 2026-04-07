@@ -1235,31 +1235,66 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-4">
               {commentDetails.map((c, i) => (
-                <div
-                  key={i}
-                  className={`border border-border rounded p-3 ${c.dossierId ? "cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors" : ""}`}
-                  onClick={() => {
-                    if (c.dossierId) {
-                      setCommentDialogUserId(null);
-                      setPropertyEditId(c.dossierId);
-                      setExpenseEditId(null);
-                      setEditingId(null);
-                    }
-                  }}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="font-body text-sm font-semibold text-foreground">{c.address}</div>
-                      <div className="font-body text-[10px] uppercase tracking-[1.5px] text-muted-foreground">{c.builder}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap">
-                        {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                <div key={i} className="border border-border rounded p-3">
+                  <div
+                    className={`${c.dossierId ? "cursor-pointer hover:text-primary transition-colors" : ""}`}
+                    onClick={() => {
+                      if (c.dossierId) {
+                        setCommentDialogUserId(null);
+                        setPropertyEditId(c.dossierId);
+                        setExpenseEditId(null);
+                        setEditingId(null);
+                      }
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-body text-sm font-semibold text-foreground">{c.address}</div>
+                        <div className="font-body text-[10px] uppercase tracking-[1.5px] text-muted-foreground">{c.builder}</div>
                       </div>
-                      {c.dossierId && <span className="text-muted-foreground text-xs">→</span>}
+                      <div className="flex items-center gap-2">
+                        <div className="font-body text-[10px] text-muted-foreground whitespace-nowrap">
+                          {c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : ""}
+                        </div>
+                        {c.dossierId && <span className="text-muted-foreground text-xs">→</span>}
+                      </div>
                     </div>
+                    <div className="font-body text-sm text-foreground bg-muted/30 rounded p-2 italic">"{c.comment}"</div>
                   </div>
-                  <div className="font-body text-sm text-foreground bg-muted/30 rounded p-2 italic">"{c.comment}"</div>
+
+                  {/* Existing replies */}
+                  {c.replies.length > 0 && (
+                    <div className="mt-2 ml-4 space-y-1.5 border-l-2 border-primary/20 pl-3">
+                      {c.replies.map(r => (
+                        <div key={r.id} className="text-xs">
+                          <span className="font-semibold text-primary">Admin</span>
+                          <span className="text-muted-foreground ml-2">
+                            {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          </span>
+                          <div className="text-foreground mt-0.5">{r.reply_text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply input */}
+                  <div className="mt-2 flex gap-2" onClick={e => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      placeholder="Reply to this comment…"
+                      className="flex-1 font-body text-xs border border-border rounded px-2 py-1.5 bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      value={replyTexts[c.interactionId] || ""}
+                      onChange={e => setReplyTexts(prev => ({ ...prev, [c.interactionId]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === "Enter") submitReply(c.interactionId); }}
+                    />
+                    <button
+                      onClick={() => submitReply(c.interactionId)}
+                      disabled={!replyTexts[c.interactionId]?.trim() || replyingSaving === c.interactionId}
+                      className="flex items-center gap-1 font-body text-[10px] uppercase tracking-[1.5px] bg-primary text-primary-foreground px-3 py-1.5 rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {replyingSaving === c.interactionId ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
