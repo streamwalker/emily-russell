@@ -220,6 +220,7 @@ export default function Index() {
                 </div>
               )}
             </div>
+            <Link to={PORTAL_LINK} className="nav-link no-underline">Client Portal</Link>
             <a href="tel:2109120806" className="btn-er-primary !py-2.5 !px-5 no-underline">(210) 912-0806</a>
           </div>
           <button className="md:hidden cursor-pointer bg-transparent border-none p-2" onClick={() => setMenuOpen(!menuOpen)}>
