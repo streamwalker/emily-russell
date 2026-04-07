@@ -181,6 +181,81 @@ export default function AdminDashboard() {
     fetchData();
   };
 
+  const saveAsTemplate = async (dossierData: Record<string, unknown>, defaultName: string) => {
+    const name = prompt("Template name:", defaultName);
+    if (!name) return;
+    const desc = prompt("Description (optional):", "") || null;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error: err } = await supabase.from("dossier_templates").insert({
+      name,
+      description: desc,
+      dossier_data: dossierData as any,
+      created_by: user.id,
+    });
+    if (err) { setError(err.message); return; }
+    fetchData();
+  };
+
+  const deleteTemplate = async (id: string) => {
+    if (!confirm("Delete this template? This cannot be undone.")) return;
+    await supabase.from("dossier_templates").delete().eq("id", id);
+    fetchData();
+  };
+
+  const saveTemplate = async (id: string, updatedData: any) => {
+    setSaving(true);
+    const { error: err } = await supabase.from("dossier_templates").update({ dossier_data: updatedData }).eq("id", id);
+    if (err) { setError(err.message); }
+    else { setTemplateEditId(null); fetchData(); }
+    setSaving(false);
+  };
+
+  const createTemplate = async (dossierDataOverride?: any) => {
+    setSaving(true);
+    setError("");
+    try {
+      if (!newTemplateName.trim()) throw new Error("Template name is required.");
+      const finalData = dossierDataOverride || (newTemplateUseRawJson ? JSON.parse(newTemplateJson) : newTemplateData);
+      if (!finalData) throw new Error("No template data. Extract properties or enter JSON first.");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+      const { error: err } = await supabase.from("dossier_templates").insert({
+        name: newTemplateName,
+        description: newTemplateDesc || null,
+        dossier_data: finalData,
+        created_by: user.id,
+      });
+      if (err) throw err;
+      setShowNewTemplate(false);
+      setNewTemplateName("");
+      setNewTemplateDesc("");
+      setNewTemplateData(null);
+      setNewTemplateRawText("");
+      setNewTemplateJson("{}");
+      fetchData();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to create template");
+    }
+    setSaving(false);
+  };
+
+  const extractTemplateProperties = async () => {
+    setTemplateExtracting(true);
+    setError("");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
+        body: { rawText: newTemplateRawText },
+      });
+      if (fnErr) throw new Error(fnErr.message || "Extraction failed");
+      if (data?.error) throw new Error(data.error);
+      setNewTemplateData(data.dossierData);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to extract properties");
+    }
+    setTemplateExtracting(false);
+  };
+
   const extractProperties = async () => {
     setExtracting(true);
     setError("");
