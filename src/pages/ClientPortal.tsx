@@ -518,6 +518,23 @@ function PropertyRow({
             </div>
           </div>
 
+          {/* Admin Replies */}
+          {replies && replies.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {replies.map(r => (
+                <div key={r.id} className="ml-4 p-2.5 rounded border border-primary/20 bg-primary/5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] font-bold text-primary font-body">Emily replied</span>
+                    <span className="text-[9px] text-muted-foreground font-body">
+                      · {format(new Date(r.created_at), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                  </div>
+                  <div className="text-[12px] text-foreground font-body leading-relaxed">{r.reply_text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {prop.price && (
             <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} />
           )}
