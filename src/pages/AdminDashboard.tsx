@@ -690,7 +690,162 @@ export default function AdminDashboard() {
             )}
           </TabsContent>
 
-          {/* ═══════════ TAB 2: SITE ANALYTICS ═══════════ */}
+          {/* ═══════════ TAB 2: TEMPLATES ═══════════ */}
+          <TabsContent value="templates">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="font-display text-xl">Template Library ({templates.length})</h2>
+              <button onClick={() => { setShowNewTemplate(true); setError(""); }} className="btn-er-primary !py-2.5 !px-5 !text-[10px]">
+                + New Template
+              </button>
+            </div>
+
+            {error && <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>}
+
+            {/* New Template Form */}
+            {showNewTemplate && (
+              <div className="bg-white p-6 border border-border mb-6 shadow-sm">
+                <h3 className="font-display text-lg mb-4">Create New Template</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="er-label block mb-1">Template Name *</label>
+                    <input value={newTemplateName} onChange={e => setNewTemplateName(e.target.value)} className="er-input" placeholder="e.g. Georgetown New Construction" />
+                  </div>
+                  <div>
+                    <label className="er-label block mb-1">Description</label>
+                    <input value={newTemplateDesc} onChange={e => setNewTemplateDesc(e.target.value)} className="er-input" placeholder="Optional description" />
+                  </div>
+                </div>
+
+                {/* Smart Input / Raw JSON toggle */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <label className="er-label flex items-center gap-2 cursor-pointer">
+                      <Switch checked={newTemplateUseRawJson} onCheckedChange={setNewTemplateUseRawJson} />
+                      <span className="text-xs">{newTemplateUseRawJson ? "Raw JSON mode" : "Smart AI extraction"}</span>
+                    </label>
+                  </div>
+
+                  {newTemplateUseRawJson ? (
+                    <div>
+                      <label className="er-label block mb-1">Template Data (JSON)</label>
+                      <textarea value={newTemplateJson} onChange={e => setNewTemplateJson(e.target.value)} rows={12} className="er-input font-mono text-xs" style={{ resize: "vertical" }} />
+                    </div>
+                  ) : newTemplateData ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          <span className="font-body text-sm font-semibold text-foreground">Extracted Properties — Review & Edit</span>
+                        </div>
+                        <button onClick={() => setNewTemplateData(null)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-muted-foreground px-3 py-1.5 hover:border-primary transition-colors">
+                          ← Back to Input
+                        </button>
+                      </div>
+                      <PropertyEditor
+                        dossierData={newTemplateData}
+                        saving={saving}
+                        onCancel={() => setNewTemplateData(null)}
+                        onSave={(updatedData) => createTemplate(updatedData)}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="er-label block mb-1 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-primary" />
+                        Paste property info (addresses, MLS data, listing descriptions, URLs)
+                      </label>
+                      <textarea
+                        value={newTemplateRawText}
+                        onChange={e => setNewTemplateRawText(e.target.value)}
+                        rows={12}
+                        placeholder="Paste listing info here…"
+                        className="er-input text-sm"
+                        style={{ resize: "vertical" }}
+                      />
+                      <button
+                        onClick={extractTemplateProperties}
+                        disabled={templateExtracting || newTemplateRawText.trim().length < 10}
+                        className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
+                      >
+                        {templateExtracting ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Extracting…</>
+                        ) : (
+                          <><Sparkles className="w-3.5 h-3.5" /> Extract Properties</>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {!newTemplateData && (
+                  <div className="flex gap-3">
+                    {newTemplateUseRawJson && (
+                      <button onClick={() => createTemplate()} disabled={saving || !newTemplateName.trim()} className="btn-er-primary !py-2.5 !px-6 !text-[10px]">
+                        {saving ? "Creating…" : "Create Template"}
+                      </button>
+                    )}
+                    <button onClick={() => { setShowNewTemplate(false); setNewTemplateData(null); }} className="btn-outline-light !text-charcoal !border-border !py-2.5 !px-6 !text-[10px]">Cancel</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Template List */}
+            {templates.length === 0 && !showNewTemplate ? (
+              <div className="text-center py-12 text-muted-foreground">No templates yet. Create one above or save an existing dossier as a template.</div>
+            ) : (
+              <div className="space-y-3">
+                {templates.map(t => {
+                  const data = t.dossier_data as any;
+                  const tabCount = data?.tabs ? Object.keys(data.tabs).length : 0;
+                  const propCount = data?.tabs ? Object.values(data.tabs).reduce((sum: number, tab: any) => sum + (Array.isArray(tab) ? tab.length : 0), 0) : 0;
+
+                  if (templateEditId === t.id) {
+                    return (
+                      <div key={t.id} className="bg-white border border-border p-5 shadow-sm">
+                        <button
+                          onClick={() => setTemplateEditId(null)}
+                          className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-[2px] text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none mb-4 transition-colors"
+                        >
+                          <ArrowLeft className="w-4 h-4" /> Back to Templates
+                        </button>
+                        <PropertyEditor
+                          dossierData={data}
+                          saving={saving}
+                          onCancel={() => setTemplateEditId(null)}
+                          onSave={(updatedData) => saveTemplate(t.id, updatedData)}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={t.id} className="bg-white border border-border p-5 shadow-sm">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-display text-base font-semibold">{t.name}</div>
+                          {t.description && <div className="font-body text-sm text-muted-foreground mt-1">{t.description}</div>}
+                          <div className="font-body text-xs text-muted-foreground mt-1 opacity-60">
+                            {tabCount} tab{tabCount !== 1 ? "s" : ""} · {propCount} propert{propCount !== 1 ? "ies" : "y"} · Updated: {new Date(t.updated_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setTemplateEditId(t.id); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
+                            <Pencil className="w-3 h-3 inline mr-1" /> Edit
+                          </button>
+                          <button onClick={() => deleteTemplate(t.id)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-destructive/30 text-destructive px-3 py-1.5 hover:bg-destructive/5 transition-colors">
+                            <Trash2 className="w-3 h-3 inline mr-1" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ═══════════ TAB 3: SITE ANALYTICS ═══════════ */}
           <TabsContent value="analytics">
             {analyticsLoading ? (
               <div className="text-center py-12 text-muted-foreground">Loading analytics…</div>
