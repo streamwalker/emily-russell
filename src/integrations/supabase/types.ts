@@ -118,6 +118,66 @@ export type Database = {
         }
         Relationships: []
       }
+      signed_agreements: {
+        Row: {
+          agreement_type: string
+          broker_fee_pct: number | null
+          client_address: string | null
+          client_city_state_zip: string | null
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string | null
+          form_data: Json | null
+          id: string
+          market_area: string | null
+          signature_data: string | null
+          signature_type: string | null
+          signed_at: string
+          term_end: string | null
+          term_start: string | null
+          user_id: string
+        }
+        Insert: {
+          agreement_type?: string
+          broker_fee_pct?: number | null
+          client_address?: string | null
+          client_city_state_zip?: string | null
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string | null
+          form_data?: Json | null
+          id?: string
+          market_area?: string | null
+          signature_data?: string | null
+          signature_type?: string | null
+          signed_at?: string
+          term_end?: string | null
+          term_start?: string | null
+          user_id: string
+        }
+        Update: {
+          agreement_type?: string
+          broker_fee_pct?: number | null
+          client_address?: string | null
+          client_city_state_zip?: string | null
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string | null
+          form_data?: Json | null
+          id?: string
+          market_area?: string | null
+          signature_data?: string | null
+          signature_type?: string | null
+          signed_at?: string
+          term_end?: string | null
+          term_start?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

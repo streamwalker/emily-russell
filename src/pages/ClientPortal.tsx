@@ -502,15 +502,8 @@ export default function ClientPortal() {
   }
 
   if (!dossier) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="text-center">
-          <h2 className="font-display text-2xl text-foreground mb-3">No Dossier Available</h2>
-          <p className="font-body text-sm text-muted-foreground mb-6">Your personalized dossier is being prepared. Please check back soon.</p>
-          <button onClick={handleLogout} className="btn-er-primary">Sign Out</button>
-        </div>
-      </div>
-    );
+    navigate("/portal/dashboard");
+    return null;
   }
 
   const currentTab = allTabs.find(t => t.key === activeTab) || allTabs[0];
@@ -548,6 +541,9 @@ export default function ClientPortal() {
                 <div>{dossier.date || "April 6, 2026"}</div>
                 <div>{dossier.phone || "(210) 912-0806"}</div>
               </div>
+              <Link to="/portal/dashboard" className="font-body text-[11px] uppercase tracking-[2px] no-underline bg-transparent border border-white/30 text-white/70 px-4 py-2 hover:text-white hover:border-white/60 transition-colors">
+                Dashboard
+              </Link>
               {isAdmin && (
                 <Link to="/portal/admin" className="font-body text-[11px] uppercase tracking-[2px] no-underline bg-transparent border border-primary/50 text-primary px-4 py-2 hover:border-primary hover:text-white transition-colors">
                   Admin

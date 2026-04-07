@@ -13,6 +13,8 @@ import ClientPortal from "./pages/ClientPortal.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import ChangeEmail from "./pages/ChangeEmail.tsx";
+import PortalDashboard from "./pages/PortalDashboard.tsx";
+import BuyerRepAgreement from "./pages/BuyerRepAgreement.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
           <Route path="/portal/reset-password" element={<ResetPassword />} />
           <Route path="/portal/change-email" element={<ProtectedRoute><ChangeEmail /></ProtectedRoute>} />
           <Route path="/portal/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/portal/dashboard" element={<ProtectedRoute><PortalDashboard /></ProtectedRoute>} />
+          <Route path="/portal/agreement" element={<ProtectedRoute><BuyerRepAgreement /></ProtectedRoute>} />
           <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
