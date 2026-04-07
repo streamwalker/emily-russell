@@ -250,7 +250,20 @@ function PropertyRow({
         <div className="flex items-center gap-2">
           {rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Grade badge */}
+          {interaction?.grade && (
+            <span className={cn(
+              "text-[10px] font-bold px-1.5 py-0.5 rounded font-body",
+              interaction.grade.startsWith("A") ? "bg-emerald-500/15 text-emerald-600" :
+              interaction.grade.startsWith("B") ? "bg-blue-500/15 text-blue-600" :
+              interaction.grade.startsWith("C") ? "bg-yellow-500/15 text-yellow-700" :
+              interaction.grade.startsWith("D") ? "bg-orange-500/15 text-orange-600" :
+              "bg-red-500/15 text-red-600"
+            )}>
+              {interaction.grade}
+            </span>
+          )}
           {/* Favorite button */}
           <button
             onClick={(e) => { e.stopPropagation(); onInteractionChange?.(prop.id, "is_favorite", !isFav); }}
@@ -855,6 +868,7 @@ export default function ClientPortal() {
               onSortChange={setSort}
               cities={cities}
               builders={builders}
+              favCount={favCount}
             />
           </div>
           <Tooltip>
