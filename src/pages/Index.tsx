@@ -253,6 +253,7 @@ export default function Index() {
                 ))}
               </div>
             )}
+            <Link to={PORTAL_LINK} className="nav-link no-underline" onClick={() => setMenuOpen(false)}>Client Portal</Link>
             <a href="tel:2109120806" className="text-gold-light font-body text-sm no-underline">(210) 912-0806</a>
           </div>
         )}
