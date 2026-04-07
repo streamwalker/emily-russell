@@ -304,14 +304,6 @@ export default function ClientPortal() {
   }
 
   const currentTab = allTabs.find(t => t.key === activeTab) || allTabs[0];
-  const isRankTab = activeTab.startsWith("rank-");
-
-  // For regular builder tabs: apply filters + sort
-  const builderProperties = useMemo(() => {
-    if (isRankTab) return [];
-    const raw = dossier.properties[activeTab] || [];
-    return applySort(applyFilters(raw, filters), sort);
-  }, [dossier, activeTab, filters, sort, isRankTab]);
 
   const totalProps = Object.values(dossier.properties).flat().length;
 
