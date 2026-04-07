@@ -410,25 +410,36 @@ export default function AdminDashboard() {
                 </div>
                 {/* Template selector */}
                 <div className="mb-4">
-                  <label className="er-label block mb-1">Load Template from Existing Dossier</label>
+                  <label className="er-label block mb-1">Load Template</label>
                   <select
                     value=""
                     onChange={e => {
-                      const templateDossier = dossiers.find(d => d.id === e.target.value);
-                      if (templateDossier) {
-                        const clonedData = JSON.parse(JSON.stringify(templateDossier.dossier_data));
-                        setExtractedData(clonedData);
-                        setUseRawJson(false);
+                      const val = e.target.value;
+                      if (val.startsWith("tpl:")) {
+                        const tpl = templates.find(t => t.id === val.slice(4));
+                        if (tpl) { setExtractedData(JSON.parse(JSON.stringify(tpl.dossier_data))); setUseRawJson(false); }
+                      } else {
+                        const templateDossier = dossiers.find(d => d.id === val);
+                        if (templateDossier) { setExtractedData(JSON.parse(JSON.stringify(templateDossier.dossier_data))); setUseRawJson(false); }
                       }
                     }}
                     className="er-input"
                   >
                     <option value="">— None (start fresh) —</option>
-                    {dossiers.map(d => (
-                      <option key={d.id} value={d.id}>
-                        {d.title} — {getClientEmail(d.user_id)}
-                      </option>
-                    ))}
+                    {templates.length > 0 && (
+                      <optgroup label="Saved Templates">
+                        {templates.map(t => (
+                          <option key={`tpl:${t.id}`} value={`tpl:${t.id}`}>{t.name}{t.description ? ` — ${t.description}` : ""}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <optgroup label="From Existing Dossier">
+                      {dossiers.map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.title} — {getClientEmail(d.user_id)}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
                 {/* Smart Input / Raw JSON toggle */}
