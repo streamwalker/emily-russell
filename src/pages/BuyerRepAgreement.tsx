@@ -551,13 +551,17 @@ const BuyerRepAgreement = () => {
               <Link to="/portal/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors no-underline">
                 ← Back to Dashboard
               </Link>
-              <button
-                onClick={handleSubmit}
-                disabled={saving}
-                className="px-8 py-3 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0 disabled:opacity-50"
-              >
-                {saving ? "Saving…" : "Sign Agreement"}
-              </button>
+              {isAdmin ? (
+                <div className="text-xs text-muted-foreground italic">Admin mode — use "Save End Date & Fee" above</div>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={saving || (!termEnd && configLoaded)}
+                  className="px-8 py-3 bg-primary text-primary-foreground font-body text-xs uppercase tracking-wider hover:opacity-90 transition-opacity cursor-pointer border-0 disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Sign Agreement"}
+                </button>
+              )}
             </div>
           </>
         )}
