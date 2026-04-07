@@ -167,20 +167,39 @@ export default function AdminDashboard() {
     fetchData();
   };
 
-  const createDossier = async () => {
+  const extractProperties = async () => {
+    setExtracting(true);
+    setError("");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
+        body: { rawText: newRawText },
+      });
+      if (fnErr) throw new Error(fnErr.message || "Extraction failed");
+      if (data?.error) throw new Error(data.error);
+      setExtractedData(data.dossierData);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to extract properties");
+    }
+    setExtracting(false);
+  };
+
+  const createDossier = async (dossierDataOverride?: any) => {
     setSaving(true);
     setError("");
     try {
-      const parsed = JSON.parse(newJson);
+      const finalData = dossierDataOverride || (useRawJson ? JSON.parse(newJson) : extractedData);
+      if (!finalData) throw new Error("No dossier data. Extract properties or enter JSON first.");
       const { error: err } = await supabase.from("client_dossiers").insert({
         user_id: newUserId,
         title: newTitle,
         prepared_date: newDate,
-        dossier_data: parsed,
+        dossier_data: finalData,
       });
       if (err) throw err;
       setShowNew(false);
       setNewJson("{}");
+      setNewRawText("");
+      setExtractedData(null);
       fetchData();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create dossier");
