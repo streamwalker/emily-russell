@@ -198,11 +198,16 @@ function PropertyRow({
 }) {
   return (
     <div className="bg-card rounded border border-border mb-3.5 overflow-hidden shadow-sm">
-      {rankInfo && (
-        <div className="px-5 pt-3 pb-1">
-          <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />
-        </div>
-      )}
+      {/* Compare checkbox + rank badge header */}
+      <div className="flex items-center justify-between px-5 pt-3 pb-1">
+        <div>{rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}</div>
+        {onCompareToggle && (
+          <label className="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground font-body" onClick={e => e.stopPropagation()}>
+            <Checkbox checked={isCompareSelected} onCheckedChange={() => onCompareToggle()} className="h-3.5 w-3.5" />
+            Compare
+          </label>
+        )}
+      </div>
       <div
         onClick={onToggle}
         className="flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
