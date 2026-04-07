@@ -6,7 +6,7 @@ import ExpenseEditor from "@/components/admin/ExpenseEditor";
 import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2 } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 
 interface DossierRow {
@@ -435,37 +435,59 @@ export default function AdminDashboard() {
                   return (
                     <div key={d.id} className="bg-white border border-border p-5 shadow-sm">
                       {propertyEditId === d.id ? (
-                        <PropertyEditor
-                          dossierData={d.dossier_data as any}
-                          saving={saving}
-                          onCancel={() => setPropertyEditId(null)}
-                          onSave={async (updatedData) => {
-                            setSaving(true); setError("");
-                            try {
-                              const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
-                              if (err) throw err;
-                              setPropertyEditId(null); fetchData();
-                            } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save properties"); }
-                            setSaving(false);
-                          }}
-                        />
+                        <div>
+                          <button
+                            onClick={() => setPropertyEditId(null)}
+                            className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-[2px] text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none mb-4 transition-colors"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Back to Dossiers
+                          </button>
+                          <PropertyEditor
+                            dossierData={d.dossier_data as any}
+                            saving={saving}
+                            onCancel={() => setPropertyEditId(null)}
+                            onSave={async (updatedData) => {
+                              setSaving(true); setError("");
+                              try {
+                                const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
+                                if (err) throw err;
+                                setPropertyEditId(null); fetchData();
+                              } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save properties"); }
+                              setSaving(false);
+                            }}
+                          />
+                        </div>
                       ) : expenseEditId === d.id ? (
-                        <ExpenseEditor
-                          dossierData={d.dossier_data as any}
-                          saving={saving}
-                          onCancel={() => setExpenseEditId(null)}
-                          onSave={async (updatedData) => {
-                            setSaving(true); setError("");
-                            try {
-                              const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
-                              if (err) throw err;
-                              setExpenseEditId(null); fetchData();
-                            } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save expenses"); }
-                            setSaving(false);
-                          }}
-                        />
+                        <div>
+                          <button
+                            onClick={() => setExpenseEditId(null)}
+                            className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-[2px] text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none mb-4 transition-colors"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Back to Dossiers
+                          </button>
+                          <ExpenseEditor
+                            dossierData={d.dossier_data as any}
+                            saving={saving}
+                            onCancel={() => setExpenseEditId(null)}
+                            onSave={async (updatedData) => {
+                              setSaving(true); setError("");
+                              try {
+                                const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
+                                if (err) throw err;
+                                setExpenseEditId(null); fetchData();
+                              } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save expenses"); }
+                              setSaving(false);
+                            }}
+                          />
+                        </div>
                       ) : editingId === d.id ? (
                         <div>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="flex items-center gap-1.5 font-body text-[11px] uppercase tracking-[2px] text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none mb-4 transition-colors"
+                          >
+                            <ArrowLeft className="w-4 h-4" /> Back to Dossiers
+                          </button>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
                               <label className="er-label block mb-1">Client</label>
