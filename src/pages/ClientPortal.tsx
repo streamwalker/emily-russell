@@ -327,12 +327,22 @@ export default function ClientPortal() {
   }), [incomeRanked, filters]);
 
   const isRankTab = activeTab.startsWith("rank-");
+  const isAllHomes = activeTab === "all-homes";
+
+  const allHomesProperties = useMemo(() => {
+    if (!dossier || !isAllHomes) return [];
+    const all = Object.values(dossier.properties).flat().map(p => ({
+      ...p,
+      _builderTag: dossier.tabs.find(t => (dossier.properties[t.key] || []).some(pp => pp.id === p.id))?.label || "",
+    }));
+    return applySort(applyFilters(all, filters), sort);
+  }, [dossier, isAllHomes, filters, sort]);
 
   const builderProperties = useMemo(() => {
-    if (!dossier || isRankTab) return [];
+    if (!dossier || isRankTab || isAllHomes) return [];
     const raw = dossier.properties[activeTab] || [];
     return applySort(applyFilters(raw, filters), sort);
-  }, [dossier, activeTab, filters, sort, isRankTab]);
+  }, [dossier, activeTab, filters, sort, isRankTab, isAllHomes]);
 
   if (loading) {
     return (
