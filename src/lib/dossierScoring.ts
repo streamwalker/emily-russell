@@ -160,6 +160,7 @@ export interface FilterState {
   minBeds: number;
   city: string;
   builder: string;
+  favoritesOnly: boolean;
 }
 
 export type SortField = "price-asc" | "price-desc" | "beds" | "sqft" | "yield" | "status";
@@ -170,6 +171,7 @@ export const defaultFilters: FilterState = {
   minBeds: 0,
   city: "",
   builder: "",
+  favoritesOnly: false,
 };
 
 export function applyFilters<T extends Property>(properties: T[], filters: FilterState): T[] {
