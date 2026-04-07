@@ -1,48 +1,53 @@
 
 
-## Enhance PDF Output + Add Initials Input Field
+## Fix PDF Text Alignment on TRX-1501 Form
 
-### Changes
+### Issues identified from the sample output
 
-**1. Increase PDF font sizes by 150% (Edge Function)**
+**Page 1:**
+- "Associate: Emily Russell" has a redundant "Associate:" prefix — the form already implies this field
 
-In `supabase/functions/generate-agreement-pdf/index.ts`, change:
-- `fontSize` from `10` to `15`
-- `smallSize` from `8` to `12`
-- Page header font size from `8` to `12`
+**Pages 2-6 header:**
+- Client name drawn at x=288, but the "between" label text ends at x=249. Name should start at x=252, causing it to appear too far right on the header line
 
-**2. Add client initials input fields (Frontend)**
+**Pages 1-5 footer initials:**
+- Initials ("ER", "P.R.") appear BELOW the initials line instead of ON the blank spaces. Two issues:
+  - y is wrong: currently `top=757` but the initials line is at `top=736.3` — initials render 20pt too low
+  - x positions are wrong: "ER" at x=310 lands inside the printed text; should be at ~x=382 (the blank after "Broker/Associate"). Client initials at x=450 should be ~x=445, client2 at x=475
 
-In `src/pages/BuyerRepAgreement.tsx`:
-- Add `clientInitials` state (and `client2Initials` for co-client)
-- Add an "Initials" input field in the Signature Block section, styled like a small text input (2-3 characters wide), with label "Your Initials"
-- Add a matching initials field for the second client when `hasSecondClient` is true
-- Pass `clientInitials` and `secondClient.initials` in the form payload to the edge function and store in `form_data`
+**Page 6 signature block — all fields overlap their labels:**
+- Printed names drawn at `top≈234.6` which lands right ON the "Broker's Printed Name" / "Client's Printed Name" labels at `top=235`. Should be ~13pt higher (`top≈222`)
+- Dates drawn at x=270 and x=548 collide with the "Date" label text (which starts at x=252 / x=540 and ends at x=273 / x=561), producing "Date4/7/2026". Dates should be positioned ABOVE the label line (`top≈254`) at x=252 and x=540
+- Signature image too small (height=30) and positioned too low
+- Broker associate printed name overlapping its label — needs to shift up to `top≈294`
+- Second client name and date have the same overlap issues
 
-**3. Stamp initials on pages 1-5 footer (Edge Function)**
+### Changes to `supabase/functions/generate-agreement-pdf/index.ts`
 
-In the edge function:
-- Accept `clientInitials` and `secondClient.initials` from the request body
-- On pages 1-5 (indices 0-4), draw the initials in the footer area where the form says "Initialed for Identification by Broker/Associate _______ and Client _______, _______"
-- Based on the uploaded screenshot, the initials line is near the bottom of each page. Draw client initials after "and Client" and co-client initials after the comma, using the larger font size
+**Page 1 — Associate line (line 84):**
+- Remove the `Associate: ` prefix, just draw the name
 
-### Technical Details
+**Pages 2-6 header (lines 106, 114):**
+- Change x from `288` to `252`
 
-**Footer initials coordinates** (from the screenshot showing "Page 3 of 6"):
-- The initials line appears at approximately `top ≈ 745` (near bottom of page)
-- "Broker/Associate" initials at approximately `x ≈ 310`
-- "Client" initials at approximately `x ≈ 450`
-- Second client initials at approximately `x ≈ 510`
-- Broker initials will be auto-filled as "ER" (Emily Russell)
+**Footer initials loop (lines 119-131):**
+- Change y from `y(745 + 12)` to `y(736)` (on the initials line)
+- Change broker initials x from `310` to `382`
+- Change client initials x from `450` to `445`
+- Change client2 initials x from `510` to `475`
 
-**Font sizes after 150% increase:**
-- Main text: 15pt (was 10pt)
-- Small text: 12pt (was 8pt)
+**Page 6 signature block (lines 133-190):**
+- Printed names: change top from `224.6 + 10` (~234.6) to `222` for all three (broker name, license, client name)
+- Dates: change top from `266.1 + 10` (~276) to `254`, and x positions to `252` (broker) and `540` (client)
+- Signature image: increase height to `40`, adjust y to `y(260)`
+- Broker associate name: change top from `297.0 + 10` to `294`
+- Second client name: change top from `307.4 + 10` to `294`
+- Second client signature date: change top from `348.8 + 10` to `336`, x to `540`
+- Second client signature image y to `y(342)`
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `supabase/functions/generate-agreement-pdf/index.ts` | Edit — increase all font sizes by 150%, add initials stamps on pages 1-5 footer |
-| `src/pages/BuyerRepAgreement.tsx` | Edit — add initials input fields for client and co-client, pass to edge function |
+| `supabase/functions/generate-agreement-pdf/index.ts` | Edit — fix all coordinate misalignments |
 
