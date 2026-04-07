@@ -437,8 +437,11 @@ export default function ClientPortal() {
                 }}
               >
                 {tab.label}{" "}
-                {!tab.key.startsWith("rank-") && (
+                {!tab.key.startsWith("rank-") && tab.key !== "all-homes" && (
                   <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
+                )}
+                {tab.key === "all-homes" && (
+                  <span className="opacity-50">({Object.values(dossier.properties).flat().length})</span>
                 )}
               </button>
             ))}
