@@ -361,6 +361,9 @@ export default function AdminDashboard() {
             <TabsTrigger value="dossiers" className="flex items-center gap-1.5 text-xs">
               <Users className="w-3.5 h-3.5" /> Client Dossiers
             </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-1.5 text-xs">
+              <FileText className="w-3.5 h-3.5" /> Templates
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-xs">
               <BarChart3 className="w-3.5 h-3.5" /> Site Analytics
             </TabsTrigger>
