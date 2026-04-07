@@ -76,6 +76,10 @@ export default function AdminDashboard() {
   const [newTitle, setNewTitle] = useState("Client Property Dossier");
   const [newDate, setNewDate] = useState(new Date().toISOString().split("T")[0]);
   const [newJson, setNewJson] = useState("{}");
+  const [newRawText, setNewRawText] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [useRawJson, setUseRawJson] = useState(false);
 
   // Analytics
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
