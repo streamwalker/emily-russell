@@ -1,57 +1,27 @@
 
 
-## Rack & Stack + Filter/Sort for Client Portal
+## 1. Expense Calculator in Admin Dashboard + 2. "All Homes" Tab
 
-### What it does
-Adds two new special tabs to the portal — **"🏠 Primary Residence"** and **"💰 Income Generation"** — that pull ALL properties from every builder tab and rank them best-to-worst for each use case. Also adds filter/sort controls to the existing builder tabs.
+### What changes
 
-### Ranking Logic
+**Admin Dashboard — Expense Calculator**
 
-**Primary Residence score** (higher = better):
-- Square footage (weighted)
-- Bedroom count
-- Bathroom count
-- Garage count
-- Stories (more = better for families)
-- Lower price per sqft = better value
-- Status bonus (Move-In Ready scores higher)
+When an admin clicks "Edit" on a dossier, instead of only showing a raw JSON textarea, add a new "Manage Expenses" mode. This provides a structured UI where the admin can:
+- Expand any property by name/address
+- Input PITI, HOA, Gas, Electric, Water, Trash, and Other (with custom label) as numeric fields
+- See a live total and net cash flow preview (rent minus expenses)
+- Save updates back into the `dossier_data` JSON (writing to each property's `expenses` object)
 
-**Income Generation score** (higher = better):
-- Gross yield % (parsed from `yieldEst`) — heaviest weight
-- Monthly rent estimate (parsed from `rentEst`)
-- Lower purchase price = lower barrier to entry
-- Bed count (more rooms = Airbnb/house-hack potential)
-- Bonus for properties with rent notes mentioning "Airbnb" or "house hack"
+This will be a new component `src/components/admin/ExpenseEditor.tsx` that receives the parsed dossier data, renders an accordion of properties grouped by builder tab, and emits the updated JSON on save. The admin dashboard will get a "Manage Expenses" button alongside the existing "Edit" button for each dossier.
 
-Each property card in these views will show its **rank number** and a brief rationale badge (e.g., "Best Yield: 7.2%" or "Best Value/SqFt").
+**Client Portal — "All Homes" Tab**
 
-### Filter/Sort Controls (all tabs)
-A toolbar below the tab bar with:
-- **Sort by**: Price (↑↓), Beds, SqFt, Yield, Status
-- **Filter by**: Min/Max Price, Min Beds, City, Builder
-- Filters apply to builder tabs AND the rack-and-stack views
-
-### UI Changes — `src/pages/ClientPortal.tsx`
-
-1. **Add two synthetic tabs** appended after the builder tabs:
-   - `{ key: "rank-primary", label: "🏠 Primary Residence", color: "#5B7FA5" }`
-   - `{ key: "rank-income", label: "💰 Income Generation", color: "#2e7d32" }`
-
-2. **Scoring functions** — pure utility functions that take `Property[]` and return sorted arrays with a `rank` and `scoreSummary` field.
-
-3. **Filter/Sort toolbar** — a collapsible row of controls rendered between the accent bar and the content area. State managed with `useState` for sort field, sort direction, and filter values.
-
-4. **Ranked property cards** — in rank views, each `PropertyRow` gets a rank badge (#1, #2, etc.) and a small tag explaining why it ranked there (top metric).
-
-5. **Sub-categories in Income Generation** — two sections within the income tab:
-   - "Full Rental" — ranked by gross yield
-   - "Airbnb / House-Hack Potential" — ranked by bed count + rent estimate, with bonus for properties whose notes mention flexible rental strategies
+Add a new synthetic tab `{ key: "all-homes", label: "📋 All Homes", color: "#6B7280" }` inserted before the two ranking tabs. This tab aggregates every property from every builder tab into a single flat list, with the builder name shown as a tag on each card. The existing filter/sort toolbar applies to this view as well. The `TabSummary` component displays combined stats across the entire dossier.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/pages/ClientPortal.tsx` | Edit — add ranking tabs, scoring logic, filter/sort toolbar, rank badges |
-
-No database changes needed — all computed client-side from existing dossier data.
-
+| `src/components/admin/ExpenseEditor.tsx` | Create — structured expense input form per property |
+| `src/pages/AdminDashboard.tsx` | Edit — add "Manage Expenses" button that opens the ExpenseEditor instead of raw JSON |
+| `src/pages/ClientPortal.tsx` | Edit — add "All Homes" synthetic tab with aggregated property list
