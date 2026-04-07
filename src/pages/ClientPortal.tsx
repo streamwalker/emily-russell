@@ -302,7 +302,7 @@ export default function ClientPortal() {
   };
 
   // Derived data
-  const allTabs = useMemo(() => (dossier ? [...dossier.tabs, ...RANK_TABS] : []), [dossier]);
+  const allTabs = useMemo(() => (dossier ? [...dossier.tabs, ALL_HOMES_TAB, ...RANK_TABS] : []), [dossier]);
   const tabLabels = useMemo(() => {
     if (!dossier) return {};
     const map: Record<string, string> = {};
