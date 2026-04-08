@@ -549,6 +549,7 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
   const [sort, setSort] = useState<SortField>("price-asc");
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
+  const [dashboardMode, setDashboardMode] = useState(false);
   const [interactions, setInteractions] = useState<Record<string, PropertyInteraction>>({});
   const [replies, setReplies] = useState<Record<string, CommentReply[]>>({});
   const [loading, setLoading] = useState(true);
