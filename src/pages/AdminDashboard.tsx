@@ -415,12 +415,35 @@ export default function AdminDashboard() {
     setSaving(false);
   };
 
+  const filesToBase64 = (files: FileList | File[]): Promise<string[]> => {
+    return Promise.all(Array.from(files).filter(f => f.type.startsWith("image/")).slice(0, 10).map(f =>
+      new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(f);
+      })
+    ));
+  };
+
+  const handleImageDrop = async (e: React.DragEvent, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    e.preventDefault();
+    const imgs = await filesToBase64(e.dataTransfer.files);
+    setter(prev => [...prev, ...imgs].slice(0, 10));
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (!e.target.files) return;
+    const imgs = await filesToBase64(e.target.files);
+    setter(prev => [...prev, ...imgs].slice(0, 10));
+    e.target.value = "";
+  };
+
   const extractTemplateProperties = async () => {
     setTemplateExtracting(true);
     setError("");
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: newTemplateRawText },
+        body: { rawText: newTemplateRawText, images: templateUploadedImages },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
       if (data?.error) throw new Error(data.error);
@@ -436,7 +459,7 @@ export default function AdminDashboard() {
     setError("");
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: newRawText },
+        body: { rawText: newRawText, images: uploadedImages },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
       if (data?.error) throw new Error(data.error);
