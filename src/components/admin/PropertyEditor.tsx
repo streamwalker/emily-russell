@@ -536,15 +536,72 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     setOsintLog([]);
     setOsintFieldsFound(0);
 
-    // Collect all properties with missing data
+    const fullLog: string[] = [];
+
+    // ── Step 1: Deduplicate properties across all tabs ──
+    // Normalize address for comparison: lowercase, strip whitespace, remove punctuation
+    const normalizeAddr = (addr: string) =>
+      addr.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    let dupsRemoved = 0;
+    setData(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+      const seen = new Map<string, { tabKey: string; id: string }>();
+
+      for (const tab of next.tabs) {
+        const props = next.properties[tab.key] || [];
+        const kept: Property[] = [];
+        for (const prop of props) {
+          if (!prop.address) { kept.push(prop); continue; }
+          const key = normalizeAddr(prop.address);
+          const existing = seen.get(key);
+          if (existing) {
+            // Duplicate found — merge any non-empty fields from the dupe into the original
+            // then discard this copy
+            const origTab = next.properties[existing.tabKey];
+            const origIdx = origTab?.findIndex((p: Property) => p.id === existing.id);
+            if (origTab && origIdx !== undefined && origIdx !== -1) {
+              const orig = origTab[origIdx];
+              for (const [field, value] of Object.entries(prop)) {
+                if (field === "id" || field === "address") continue;
+                if (value && value !== "" && value !== 0 && (!orig[field] || orig[field] === "" || orig[field] === 0)) {
+                  (orig as any)[field] = value;
+                }
+              }
+            }
+            dupsRemoved++;
+          } else {
+            seen.set(key, { tabKey: tab.key, id: prop.id });
+            kept.push(prop);
+          }
+        }
+        next.properties[tab.key] = kept;
+      }
+      return next;
+    });
+
+    if (dupsRemoved > 0) {
+      fullLog.push(`🧹 Removed ${dupsRemoved} duplicate propert${dupsRemoved === 1 ? "y" : "ies"} (merged fields into originals)`);
+    }
+
+    // ── Step 2: Collect properties needing enrichment (from updated state) ──
+    // We need to re-read from the latest state after dedup
+    // Use a small delay to let React state settle
+    await new Promise(r => setTimeout(r, 100));
+
+    // Re-collect from current data (using the functional form isn't ideal here, so we read data directly)
     const allProps: any[] = [];
-    data.tabs.forEach(tab => {
-      (data.properties[tab.key] || []).forEach(prop => {
+    // Access latest state via a ref-like pattern
+    let latestData = data;
+    setData(prev => { latestData = prev; return prev; });
+    await new Promise(r => setTimeout(r, 50));
+
+    latestData.tabs.forEach(tab => {
+      (latestData.properties[tab.key] || []).forEach(prop => {
         allProps.push({ ...prop, _tabKey: tab.key });
       });
     });
 
-    // Filter to only those with missing enrichable fields
     const ENRICHABLE = ["price", "beds", "baths", "sqft", "stories", "garages", "builder", "plan", "type", "status", "community", "area", "city", "rentEst", "sourceUrl"];
     const needsEnrichment = allProps.filter(p => {
       if (!p.address) return false;
@@ -552,12 +609,14 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     });
 
     if (needsEnrichment.length === 0) {
-      setOsintLog(["All properties are already complete. No enrichment needed."]);
+      fullLog.push("All properties are already complete. No enrichment needed.");
+      setOsintLog(fullLog);
       setOsintComplete(true);
       setOsintRunning(false);
       return;
     }
 
+    fullLog.push(`OSINT Analyst deployed — ${needsEnrichment.length} properties to investigate`);
     setOsintProgress(`Deploying analyst on ${needsEnrichment.length} properties…`);
 
     // Process in batches of 5 to avoid timeouts
