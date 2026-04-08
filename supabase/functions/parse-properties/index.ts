@@ -437,6 +437,53 @@ serve(async (req) => {
       }
     }
 
+    // ── Post-processing: merge orphan detail-only entries into valid properties ──
+    const ADDRESS_RE = /^\d+\s+[A-Za-z]/;          // starts with digits + street name
+    const NOT_ADDRESS_RE = /^[\$£€]|^\d[\d,]*\s*$|^[\d.]+\/[\d.]+$|^\d{1,2}\s*(bed|bath|br|ba)/i;
+
+    for (const tabKey of Object.keys(dossierData.properties)) {
+      const arr: any[] = dossierData.properties[tabKey];
+      const cleaned: any[] = [];
+
+      for (let i = 0; i < arr.length; i++) {
+        const prop = arr[i];
+        const addr = (prop.address || "").trim();
+
+        // If the address looks valid, keep the entry
+        if (addr && ADDRESS_RE.test(addr) && !NOT_ADDRESS_RE.test(addr)) {
+          cleaned.push(prop);
+          continue;
+        }
+
+        // Otherwise it's an orphan — merge its fields into the last valid entry
+        const target = cleaned.length > 0 ? cleaned[cleaned.length - 1] : null;
+        if (target) {
+          // Merge non-null fields (skip address and id)
+          for (const [k, v] of Object.entries(prop)) {
+            if (k === "address" || k === "id" || v == null) continue;
+            if (target[k] == null) target[k] = v;
+          }
+          console.log(`Merged orphan "${addr}" into "${target.address}"`);
+        } else {
+          // No preceding valid entry — keep it as-is (better than losing data)
+          cleaned.push(prop);
+        }
+      }
+
+      dossierData.properties[tabKey] = cleaned;
+    }
+
+    // Remove empty tabs after merge
+    const nonEmptyTabKeys = new Set(
+      Object.keys(dossierData.properties).filter(
+        (k) => dossierData.properties[k].length > 0
+      )
+    );
+    dossierData.tabs = dossierData.tabs.filter((t: any) => nonEmptyTabKeys.has(t.key));
+    for (const k of Object.keys(dossierData.properties)) {
+      if (!nonEmptyTabKeys.has(k)) delete dossierData.properties[k];
+    }
+
     // Add IDs to each property
     let propCounter = 0;
     for (const tabKey of Object.keys(dossierData.properties)) {
