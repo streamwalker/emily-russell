@@ -73,24 +73,18 @@ ADDRESS VALIDATION (very important):
 - If a price range appears (e.g. "$227,999–$238,399" or "$227,999-$238,399"), use the LOWER value for the "price" field.
 - City and state should go in "city", NOT in "address". Strip state abbreviations and zip codes from the address field.
 
-MERGING RULES — THIS IS THE MOST IMPORTANT RULE:
+MERGING RULES — THIS IS THE MOST IMPORTANT RULE. VIOLATIONS WILL PRODUCE INCORRECT DATA:
 - Property data often spans MULTIPLE lines. A street address line may be followed by a separate line containing price, beds/baths, sqft, plan name, etc.
 - If a line or data chunk has NO valid street address (no leading digits + street name), it is NOT a separate property. Merge its data (price, beds, baths, sqft, plan, status, etc.) into the most recent preceding property that HAS a valid address.
 - NEVER create a property entry whose address field contains a price (e.g. "$227,999"), a bed/bath spec (e.g. "3/2"), a sqft value, or a plan/model name. These are attributes, not addresses.
-- "Price: $234,999" is NEVER a property. It is a detail that belongs to the property above it.
 - After extraction, review your output: if ANY property has an address that does not start with a house number followed by a street name, DELETE that entry and merge its data into the nearest valid property.
-
-WRONG (two entries):
-  Entry 1: { "address": "13860 Chital Chase" }
-  Entry 2: { "address": "$227,999", "beds": 3 }
-
-RIGHT (one merged entry):
-  { "address": "13860 Chital Chase", "price": 227999, "beds": 3, "community": "Hidden Oasis" }
-
+- A "Price: $234,999" line is NEVER a property — it is ALWAYS an attribute of the address line above it.
 - Example of multi-line property data:
   Line 1: "13860 Chital Chase (Hidden Oasis)"
   Line 2: "$227,999–$238,399 | Beds/Baths: 3/2 | Sq Ft: 1,402 | Plan: Kitson"
-  → This is ONE property: address="13860 Chital Chase", community="Hidden Oasis", price=227999, beds=3, baths="2", sqft=1402, plan="Kitson"`;
+  → This is ONE property: address="13860 Chital Chase", community="Hidden Oasis", price=227999, beds=3, baths="2", sqft=1402, plan="Kitson"
+  WRONG: Creating two entries — one with address "13860 Chital Chase" and another with address "Price: $227,999"
+  RIGHT: Creating one entry with all data merged together`;
 
 const URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
 
@@ -446,106 +440,157 @@ serve(async (req) => {
       }
     }
 
-    // ── Post-processing: merge orphan detail-only entries into valid properties ──
-    const ADDRESS_RE = /^\d+\s+[A-Za-z]/;          // starts with digits + street name
-    const NOT_ADDRESS_RE = /^[\$£€]|^\d[\d,]*\s*$|^[\d.]+\/[\d.]+$|^\d{1,2}\s*(bed|bath|br|ba)/i;
+    // ── POST-PROCESSING: Merge detail-only entries + parse raw detail strings ──
+    const ADDRESS_RE = /^\d+\s+[A-Za-z]/;
+    const NOT_ADDRESS_RE = /^(Price:|From\s*\$|\$[\d,]+|Beds|Baths|\d+\/\d+|\d+\s*sq|Plan:|Status:)/i;
+
+    // Parse a raw detail string like "$227,999–$238,399 | Beds/Baths: 3/2 | Sq Ft: 1,402 | Plan: Kitson"
+    // and return structured fields
+    function parseDetailString(raw: string): Record<string, any> {
+      const result: Record<string, any> = {};
+      if (!raw) return result;
+
+      // Normalize PDF extraction artifacts: "238, 399" → "238,399" and "1, 402" → "1,402"
+      const normalized = raw.replace(/(\d),\s+(\d)/g, "$1,$2");
+
+      // Price: "$227,999" or "$227,999–$238,399" or "999–$238,399" — take first number
+      const priceMatch = normalized.match(/\$\s*([\d,]+)/);
+      if (priceMatch) {
+        result.price = parseInt(priceMatch[1].replace(/,/g, ""), 10);
+      } else {
+        // Try bare number at start like "999–$238"
+        const barePrice = normalized.match(/^([\d,]{3,})/);
+        if (barePrice) {
+          const val = parseInt(barePrice[1].replace(/,/g, ""), 10);
+          if (val > 10000) result.price = val;
+        }
+      }
+
+      // Beds/Baths: "3/2" or "4/2.5" or "Beds/Baths: 3/2" or "Beds: 3" or "3 bd"
+      const bedBathMatch = normalized.match(/(?:Beds?\/?Baths?:?\s*)?([\d]+)\s*[\/|]\s*([\d.]+)/);
+      if (bedBathMatch) {
+        result.beds = parseInt(bedBathMatch[1], 10);
+        result.baths = bedBathMatch[2];
+      } else {
+        const bedOnly = normalized.match(/(\d+)\s*(?:bed|bd|br)/i);
+        if (bedOnly) result.beds = parseInt(bedOnly[1], 10);
+        const bathOnly = normalized.match(/([\d.]+)\s*(?:bath|ba)/i);
+        if (bathOnly) result.baths = bathOnly[1];
+      }
+
+      // Sq Ft: "1,402" or "Sq Ft: 1402" or "1,402 sq"
+      const sqftMatch = normalized.match(/(?:Sq\s*(?:Ft|ft)?:?\s*)([\d,]+)/i) || normalized.match(/([\d,]{3,})\s*(?:sq|SF)/i);
+      if (sqftMatch) {
+        result.sqft = parseInt(sqftMatch[1].replace(/,/g, ""), 10);
+      }
+
+      // Plan: "Kitson" or "Plan: Kitson"
+      const planMatch = normalized.match(/Plan:?\s*([A-Za-z][A-Za-z0-9 _-]+)/i);
+      if (planMatch) {
+        result.plan = planMatch[1].trim();
+      }
+
+      // Status: "Active" or "Status: Move-In Ready"
+      const statusMatch = normalized.match(/Status:?\s*([A-Za-z][A-Za-z -]+)/i);
+      if (statusMatch) {
+        result.status = statusMatch[1].trim();
+      }
+
+      // Stories
+      const storyMatch = normalized.match(/(\d+)\s*(?:stor|story|stories)/i);
+      if (storyMatch) result.stories = parseInt(storyMatch[1], 10);
+
+      // Garages
+      const garageMatch = normalized.match(/(\d+)\s*(?:car|garage)/i);
+      if (garageMatch) result.garages = parseInt(garageMatch[1], 10);
+
+      return result;
+    }
+
+    // Apply parsed fields to a target, only filling empty slots
+    function applyParsed(target: any, parsed: Record<string, any>) {
+      for (const [key, val] of Object.entries(parsed)) {
+        if (val === null || val === undefined || val === "" || val === 0) continue;
+        if (!target[key] || target[key] === null || target[key] === "" || target[key] === 0) {
+          target[key] = val;
+        }
+      }
+    }
 
     for (const tabKey of Object.keys(dossierData.properties)) {
-      const arr: any[] = dossierData.properties[tabKey];
-      const cleaned: any[] = [];
+      const props = dossierData.properties[tabKey] as any[];
+      if (!props || props.length < 2) continue;
 
-      for (let i = 0; i < arr.length; i++) {
-        const prop = arr[i];
-        const addr = (prop.address || "").trim();
+      const merged: any[] = [];
+      for (let i = 0; i < props.length; i++) {
+        const p = props[i];
+        const addr = (p.address || "").trim();
 
-        // If the address looks valid, keep the entry
-        if (addr && ADDRESS_RE.test(addr) && !NOT_ADDRESS_RE.test(addr)) {
-          cleaned.push(prop);
-          continue;
-        }
+        const isValidAddress = ADDRESS_RE.test(addr) && !NOT_ADDRESS_RE.test(addr);
 
-        // Otherwise it's an orphan — merge its fields into the last valid entry
-        const target = cleaned.length > 0 ? cleaned[cleaned.length - 1] : null;
-        if (target) {
-          // Merge non-null fields (skip address and id)
-          for (const [k, v] of Object.entries(prop)) {
-            if (k === "address" || k === "id" || v == null) continue;
-            if (target[k] == null) target[k] = v;
-          }
-          console.log(`Merged orphan "${addr}" into "${target.address}"`);
+        if (isValidAddress) {
+          merged.push({ ...p });
         } else {
-          // No preceding valid entry — keep it as-is (better than losing data)
-          cleaned.push(prop);
+          const target = merged.length > 0 ? merged[merged.length - 1] : null;
+          if (target) {
+            // Parse the orphan's address field (which is really a detail string)
+            const parsedFromAddr = parseDetailString(addr);
+            applyParsed(target, parsedFromAddr);
+
+            // Parse the orphan's city field (often contains the detail string)
+            if (p.city && typeof p.city === "string" && /[\|\/]/.test(p.city)) {
+              const parsedFromCity = parseDetailString(p.city);
+              applyParsed(target, parsedFromCity);
+            }
+
+            // Merge remaining structured fields from the orphan
+            for (const [key, val] of Object.entries(p)) {
+              if (key === "address" || key === "id" || key === "city") continue;
+              if (val === null || val === undefined || val === "" || val === 0) continue;
+              if (!target[key] || target[key] === null || target[key] === "" || target[key] === 0) {
+                target[key] = val;
+              }
+            }
+            console.log(`Merged detail-only entry "${addr}" into "${target.address}"`);
+          } else {
+            console.warn(`Orphan detail entry with no preceding address: "${addr}"`);
+            merged.push({ ...p });
+          }
         }
       }
-
-      dossierData.properties[tabKey] = cleaned;
+      dossierData.properties[tabKey] = merged;
     }
 
-    // Remove empty tabs after merge
-    const nonEmptyTabKeys = new Set(
-      Object.keys(dossierData.properties).filter(
-        (k) => dossierData.properties[k].length > 0
-      )
-    );
-    dossierData.tabs = dossierData.tabs.filter((t: any) => nonEmptyTabKeys.has(t.key));
-    for (const k of Object.keys(dossierData.properties)) {
-      if (!nonEmptyTabKeys.has(k)) delete dossierData.properties[k];
-    }
-
-    // ── Post-processing: parse structured data out of wrong fields ──
+    // ── CLEANUP PASS: Fix any property whose city/community contains detail strings ──
     for (const tabKey of Object.keys(dossierData.properties)) {
-      for (const prop of dossierData.properties[tabKey]) {
-        // Extract community from address if in parentheses: "13860 Chital Chase (Hidden Oasis)"
-        if (prop.address && /\(([^)]+)\)/.test(prop.address)) {
-          const m = prop.address.match(/\(([^)]+)\)/);
-          if (m && !prop.community) prop.community = m[1].trim();
-          prop.address = prop.address.replace(/\s*\([^)]+\)/, "").trim();
+      for (const p of dossierData.properties[tabKey] as any[]) {
+        // If city contains pipes or price patterns, it's a detail string — parse and clear
+        if (p.city && typeof p.city === "string" && (/[\|]/.test(p.city) || /^\$?\d{3,}/.test(p.city.trim()) || /Beds|Baths|Sq\s*Ft|Plan:/i.test(p.city))) {
+          const parsed = parseDetailString(p.city);
+          applyParsed(p, parsed);
+          p.city = ""; // Clear the bad city value
         }
 
-        // If city contains structured data (prices, beds/baths, sqft, plan), parse it out
-        const cityVal = (prop.city || "").trim();
-        if (cityVal && /[\$|]|beds|baths|sq\s*ft|plan/i.test(cityVal)) {
-          console.log(`Parsing structured data from city field: "${cityVal}"`);
-
-          // Extract price: $227,999 or 227999 or $227,999–$238,399
-          if (!prop.price) {
-            const priceMatch = cityVal.match(/\$?([\d,]+(?:\.\d+)?)/);
-            if (priceMatch) {
-              const p = parseInt(priceMatch[1].replace(/,/g, ""), 10);
-              if (p > 1000) prop.price = p; // only if it looks like a price
-            }
+        // Extract community from address if present: "13860 Chital Chase (Hidden Oasis)"
+        if (p.address && /\(([^)]+)\)/.test(p.address)) {
+          const communityMatch = p.address.match(/\(([^)]+)\)/);
+          if (communityMatch && !p.community) {
+            p.community = communityMatch[1].trim();
           }
-
-          // Extract beds/baths: 3/2 or 3/2.5 or Beds/Baths: 3/2
-          if (!prop.beds || !prop.baths) {
-            const bbMatch = cityVal.match(/(\d+)\s*\/\s*(\d+(?:\.\d+)?)/);
-            if (bbMatch) {
-              if (!prop.beds) prop.beds = parseInt(bbMatch[1], 10);
-              if (!prop.baths) prop.baths = bbMatch[2];
-            }
-          }
-
-          // Extract sqft: Sq Ft: 1,402 or 1,402 sq ft
-          if (!prop.sqft) {
-            const sqftMatch = cityVal.match(/(?:sq\s*ft[:\s]*|)(\d{1,2}[,.]?\d{3})\s*(?:sq\s*ft)?/i);
-            if (sqftMatch) {
-              prop.sqft = parseInt(sqftMatch[1].replace(/,/g, ""), 10);
-            }
-          }
-
-          // Extract plan name: Plan: Kitson
-          if (!prop.plan) {
-            const planMatch = cityVal.match(/plan[:\s]+([A-Za-z][A-Za-z0-9\s-]+)/i);
-            if (planMatch) prop.plan = planMatch[1].trim();
-          }
-
-          // Clear city since it was actually structured data, not a city name
-          prop.city = null;
+          p.address = p.address.replace(/\s*\([^)]+\)\s*/, "").trim();
         }
       }
     }
 
+    // Remove any tabs that ended up with 0 properties after merging
+    const liveTabKeys = new Set(
+      Object.entries(dossierData.properties)
+        .filter(([_, arr]: [string, any]) => arr.length > 0)
+        .map(([key]: [string, any]) => key)
+    );
+    dossierData.tabs = dossierData.tabs.filter((t: any) => liveTabKeys.has(t.key));
+
+    // Add IDs to each property
     let propCounter = 0;
     for (const tabKey of Object.keys(dossierData.properties)) {
       dossierData.properties[tabKey] = dossierData.properties[tabKey].map((p: any) => ({
