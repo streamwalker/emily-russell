@@ -634,14 +634,14 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
 
       {/* Smart Add Preview Modal */}
       <Dialog open={!!smartAddPreview} onOpenChange={(open) => { if (!open) setSmartAddPreview(null); }}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
               Preview Extracted Properties ({previewTotalCount})
             </DialogTitle>
             <DialogDescription>
-              Review and edit extracted properties before adding them to the dossier.
+              Review and edit extracted properties before adding them to the dossier. Click a property to expand all fields.
             </DialogDescription>
           </DialogHeader>
 
@@ -666,34 +666,93 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                         <Trash2 className="w-3 h-3" /> Remove Tab
                       </button>
                     </div>
-                    {props.map((prop, i) => (
-                      <div key={prop.id || i} className="border border-border rounded p-3 mb-2 bg-card">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-semibold text-foreground">
-                            {prop.address || "(no address)"}
-                          </span>
-                          <button
-                            onClick={() => removePreviewProperty(tab.key, i)}
-                            className="text-destructive/50 hover:text-destructive bg-transparent border-none cursor-pointer p-1"
+                    {props.map((prop, i) => {
+                      const previewId = `${tab.key}-${i}`;
+                      const isExpanded = expandedPreviewProp === previewId;
+                      return (
+                        <div key={prop.id || i} className="border border-border rounded mb-2 bg-card overflow-hidden">
+                          <div
+                            className="flex justify-between items-center px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => setExpandedPreviewProp(isExpanded ? null : previewId)}
                           >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {PREVIEW_FIELDS.map(({ key, label }) => (
-                            <div key={key}>
-                              <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
-                              <input
-                                type="text"
-                                value={prop[key] != null ? String(prop[key]) : ""}
-                                onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
-                                className="er-input !py-1 !text-xs w-full"
-                              />
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {prop.address || "(no address)"}
+                              </span>
+                              {prop.city && <span className="text-xs text-muted-foreground">{prop.city}</span>}
+                              {prop.price && <span className="text-xs text-muted-foreground">${Number(prop.price).toLocaleString()}</span>}
+                              {prop.beds && <span className="text-xs text-muted-foreground">{prop.beds}bd</span>}
+                              {prop.sqft && <span className="text-xs text-muted-foreground">{Number(prop.sqft).toLocaleString()}sf</span>}
                             </div>
-                          ))}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removePreviewProperty(tab.key, i); }}
+                                className="text-destructive/50 hover:text-destructive bg-transparent border-none cursor-pointer p-1"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="px-3 pb-3 pt-1 border-t border-border">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                                {TEXT_FIELDS.map(({ key, label }) => (
+                                  <div key={key}>
+                                    <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
+                                    <input
+                                      type="text"
+                                      value={(prop[key] as string) || ""}
+                                      onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
+                                      className="er-input !py-1 !text-xs w-full"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
+                                {NUMBER_FIELDS.map(({ key, label }) => (
+                                  <div key={key}>
+                                    <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={prop[key] != null ? String(prop[key]) : ""}
+                                      onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
+                                      className="er-input !py-1 !text-xs w-full"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+                                {ESTIMATE_FIELDS.map(({ key, label }) => (
+                                  <div key={key}>
+                                    <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
+                                    <input
+                                      type="text"
+                                      value={(prop[key] as string) || ""}
+                                      onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
+                                      className="er-input !py-1 !text-xs w-full"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">Agent Notes</label>
+                                <textarea
+                                  value={(prop.notes as string) || ""}
+                                  onChange={e => updatePreviewField(tab.key, i, "notes", e.target.value)}
+                                  rows={2}
+                                  placeholder="Add notes..."
+                                  className="er-input !py-1 !text-xs w-full"
+                                  style={{ resize: "vertical" }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })}
