@@ -1,3 +1,4 @@
+// This is a webhook-only function invoked by a cron job — no CORS headers needed.
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
