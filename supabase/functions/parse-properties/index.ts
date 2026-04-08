@@ -493,7 +493,59 @@ serve(async (req) => {
       if (!nonEmptyTabKeys.has(k)) delete dossierData.properties[k];
     }
 
-    // Add IDs to each property
+    // ── Post-processing: parse structured data out of wrong fields ──
+    for (const tabKey of Object.keys(dossierData.properties)) {
+      for (const prop of dossierData.properties[tabKey]) {
+        // Extract community from address if in parentheses: "13860 Chital Chase (Hidden Oasis)"
+        if (prop.address && /\(([^)]+)\)/.test(prop.address)) {
+          const m = prop.address.match(/\(([^)]+)\)/);
+          if (m && !prop.community) prop.community = m[1].trim();
+          prop.address = prop.address.replace(/\s*\([^)]+\)/, "").trim();
+        }
+
+        // If city contains structured data (prices, beds/baths, sqft, plan), parse it out
+        const cityVal = (prop.city || "").trim();
+        if (cityVal && /[\$|]|beds|baths|sq\s*ft|plan/i.test(cityVal)) {
+          console.log(`Parsing structured data from city field: "${cityVal}"`);
+
+          // Extract price: $227,999 or 227999 or $227,999–$238,399
+          if (!prop.price) {
+            const priceMatch = cityVal.match(/\$?([\d,]+(?:\.\d+)?)/);
+            if (priceMatch) {
+              const p = parseInt(priceMatch[1].replace(/,/g, ""), 10);
+              if (p > 1000) prop.price = p; // only if it looks like a price
+            }
+          }
+
+          // Extract beds/baths: 3/2 or 3/2.5 or Beds/Baths: 3/2
+          if (!prop.beds || !prop.baths) {
+            const bbMatch = cityVal.match(/(\d+)\s*\/\s*(\d+(?:\.\d+)?)/);
+            if (bbMatch) {
+              if (!prop.beds) prop.beds = parseInt(bbMatch[1], 10);
+              if (!prop.baths) prop.baths = bbMatch[2];
+            }
+          }
+
+          // Extract sqft: Sq Ft: 1,402 or 1,402 sq ft
+          if (!prop.sqft) {
+            const sqftMatch = cityVal.match(/(?:sq\s*ft[:\s]*|)(\d{1,2}[,.]?\d{3})\s*(?:sq\s*ft)?/i);
+            if (sqftMatch) {
+              prop.sqft = parseInt(sqftMatch[1].replace(/,/g, ""), 10);
+            }
+          }
+
+          // Extract plan name: Plan: Kitson
+          if (!prop.plan) {
+            const planMatch = cityVal.match(/plan[:\s]+([A-Za-z][A-Za-z0-9\s-]+)/i);
+            if (planMatch) prop.plan = planMatch[1].trim();
+          }
+
+          // Clear city since it was actually structured data, not a city name
+          prop.city = null;
+        }
+      }
+    }
+
     let propCounter = 0;
     for (const tabKey of Object.keys(dossierData.properties)) {
       dossierData.properties[tabKey] = dossierData.properties[tabKey].map((p: any) => ({
