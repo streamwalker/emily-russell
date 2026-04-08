@@ -440,8 +440,9 @@ export default function AdminDashboard() {
     setTemplateExtracting(true);
     setError("");
     try {
+      const { images, combinedText } = getImagesAndText(templateUploadedFiles, newTemplateRawText);
       const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: newTemplateRawText, images: templateUploadedImages },
+        body: { rawText: combinedText, images },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
       if (data?.error) throw new Error(data.error);
@@ -456,8 +457,9 @@ export default function AdminDashboard() {
     setExtracting(true);
     setError("");
     try {
+      const { images, combinedText } = getImagesAndText(uploadedFiles, newRawText);
       const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: newRawText, images: uploadedImages },
+        body: { rawText: combinedText, images },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
       if (data?.error) throw new Error(data.error);
@@ -485,7 +487,7 @@ export default function AdminDashboard() {
       setNewJson("{}");
       setNewRawText("");
       setExtractedData(null);
-      setUploadedImages([]);
+      setUploadedFiles([]);
       fetchData();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create dossier");
