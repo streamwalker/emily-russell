@@ -1068,19 +1068,52 @@ export default function AdminDashboard() {
                     <div>
                       <label className="er-label block mb-1 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
-                        Paste property info (addresses, MLS data, listing descriptions, URLs)
+                        Paste property info or upload images
                       </label>
                       <textarea
                         value={newTemplateRawText}
                         onChange={e => setNewTemplateRawText(e.target.value)}
-                        rows={12}
+                        rows={8}
                         placeholder="Paste listing info here…"
                         className="er-input text-sm"
                         style={{ resize: "vertical" }}
                       />
+
+                      <div
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => handleImageDrop(e, setTemplateUploadedImages)}
+                        className="mt-2 border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                        onClick={() => document.getElementById("template-img-input")?.click()}
+                      >
+                        <input
+                          id="template-img-input"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={e => handleImageSelect(e, setTemplateUploadedImages)}
+                        />
+                        <ImagePlus className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Drag & drop images or click to upload (max 10)</p>
+                      </div>
+
+                      {templateUploadedImages.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {templateUploadedImages.map((img, i) => (
+                            <div key={i} className="relative group">
+                              <img src={img} alt={`Upload ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
+                              <button
+                                onClick={() => setTemplateUploadedImages(prev => prev.filter((_, j) => j !== i))}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                              >×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <button
                         onClick={extractTemplateProperties}
-                        disabled={templateExtracting || newTemplateRawText.trim().length < 10}
+                        disabled={templateExtracting || (newTemplateRawText.trim().length < 10 && templateUploadedImages.length === 0)}
                         className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
                       >
                         {templateExtracting ? (
