@@ -622,7 +622,6 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     // Process in batches of 5 to avoid timeouts
     const BATCH_SIZE = 5;
     let totalFieldsFound = 0;
-    const fullLog: string[] = [`OSINT Analyst deployed — ${needsEnrichment.length} properties to investigate`];
 
     for (let i = 0; i < needsEnrichment.length; i += BATCH_SIZE) {
       const batch = needsEnrichment.slice(i, i + BATCH_SIZE);
