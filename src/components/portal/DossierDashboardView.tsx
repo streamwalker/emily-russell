@@ -52,9 +52,11 @@ const EXPENSE_COLORS = [
 ];
 
 function shortAddr(address: string) {
+  if (address.length <= 25) return address;
   const parts = address.split(" ");
   if (parts.length <= 3) return address;
-  return parts.slice(0, 2).join(" ") + "…";
+  const short = parts.slice(0, 3).join(" ");
+  return short.length > 25 ? short.slice(0, 22) + "…" : short + "…";
 }
 
 function parseRentNum(rentEst?: string): number {
@@ -236,11 +238,11 @@ export default function DossierDashboardView({
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 font-body">
               Price by Property
             </h4>
-            <ChartContainer config={priceConfig} className="h-[200px] w-full">
-              <BarChart data={priceData} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
+            <ChartContainer config={priceConfig} className="w-full" style={{ height: `${Math.max(200, priceData.length * 28)}px` }}>
+              <BarChart data={priceData} layout="vertical" margin={{ left: 100, right: 10, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} className="text-[10px]" />
-                <YAxis type="category" dataKey="name" width={55} className="text-[10px]" />
+                <YAxis type="category" dataKey="name" width={100} className="text-[10px]" />
                 <ChartTooltip content={<ChartTooltipContent formatter={(v) => fmt(Number(v))} />} />
                 <Bar dataKey="price" fill="var(--color-price)" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -254,11 +256,11 @@ export default function DossierDashboardView({
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 font-body">
               Price per Sq Ft
             </h4>
-            <ChartContainer config={psfConfig} className="h-[200px] w-full">
-              <BarChart data={psfData} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
+            <ChartContainer config={psfConfig} className="w-full" style={{ height: `${Math.max(200, psfData.length * 28)}px` }}>
+              <BarChart data={psfData} layout="vertical" margin={{ left: 100, right: 10, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" tickFormatter={(v) => `$${v}`} className="text-[10px]" />
-                <YAxis type="category" dataKey="name" width={55} className="text-[10px]" />
+                <YAxis type="category" dataKey="name" width={100} className="text-[10px]" />
                 <ChartTooltip content={<ChartTooltipContent formatter={(v) => `$${v}/sqft`} />} />
                 <Bar dataKey="psf" fill="var(--color-psf)" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -273,9 +275,9 @@ export default function DossierDashboardView({
               Beds & Baths
             </h4>
             <ChartContainer config={bedBathConfig} className="h-[200px] w-full">
-              <BarChart data={bedBathData} margin={{ left: 0, right: 10, top: 5, bottom: 30 }}>
+              <BarChart data={bedBathData} margin={{ left: 0, right: 10, top: 5, bottom: 50 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} className="text-[9px]" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} className="text-[9px]" height={60} />
                 <YAxis className="text-[10px]" />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="beds" fill="var(--color-beds)" radius={[4, 4, 0, 0]} />
@@ -321,9 +323,9 @@ export default function DossierDashboardView({
               Monthly Expenses
             </h4>
             <ChartContainer config={expenseConfig} className="h-[200px] w-full">
-              <BarChart data={expenseData} margin={{ left: 0, right: 10, top: 5, bottom: 30 }}>
+              <BarChart data={expenseData} margin={{ left: 0, right: 10, top: 5, bottom: 50 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} className="text-[9px]" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} className="text-[9px]" height={60} />
                 <YAxis tickFormatter={(v) => `$${v}`} className="text-[10px]" />
                 <ChartTooltip content={<ChartTooltipContent formatter={(v) => fmt(Number(v))} />} />
                 <Bar dataKey="piti" stackId="a" fill="var(--color-piti)" />
@@ -341,11 +343,11 @@ export default function DossierDashboardView({
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 font-body">
               Projected Gross Yield
             </h4>
-            <ChartContainer config={yieldConfig} className="h-[200px] w-full">
-              <BarChart data={yieldData} layout="vertical" margin={{ left: 60, right: 10, top: 5, bottom: 5 }}>
+            <ChartContainer config={yieldConfig} className="w-full" style={{ height: `${Math.max(200, yieldData.length * 28)}px` }}>
+              <BarChart data={yieldData} layout="vertical" margin={{ left: 100, right: 10, top: 5, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" tickFormatter={(v) => `${v}%`} className="text-[10px]" />
-                <YAxis type="category" dataKey="name" width={55} className="text-[10px]" />
+                <YAxis type="category" dataKey="name" width={100} className="text-[10px]" />
                 <ChartTooltip content={<ChartTooltipContent formatter={(v) => `${v}%`} />} />
                 <Bar dataKey="yield" fill="var(--color-yield)" radius={[0, 4, 4, 0]} />
               </BarChart>
@@ -369,10 +371,10 @@ export default function DossierDashboardView({
                 {filteredProps.map((p) => (
                   <th
                     key={p.id}
-                    className="text-center px-3 py-3 font-semibold text-[10px] min-w-[130px] max-w-[160px]"
+                    className="text-center px-3 py-3 font-semibold text-[10px] min-w-[160px]"
                   >
-                    <div className="truncate">{p.address}</div>
-                    <div className="text-[9px] opacity-60 font-normal mt-0.5 truncate">{p.city}</div>
+                    <div className="whitespace-normal leading-tight">{p.address}</div>
+                    <div className="text-[9px] opacity-60 font-normal mt-0.5">{p.city}</div>
                   </th>
                 ))}
               </tr>
