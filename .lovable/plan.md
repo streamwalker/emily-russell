@@ -1,39 +1,45 @@
 
 
-## Admin "Preview as Client" View
+## Property Comparison Dashboard — Matrix View + KPI Charts
 
-### Approach
+### What We're Building
 
-Add an "👁 Client View" button to each dossier card in the Admin Dashboard. Clicking it opens a full-screen dialog/modal that renders the exact same dossier UI the client sees — including tabs, property cards, rankings, grading, favorites, and admin replies — but in read-only preview mode. This reuses the existing `ClientPortal` rendering logic extracted into a shared component.
+A new tab-like toggle in the client dossier that switches from the current card-based property list to a full-screen comparison dashboard with two sections:
+
+1. **KPI Summary Charts** (inspired by image 1) — A grid of 4-6 charts showing portfolio-level metrics: price distribution bar chart, price per sq ft comparison, beds/baths breakdown, grade distribution donut, expense breakdown, and yield comparison.
+
+2. **Property Comparison Matrix** (inspired by image 2) — A feature-comparison table with properties as columns and attributes as rows, using checkmarks and values. Rows include: price, sqft, beds, baths, stories, garages, status, grade, favorite, PITI, rent estimate, yield, net cash flow. Toggle between "All Homes" and "Selected Homes" (favorited/graded properties).
 
 ### Steps
 
-**1. Extract client dossier view into a reusable component**
+**1. Create `src/components/portal/DossierDashboardView.tsx`**
 
-Create `src/components/portal/ClientDossierView.tsx` that contains the core dossier rendering logic currently in `ClientPortal.tsx` — the tab navigation, property cards, ranking tabs, comparison view, payment calculator, feedback display, and admin replies. It accepts props:
-- `dossierData: DossierData`
-- `dossierId: string`
-- `clientUserId: string`
-- `clientName?: string`
-- `readOnly?: boolean` (when true, disables all interaction controls like grading, favoriting, commenting, tour requests)
+New component that receives `properties`, `interactions`, and renders:
 
-**2. Use the shared component in ClientPortal**
+- **Toggle bar** at top: "All Homes" | "Favorited/Graded Only"
+- **KPI Charts section** (top half, 2x3 grid using Recharts — already available via the chart UI component):
+  - Horizontal bar chart: price by property (sorted)
+  - Bar chart: $/sq ft comparison
+  - Grouped bar: beds & baths by property
+  - Donut/pie: grade distribution (A/B/C/D/F counts from interactions)
+  - Stacked bar: monthly expense breakdown (PITI, HOA, utilities)
+  - Bar chart: projected yield comparison
+- **Comparison Matrix** (bottom half): Styled table matching image 2 aesthetic — dark header row with property names as columns, attribute rows with alternating gray bands, checkmarks for boolean features (favorite, has garage, move-in ready), values for numeric fields
 
-Refactor `ClientPortal.tsx` to use `ClientDossierView` internally, passing `readOnly={false}` and the authenticated user's data.
+**2. Add toggle button in `ClientDossierView.tsx`**
 
-**3. Add "Client View" button + modal in AdminDashboard**
+- Add a "📊 Dashboard View" / "📋 List View" toggle button near the filter toolbar
+- When dashboard mode is active, hide the property card list and render `DossierDashboardView` instead
+- Pass all properties (or filtered subset), interactions, and grades
 
-- Add a `previewDossierId` state variable
-- Add an "👁 Client View" button in the dossier card button row (next to Properties, Expenses, etc.)
-- When clicked, open a full-screen `Dialog` that renders `<ClientDossierView>` with the selected dossier's data, the client's `user_id`, and `readOnly={true}`
-- The preview fetches and displays the client's actual interactions (favorites, grades, comments, tour requests) and any admin replies — giving the admin a true picture of what the client sees
-- A close button returns to the normal admin view
+**3. Recharts integration**
+
+Use the existing `src/components/ui/chart.tsx` (Recharts wrapper) for all charts. No new dependencies needed.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/components/portal/ClientDossierView.tsx` | New — extracted client dossier rendering component |
-| `src/pages/ClientPortal.tsx` | Refactor to use `ClientDossierView` |
-| `src/pages/AdminDashboard.tsx` | Add preview button + full-screen dialog with `ClientDossierView` |
+| `src/components/portal/DossierDashboardView.tsx` | New — KPI charts + comparison matrix |
+| `src/components/portal/ClientDossierView.tsx` | Add dashboard/list toggle, render new component |
 
