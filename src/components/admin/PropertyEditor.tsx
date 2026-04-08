@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check, Upload, FileText, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check, Upload, FileText, ChevronDown, ChevronUp, Radar } from "lucide-react";
 import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import {
   Dialog,
@@ -251,6 +251,13 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
   const [activeId, setActiveId] = useState<string | null>(null);
   const [renamingTab, setRenamingTab] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+
+  // OSINT Analyst
+  const [osintRunning, setOsintRunning] = useState(false);
+  const [osintProgress, setOsintProgress] = useState("");
+  const [osintLog, setOsintLog] = useState<string[]>([]);
+  const [osintComplete, setOsintComplete] = useState(false);
+  const [osintFieldsFound, setOsintFieldsFound] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -522,6 +529,96 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     ? smartAddPreview.tabs.reduce((sum, tab) => sum + (smartAddPreview.properties[tab.key]?.length || 0), 0)
     : 0;
 
+  // ── OSINT Analyst: enrich properties with missing data ──
+  const deployOsintAnalyst = async () => {
+    setOsintRunning(true);
+    setOsintComplete(false);
+    setOsintLog([]);
+    setOsintFieldsFound(0);
+
+    // Collect all properties with missing data
+    const allProps: any[] = [];
+    data.tabs.forEach(tab => {
+      (data.properties[tab.key] || []).forEach(prop => {
+        allProps.push({ ...prop, _tabKey: tab.key });
+      });
+    });
+
+    // Filter to only those with missing enrichable fields
+    const ENRICHABLE = ["price", "beds", "baths", "sqft", "stories", "garages", "builder", "plan", "type", "status", "community", "area", "city", "rentEst", "sourceUrl"];
+    const needsEnrichment = allProps.filter(p => {
+      if (!p.address) return false;
+      return ENRICHABLE.some(f => !p[f] || p[f] === "" || p[f] === 0);
+    });
+
+    if (needsEnrichment.length === 0) {
+      setOsintLog(["All properties are already complete. No enrichment needed."]);
+      setOsintComplete(true);
+      setOsintRunning(false);
+      return;
+    }
+
+    setOsintProgress(`Deploying analyst on ${needsEnrichment.length} properties…`);
+
+    // Process in batches of 5 to avoid timeouts
+    const BATCH_SIZE = 5;
+    let totalFieldsFound = 0;
+    const fullLog: string[] = [`OSINT Analyst deployed — ${needsEnrichment.length} properties to investigate`];
+
+    for (let i = 0; i < needsEnrichment.length; i += BATCH_SIZE) {
+      const batch = needsEnrichment.slice(i, i + BATCH_SIZE);
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(needsEnrichment.length / BATCH_SIZE);
+      setOsintProgress(`Batch ${batchNum}/${totalBatches} — investigating ${batch.map(p => p.address.split(" ").slice(0, 3).join(" ")).join(", ")}…`);
+
+      try {
+        const { data: result, error } = await supabase.functions.invoke("enrich-properties", {
+          body: { properties: batch.map(({ _tabKey, ...rest }: any) => rest) },
+        });
+
+        if (error) {
+          fullLog.push(`Batch ${batchNum}: Error — ${error.message}`);
+          continue;
+        }
+
+        if (result?.enriched) {
+          // Apply updates to state
+          setData(prev => {
+            const next = JSON.parse(JSON.stringify(prev)) as DossierData;
+            for (const item of result.enriched) {
+              if (!item.updates || Object.keys(item.updates).length === 0) continue;
+              const original = batch.find((p: any) => p.id === item.id);
+              if (!original) continue;
+              const tabKey = original._tabKey;
+              const props = next.properties[tabKey];
+              if (!props) continue;
+              const propIndex = props.findIndex((p: Property) => p.id === item.id);
+              if (propIndex === -1) continue;
+              for (const [field, value] of Object.entries(item.updates)) {
+                (props[propIndex] as any)[field] = value;
+              }
+            }
+            return next;
+          });
+          totalFieldsFound += result.summary?.fieldsFound || 0;
+        }
+
+        if (result?.summary?.log) {
+          fullLog.push(...result.summary.log);
+        }
+      } catch (err) {
+        fullLog.push(`Batch ${batchNum}: Network error — ${err instanceof Error ? err.message : "unknown"}`);
+      }
+    }
+
+    fullLog.push(`\nAnalysis complete — ${totalFieldsFound} fields enriched across ${needsEnrichment.length} properties`);
+    setOsintLog(fullLog);
+    setOsintFieldsFound(totalFieldsFound);
+    setOsintComplete(true);
+    setOsintRunning(false);
+    setOsintProgress("");
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -669,18 +766,16 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                     {props.map((prop, i) => {
                       const previewId = `${tab.key}-${i}`;
                       const isExpanded = expandedPreviewProp === previewId;
-                      const isSuspicious = !prop.address || /\$/.test(prop.address || "") || !/^\d/.test((prop.address || "").trim());
                       return (
-                        <div key={prop.id || i} className={`border rounded mb-2 overflow-hidden ${isSuspicious ? "border-destructive/60 bg-destructive/5" : "border-border bg-card"}`}>
+                        <div key={prop.id || i} className="border border-border rounded mb-2 bg-card overflow-hidden">
                           <div
-                             className="flex justify-between items-center px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
-                             onClick={() => setExpandedPreviewProp(isExpanded ? null : previewId)}
-                           >
-                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                               {isSuspicious && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
-                               <span className={`text-sm font-semibold truncate ${isSuspicious ? "text-destructive" : "text-foreground"}`}>
-                                 {prop.address || "(no address)"}
-                               </span>
+                            className="flex justify-between items-center px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => setExpandedPreviewProp(isExpanded ? null : previewId)}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {prop.address || "(no address)"}
+                              </span>
                               {prop.city && <span className="text-xs text-muted-foreground">{prop.city}</span>}
                               {prop.price && <span className="text-xs text-muted-foreground">${Number(prop.price).toLocaleString()}</span>}
                               {prop.beds && <span className="text-xs text-muted-foreground">{prop.beds}bd</span>}
@@ -914,7 +1009,55 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         >
           Cancel
         </button>
+        <button
+          onClick={deployOsintAnalyst}
+          disabled={osintRunning || saving}
+          className="flex items-center gap-1.5 font-body text-[10px] uppercase tracking-[2px] cursor-pointer border border-primary/60 text-primary px-4 py-2.5 hover:bg-primary/5 hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+          style={{ background: osintRunning ? "hsl(27, 35%, 59%, 0.08)" : "transparent" }}
+        >
+          {osintRunning ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Radar className="w-3.5 h-3.5" />
+          )}
+          {osintRunning ? "Analyst Active…" : "Deploy OSINT Analyst"}
+        </button>
       </div>
+
+      {/* OSINT Progress & Log */}
+      {(osintRunning || osintComplete) && (
+        <div className="mt-3 border border-border bg-card p-4 shadow-sm">
+          {osintRunning && osintProgress && (
+            <div className="flex items-center gap-2 mb-3">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+              <span className="font-body text-xs text-primary">{osintProgress}</span>
+            </div>
+          )}
+          {osintComplete && (
+            <div className="flex items-center gap-2 mb-3">
+              <Radar className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span className="font-body text-sm font-semibold text-foreground">
+                Analysis Complete — {osintFieldsFound} field{osintFieldsFound !== 1 ? "s" : ""} enriched
+              </span>
+              <button
+                onClick={() => { setOsintComplete(false); setOsintLog([]); }}
+                className="ml-auto font-body text-[10px] uppercase tracking-[2px] text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          {osintLog.length > 0 && (
+            <div className="font-mono text-[11px] leading-relaxed text-muted-foreground bg-muted/30 border border-border rounded p-3 max-h-[200px] overflow-y-auto">
+              {osintLog.map((line, i) => (
+                <div key={i} className={line.includes("Found") && !line.includes("Found 0") ? "text-primary font-medium" : ""}>
+                  {line}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
