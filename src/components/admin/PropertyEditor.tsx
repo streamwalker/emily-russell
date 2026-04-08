@@ -357,8 +357,11 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     setSmartAdding(true);
     setSmartAddError("");
     try {
+      const images = smartAddFiles.filter(f => f.type === "image").map(f => f.dataUrl!);
+      const docTexts = smartAddFiles.filter(f => f.type === "document" && f.text).map(f => `\n--- From ${f.name} ---\n${f.text}\n--- End ---`);
+      const combinedText = smartAddText + (docTexts.length > 0 ? "\n\n[Extracted from uploaded documents:]\n" + docTexts.join("\n") : "");
       const { data: result, error } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: smartAddText },
+        body: { rawText: combinedText, images },
       });
       if (error) throw new Error(error.message || "Extraction failed");
       if (result?.error) throw new Error(result.error);
@@ -368,6 +371,19 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
       setSmartAddError(e instanceof Error ? e.message : "Failed to extract properties");
     }
     setSmartAdding(false);
+  };
+
+  const handleSmartAddFileDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const parsed = await parseFiles(e.dataTransfer.files);
+    setSmartAddFiles(prev => [...prev, ...parsed].slice(0, 10));
+  };
+
+  const handleSmartAddFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const parsed = await parseFiles(e.target.files);
+    setSmartAddFiles(prev => [...prev, ...parsed].slice(0, 10));
+    e.target.value = "";
   };
 
   const confirmSmartAdd = () => {
