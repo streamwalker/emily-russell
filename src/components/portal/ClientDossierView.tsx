@@ -835,16 +835,36 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
 
         {/* Content */}
         <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
-          <FilterSortToolbar
-            filters={filters}
-            sort={sort}
-            onFiltersChange={setFilters}
-            onSortChange={setSort}
-            cities={cities}
-            builders={builders}
-            favCount={favCount}
-          />
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex-1">
+              <FilterSortToolbar
+                filters={filters}
+                sort={sort}
+                onFiltersChange={setFilters}
+                onSortChange={setSort}
+                cities={cities}
+                builders={builders}
+                favCount={favCount}
+              />
+            </div>
+            <Button
+              variant={dashboardMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDashboardMode(!dashboardMode)}
+              className="text-xs gap-1.5 shrink-0"
+            >
+              {dashboardMode ? <List className="h-3.5 w-3.5" /> : <BarChart3 className="h-3.5 w-3.5" />}
+              {dashboardMode ? "List View" : "Dashboard"}
+            </Button>
+          </div>
 
+          {dashboardMode ? (
+            <DossierDashboardView
+              properties={allProperties}
+              interactions={interactions}
+            />
+          ) : (
+          <>
           <h2 className="font-display text-lg font-semibold mb-3.5" style={{ color: currentTab.color }}>
             {currentTab.label}
           </h2>
