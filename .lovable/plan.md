@@ -1,45 +1,30 @@
 
 
-## Property Comparison Dashboard — Matrix View + KPI Charts
+## Fix Overlapping Labels in Dashboard Charts
 
-### What We're Building
+The labels are getting truncated and overlapping because (1) the `shortAddr()` function aggressively truncates to 2 words, (2) the YAxis width is only 55px for horizontal bar charts, and (3) the chart height is fixed at 200px regardless of how many properties there are.
 
-A new tab-like toggle in the client dossier that switches from the current card-based property list to a full-screen comparison dashboard with two sections:
+### Changes in `src/components/portal/DossierDashboardView.tsx`
 
-1. **KPI Summary Charts** (inspired by image 1) — A grid of 4-6 charts showing portfolio-level metrics: price distribution bar chart, price per sq ft comparison, beds/baths breakdown, grade distribution donut, expense breakdown, and yield comparison.
+**1. Increase `shortAddr` to show more of the address**
+- Change from 2-word truncation to showing the street number + first 2 words of the street name, with a higher character limit (~25 chars) before truncating.
 
-2. **Property Comparison Matrix** (inspired by image 2) — A feature-comparison table with properties as columns and attributes as rows, using checkmarks and values. Rows include: price, sqft, beds, baths, stories, garages, status, grade, favorite, PITI, rent estimate, yield, net cash flow. Toggle between "All Homes" and "Selected Homes" (favorited/graded properties).
+**2. Make chart height dynamic based on property count**
+- Instead of fixed `h-[200px]`, calculate height: `max(200, numProperties * 28)` px for horizontal bar charts (Price, $/sqft, Yield) so each bar gets adequate vertical space.
 
-### Steps
+**3. Widen YAxis for horizontal bar charts**
+- Increase `width` from `55` to `100` on YAxis for the three horizontal bar charts (Price, $/sqft, Yield) so addresses don't overlap.
+- Increase left margin from `60` to `100` to match.
 
-**1. Create `src/components/portal/DossierDashboardView.tsx`**
+**4. Increase bottom margin for vertical bar charts**
+- For Beds & Baths and Monthly Expenses charts, increase `bottom` margin from `30` to `50` and reduce font angle overlap by ensuring adequate tick spacing.
 
-New component that receives `properties`, `interactions`, and renders:
-
-- **Toggle bar** at top: "All Homes" | "Favorited/Graded Only"
-- **KPI Charts section** (top half, 2x3 grid using Recharts — already available via the chart UI component):
-  - Horizontal bar chart: price by property (sorted)
-  - Bar chart: $/sq ft comparison
-  - Grouped bar: beds & baths by property
-  - Donut/pie: grade distribution (A/B/C/D/F counts from interactions)
-  - Stacked bar: monthly expense breakdown (PITI, HOA, utilities)
-  - Bar chart: projected yield comparison
-- **Comparison Matrix** (bottom half): Styled table matching image 2 aesthetic — dark header row with property names as columns, attribute rows with alternating gray bands, checkmarks for boolean features (favorite, has garage, move-in ready), values for numeric fields
-
-**2. Add toggle button in `ClientDossierView.tsx`**
-
-- Add a "📊 Dashboard View" / "📋 List View" toggle button near the filter toolbar
-- When dashboard mode is active, hide the property card list and render `DossierDashboardView` instead
-- Pass all properties (or filtered subset), interactions, and grades
-
-**3. Recharts integration**
-
-Use the existing `src/components/ui/chart.tsx` (Recharts wrapper) for all charts. No new dependencies needed.
+**5. Widen matrix column headers**
+- Change `min-w-[130px]` to `min-w-[160px]` and remove `max-w-[160px]` so the full address can display. Remove `truncate` class and allow wrapping with `whitespace-normal` and `leading-tight`.
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/components/portal/DossierDashboardView.tsx` | New — KPI charts + comparison matrix |
-| `src/components/portal/ClientDossierView.tsx` | Add dashboard/list toggle, render new component |
+| `src/components/portal/DossierDashboardView.tsx` | Update chart dimensions, label widths, and address formatting |
 
