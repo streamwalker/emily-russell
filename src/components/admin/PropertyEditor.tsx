@@ -562,7 +562,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         <div className="bg-muted/30 border border-border rounded p-4 mb-4">
           <label className="er-label block mb-1 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            Paste property info or URLs to add via AI
+            Paste property info or upload files (images, PDFs, Word docs, spreadsheets)
           </label>
           <textarea
             value={smartAddText}
@@ -572,17 +572,58 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
             className="er-input text-sm w-full mb-2"
             style={{ resize: "vertical" }}
           />
+
+          {/* File upload zone */}
+          <div
+            onDragOver={e => e.preventDefault()}
+            onDrop={handleSmartAddFileDrop}
+            className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-3 text-center hover:border-primary/50 transition-colors cursor-pointer mb-2"
+            onClick={() => document.getElementById("smart-add-file-input")?.click()}
+          >
+            <input
+              id="smart-add-file-input"
+              type="file"
+              accept={ACCEPTED_FILE_TYPES}
+              multiple
+              className="hidden"
+              onChange={handleSmartAddFileSelect}
+            />
+            <Upload className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">Drag & drop or click — images, PDFs, Word, Excel (max 10)</p>
+          </div>
+
+          {smartAddFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {smartAddFiles.map((file, i) => (
+                <div key={i} className="relative group">
+                  {file.type === "image" && file.dataUrl ? (
+                    <img src={file.dataUrl} alt={file.name} className="w-14 h-14 object-cover rounded border border-border" />
+                  ) : (
+                    <div className="w-14 h-14 rounded border border-border bg-muted flex flex-col items-center justify-center p-1">
+                      <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-[7px] text-muted-foreground truncate w-full text-center mt-0.5">{file.name.split('.').pop()?.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSmartAddFiles(prev => prev.filter((_, j) => j !== i)); }}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {smartAddError && <div className="text-destructive text-xs mb-2">{smartAddError}</div>}
           <div className="flex gap-2">
             <button
               onClick={smartAdd}
-              disabled={smartAdding || smartAddText.trim().length < 10}
+              disabled={smartAdding || (smartAddText.trim().length < 10 && smartAddFiles.length === 0)}
               className="btn-er-primary !py-2 !px-4 !text-[10px] flex items-center gap-1.5"
             >
               {smartAdding ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Extracting…</> : <><Sparkles className="w-3.5 h-3.5" /> Extract & Preview</>}
             </button>
             <button
-              onClick={() => { setShowSmartAdd(false); setSmartAddText(""); setSmartAddError(""); }}
+              onClick={() => { setShowSmartAdd(false); setSmartAddText(""); setSmartAddError(""); setSmartAddFiles([]); }}
               className="btn-outline-light !text-charcoal !border-border !py-2 !px-4 !text-[10px]"
             >
               Cancel
