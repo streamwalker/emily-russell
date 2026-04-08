@@ -7,7 +7,8 @@ import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X, ImagePlus } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X, Upload } from "lucide-react";
+import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import ClientDossierView from "@/components/portal/ClientDossierView";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
@@ -84,7 +85,7 @@ export default function AdminDashboard() {
   const [extracting, setExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [useRawJson, setUseRawJson] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<ParsedFile[]>([]);
 
   // New client inline form
   const [addingNewClient, setAddingNewClient] = useState(false);
@@ -107,7 +108,7 @@ export default function AdminDashboard() {
   const [newTemplateUseRawJson, setNewTemplateUseRawJson] = useState(false);
   const [newTemplateJson, setNewTemplateJson] = useState("{}");
   const [templateExtracting, setTemplateExtracting] = useState(false);
-  const [templateUploadedImages, setTemplateUploadedImages] = useState<string[]>([]);
+  const [templateUploadedFiles, setTemplateUploadedFiles] = useState<ParsedFile[]>([]);
 
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
@@ -415,35 +416,33 @@ export default function AdminDashboard() {
     setSaving(false);
   };
 
-  const filesToBase64 = (files: FileList | File[]): Promise<string[]> => {
-    return Promise.all(Array.from(files).filter(f => f.type.startsWith("image/")).slice(0, 10).map(f =>
-      new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(f);
-      })
-    ));
-  };
-
-  const handleImageDrop = async (e: React.DragEvent, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+  const handleFileDrop = async (e: React.DragEvent, setter: React.Dispatch<React.SetStateAction<ParsedFile[]>>) => {
     e.preventDefault();
-    const imgs = await filesToBase64(e.dataTransfer.files);
-    setter(prev => [...prev, ...imgs].slice(0, 10));
+    const parsed = await parseFiles(e.dataTransfer.files);
+    setter(prev => [...prev, ...parsed].slice(0, 10));
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<ParsedFile[]>>) => {
     if (!e.target.files) return;
-    const imgs = await filesToBase64(e.target.files);
-    setter(prev => [...prev, ...imgs].slice(0, 10));
+    const parsed = await parseFiles(e.target.files);
+    setter(prev => [...prev, ...parsed].slice(0, 10));
     e.target.value = "";
+  };
+
+  const getImagesAndText = (files: ParsedFile[], rawText: string) => {
+    const images = files.filter(f => f.type === "image").map(f => f.dataUrl!);
+    const docTexts = files.filter(f => f.type === "document" && f.text).map(f => `\n--- From ${f.name} ---\n${f.text}\n--- End ---`);
+    const combinedText = rawText + (docTexts.length > 0 ? "\n\n[Extracted from uploaded documents:]\n" + docTexts.join("\n") : "");
+    return { images, combinedText };
   };
 
   const extractTemplateProperties = async () => {
     setTemplateExtracting(true);
     setError("");
     try {
+      const { images, combinedText } = getImagesAndText(templateUploadedFiles, newTemplateRawText);
       const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: newTemplateRawText, images: templateUploadedImages },
+        body: { rawText: combinedText, images },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
       if (data?.error) throw new Error(data.error);
@@ -458,8 +457,9 @@ export default function AdminDashboard() {
     setExtracting(true);
     setError("");
     try {
+      const { images, combinedText } = getImagesAndText(uploadedFiles, newRawText);
       const { data, error: fnErr } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: newRawText, images: uploadedImages },
+        body: { rawText: combinedText, images },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
       if (data?.error) throw new Error(data.error);
@@ -487,7 +487,7 @@ export default function AdminDashboard() {
       setNewJson("{}");
       setNewRawText("");
       setExtractedData(null);
-      setUploadedImages([]);
+      setUploadedFiles([]);
       fetchData();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create dossier");
@@ -759,7 +759,7 @@ export default function AdminDashboard() {
                     <div>
                       <label className="er-label block mb-1 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
-                        Paste property info or upload images (screenshots of listings, MLS sheets)
+                        Paste property info or upload files (images, PDFs, Word docs, spreadsheets)
                       </label>
                       <textarea
                         value={newRawText}
@@ -770,32 +770,39 @@ export default function AdminDashboard() {
                         style={{ resize: "vertical" }}
                       />
 
-                      {/* Image upload zone */}
+                      {/* File upload zone */}
                       <div
                         onDragOver={e => e.preventDefault()}
-                        onDrop={e => handleImageDrop(e, setUploadedImages)}
+                        onDrop={e => handleFileDrop(e, setUploadedFiles)}
                         className="mt-2 border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                        onClick={() => document.getElementById("dossier-img-input")?.click()}
+                        onClick={() => document.getElementById("dossier-file-input")?.click()}
                       >
                         <input
-                          id="dossier-img-input"
+                          id="dossier-file-input"
                           type="file"
-                          accept="image/*"
+                          accept={ACCEPTED_FILE_TYPES}
                           multiple
                           className="hidden"
-                          onChange={e => handleImageSelect(e, setUploadedImages)}
+                          onChange={e => handleFileSelect(e, setUploadedFiles)}
                         />
-                        <ImagePlus className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Drag & drop images or click to upload (max 10)</p>
+                        <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Drag & drop files or click to upload — images, PDFs, Word, Excel (max 10)</p>
                       </div>
 
-                      {uploadedImages.length > 0 && (
+                      {uploadedFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {uploadedImages.map((img, i) => (
+                          {uploadedFiles.map((file, i) => (
                             <div key={i} className="relative group">
-                              <img src={img} alt={`Upload ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
+                              {file.type === "image" && file.dataUrl ? (
+                                <img src={file.dataUrl} alt={file.name} className="w-16 h-16 object-cover rounded border border-border" />
+                              ) : (
+                                <div className="w-16 h-16 rounded border border-border bg-muted flex flex-col items-center justify-center p-1">
+                                  <FileText className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-[7px] text-muted-foreground truncate w-full text-center mt-0.5">{file.name.split('.').pop()?.toUpperCase()}</span>
+                                </div>
+                              )}
                               <button
-                                onClick={() => setUploadedImages(prev => prev.filter((_, j) => j !== i))}
+                                onClick={() => setUploadedFiles(prev => prev.filter((_, j) => j !== i))}
                                 className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
                               >×</button>
                             </div>
@@ -805,7 +812,7 @@ export default function AdminDashboard() {
 
                       <button
                         onClick={extractProperties}
-                        disabled={extracting || (newRawText.trim().length < 10 && uploadedImages.length === 0)}
+                        disabled={extracting || (newRawText.trim().length < 10 && uploadedFiles.length === 0)}
                         className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
                       >
                         {extracting ? (
@@ -1081,29 +1088,36 @@ export default function AdminDashboard() {
 
                       <div
                         onDragOver={e => e.preventDefault()}
-                        onDrop={e => handleImageDrop(e, setTemplateUploadedImages)}
+                        onDrop={e => handleFileDrop(e, setTemplateUploadedFiles)}
                         className="mt-2 border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                        onClick={() => document.getElementById("template-img-input")?.click()}
+                        onClick={() => document.getElementById("template-file-input")?.click()}
                       >
                         <input
-                          id="template-img-input"
+                          id="template-file-input"
                           type="file"
-                          accept="image/*"
+                          accept={ACCEPTED_FILE_TYPES}
                           multiple
                           className="hidden"
-                          onChange={e => handleImageSelect(e, setTemplateUploadedImages)}
+                          onChange={e => handleFileSelect(e, setTemplateUploadedFiles)}
                         />
-                        <ImagePlus className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Drag & drop images or click to upload (max 10)</p>
+                        <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Drag & drop files or click to upload — images, PDFs, Word, Excel (max 10)</p>
                       </div>
 
-                      {templateUploadedImages.length > 0 && (
+                      {templateUploadedFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {templateUploadedImages.map((img, i) => (
+                          {templateUploadedFiles.map((file, i) => (
                             <div key={i} className="relative group">
-                              <img src={img} alt={`Upload ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
+                              {file.type === "image" && file.dataUrl ? (
+                                <img src={file.dataUrl} alt={file.name} className="w-16 h-16 object-cover rounded border border-border" />
+                              ) : (
+                                <div className="w-16 h-16 rounded border border-border bg-muted flex flex-col items-center justify-center p-1">
+                                  <FileText className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-[7px] text-muted-foreground truncate w-full text-center mt-0.5">{file.name.split('.').pop()?.toUpperCase()}</span>
+                                </div>
+                              )}
                               <button
-                                onClick={() => setTemplateUploadedImages(prev => prev.filter((_, j) => j !== i))}
+                                onClick={() => setTemplateUploadedFiles(prev => prev.filter((_, j) => j !== i))}
                                 className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
                               >×</button>
                             </div>
@@ -1113,7 +1127,7 @@ export default function AdminDashboard() {
 
                       <button
                         onClick={extractTemplateProperties}
-                        disabled={templateExtracting || (newTemplateRawText.trim().length < 10 && templateUploadedImages.length === 0)}
+                        disabled={templateExtracting || (newTemplateRawText.trim().length < 10 && templateUploadedFiles.length === 0)}
                         className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
                       >
                         {templateExtracting ? (
