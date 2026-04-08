@@ -71,7 +71,17 @@ ADDRESS VALIDATION (very important):
 - Prices (e.g. "$227,999"), dollar amounts, plan/model names (e.g. "The Aspen"), bed/bath counts (e.g. "3/2"), sqft values, and percentages are NOT addresses — never put these in the address field.
 - If a community or subdivision name appears alongside the address (e.g. "123 Oak Ln (Hidden Oasis)" or a column header like "Hidden Oasis"), extract the community name into the "community" field and keep only the street address in "address".
 - If a price range appears (e.g. "$227,999–$238,399" or "$227,999-$238,399"), use the LOWER value for the "price" field.
-- City and state should go in "city", NOT in "address". Strip state abbreviations and zip codes from the address field.`;
+- City and state should go in "city", NOT in "address". Strip state abbreviations and zip codes from the address field.
+
+MERGING RULES (critical for PDFs and tabular data):
+- Property data often spans MULTIPLE lines. A street address line may be followed by a separate line containing price, beds/baths, sqft, plan name, etc.
+- If a line or data chunk has NO valid street address (no leading digits + street name), it is NOT a separate property. Merge its data (price, beds, baths, sqft, plan, status, etc.) into the most recent preceding property that HAS a valid address.
+- NEVER create a property entry whose address field contains a price (e.g. "$227,999"), a bed/bath spec (e.g. "3/2"), a sqft value, or a plan/model name. These are attributes, not addresses.
+- After extraction, review your output: if ANY property has an address that does not start with a house number followed by a street name, DELETE that entry and merge its data into the nearest valid property.
+- Example of multi-line property data:
+  Line 1: "13860 Chital Chase (Hidden Oasis)"
+  Line 2: "$227,999–$238,399 | Beds/Baths: 3/2 | Sq Ft: 1,402 | Plan: Kitson"
+  → This is ONE property: address="13860 Chital Chase", community="Hidden Oasis", price=227999, beds=3, baths="2", sqft=1402, plan="Kitson"`;
 
 const URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
 
