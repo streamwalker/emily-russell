@@ -41,7 +41,19 @@ async function parsePdf(file: File): Promise<string | ParsedFile[]> {
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const text = content.items.map((item: any) => item.str).join(" ");
+    // Position-aware text reconstruction to preserve table/row layout
+    let text = "";
+    let lastY: number | null = null;
+    for (const item of content.items as any[]) {
+      const y = item.transform?.[5];
+      if (lastY !== null && y !== undefined && Math.abs(y - lastY) > 5) {
+        text += "\n";
+      } else if (text.length > 0) {
+        text += " ";
+      }
+      text += item.str;
+      if (y !== undefined) lastY = y;
+    }
     if (text.trim()) pages.push(text);
   }
   const fullText = pages.join("\n\n");

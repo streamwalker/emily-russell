@@ -64,7 +64,14 @@ CRITICAL RULES:
 - Even if you only have an address (and optionally a city/state/zip), you MUST still create a property entry with whatever fields are available.
 - NEVER return an empty properties map if you can identify at least one address in the input.
 - Every tab in the tabs array MUST have at least one corresponding entry in the properties map.
-- When in doubt, create a property with just the address field filled in.`;
+- When in doubt, create a property with just the address field filled in.
+
+ADDRESS VALIDATION (very important):
+- A valid street address MUST start with a house/street number (digits) followed by a street name (e.g. "13860 Chital Chase").
+- Prices (e.g. "$227,999"), dollar amounts, plan/model names (e.g. "The Aspen"), bed/bath counts (e.g. "3/2"), sqft values, and percentages are NOT addresses — never put these in the address field.
+- If a community or subdivision name appears alongside the address (e.g. "123 Oak Ln (Hidden Oasis)" or a column header like "Hidden Oasis"), extract the community name into the "community" field and keep only the street address in "address".
+- If a price range appears (e.g. "$227,999–$238,399" or "$227,999-$238,399"), use the LOWER value for the "price" field.
+- City and state should go in "city", NOT in "address". Strip state abbreviations and zip codes from the address field.`;
 
 const URL_REGEX = /https?:\/\/[^\s<>"]+/gi;
 
