@@ -954,6 +954,8 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
             <span className="font-bold uppercase tracking-wider" style={{ color: "#666" }}>Disclaimer: </span>
             Pricing, availability, and specifications subject to change without notice. Rental estimates based on comparables as of April 2026. Not financial or investment advice. Builder incentives subject to lender approval. Consult a financial advisor before investing. Prepared by Emily Russell, REALTOR® — Fathom Realty · (210) 912-0806 · emily@streamwalkers.com · alamocitydesigns.com
           </div>
+          </>
+          )}
         </div>
 
         {/* Compare */}
