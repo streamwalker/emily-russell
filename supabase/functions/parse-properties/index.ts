@@ -189,17 +189,18 @@ serve(async (req) => {
       });
     }
 
-    const { rawText } = await req.json();
-    if (!rawText || typeof rawText !== "string" || rawText.trim().length < 10) {
-      return new Response(JSON.stringify({ error: "Please provide property text to parse (at least 10 characters)" }), {
+    const { rawText, images } = await req.json();
+    const hasImages = Array.isArray(images) && images.length > 0;
+    if ((!rawText || typeof rawText !== "string" || rawText.trim().length < 10) && !hasImages) {
+      return new Response(JSON.stringify({ error: "Please provide property text or images to parse" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    const urls = rawText.match(URL_REGEX) || [];
-    let enrichedText = rawText;
+    const urls = (rawText || "").match(URL_REGEX) || [];
+    let enrichedText = rawText || "";
 
     if (urls.length === 0 && FIRECRAWL_API_KEY) {
       // ── Research Agent: address-only input → search the web ──────────
@@ -243,6 +244,22 @@ serve(async (req) => {
       });
     }
 
+    // Build user message content parts (text + optional images)
+    const userContent: any[] = [];
+    if (enrichedText && enrichedText.trim().length > 0) {
+      userContent.push({ type: "text", text: `Extract property data from the following text:\n\n${enrichedText}` });
+    } else {
+      userContent.push({ type: "text", text: "Extract property data from the following images:" });
+    }
+    if (hasImages) {
+      for (const img of images.slice(0, 10)) {
+        userContent.push({
+          type: "image_url",
+          image_url: { url: img },
+        });
+      }
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -250,10 +267,10 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: `Extract property data from the following text:\n\n${enrichedText}` },
+          { role: "user", content: userContent },
         ],
         tools: [
           {
