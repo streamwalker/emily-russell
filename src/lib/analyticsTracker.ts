@@ -14,13 +14,13 @@ export function trackPageView(page: string) {
   const sessionId = getSessionId();
 
   // Fire and forget insert
-  supabase.from("analytics_events").insert({
+  Promise.resolve(supabase.from("analytics_events").insert({
     event_type: "page_view",
     page,
     referrer: document.referrer || null,
     user_agent: navigator.userAgent,
     session_id: sessionId,
-  }).then(() => {}).catch(() => {});
+  })).catch(() => {});
 
   // On page unload, log duration using fetch + keepalive (headers instead of query-string key)
   const handleUnload = () => {
@@ -54,11 +54,11 @@ export function trackPageView(page: string) {
 
 export function trackLinkClick(label: string, target: string) {
   const sessionId = getSessionId();
-  supabase.from("analytics_events").insert({
+  Promise.resolve(supabase.from("analytics_events").insert({
     event_type: "link_click",
     label,
     target,
     page: window.location.pathname,
     session_id: sessionId,
-  }).then(() => {}).catch(() => {});
+  })).catch(() => {});
 }
