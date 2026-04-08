@@ -85,7 +85,7 @@ export default function AdminDashboard() {
   const [extracting, setExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [useRawJson, setUseRawJson] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<ParsedFile[]>([]);
 
   // New client inline form
   const [addingNewClient, setAddingNewClient] = useState(false);
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
   const [newTemplateUseRawJson, setNewTemplateUseRawJson] = useState(false);
   const [newTemplateJson, setNewTemplateJson] = useState("{}");
   const [templateExtracting, setTemplateExtracting] = useState(false);
-  const [templateUploadedImages, setTemplateUploadedImages] = useState<string[]>([]);
+  const [templateUploadedFiles, setTemplateUploadedFiles] = useState<ParsedFile[]>([]);
 
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
@@ -416,27 +416,24 @@ export default function AdminDashboard() {
     setSaving(false);
   };
 
-  const filesToBase64 = (files: FileList | File[]): Promise<string[]> => {
-    return Promise.all(Array.from(files).filter(f => f.type.startsWith("image/")).slice(0, 10).map(f =>
-      new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(f);
-      })
-    ));
-  };
-
-  const handleImageDrop = async (e: React.DragEvent, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+  const handleFileDrop = async (e: React.DragEvent, setter: React.Dispatch<React.SetStateAction<ParsedFile[]>>) => {
     e.preventDefault();
-    const imgs = await filesToBase64(e.dataTransfer.files);
-    setter(prev => [...prev, ...imgs].slice(0, 10));
+    const parsed = await parseFiles(e.dataTransfer.files);
+    setter(prev => [...prev, ...parsed].slice(0, 10));
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<ParsedFile[]>>) => {
     if (!e.target.files) return;
-    const imgs = await filesToBase64(e.target.files);
-    setter(prev => [...prev, ...imgs].slice(0, 10));
+    const parsed = await parseFiles(e.target.files);
+    setter(prev => [...prev, ...parsed].slice(0, 10));
     e.target.value = "";
+  };
+
+  const getImagesAndText = (files: ParsedFile[], rawText: string) => {
+    const images = files.filter(f => f.type === "image").map(f => f.dataUrl!);
+    const docTexts = files.filter(f => f.type === "document" && f.text).map(f => `\n--- From ${f.name} ---\n${f.text}\n--- End ---`);
+    const combinedText = rawText + (docTexts.length > 0 ? "\n\n[Extracted from uploaded documents:]\n" + docTexts.join("\n") : "");
+    return { images, combinedText };
   };
 
   const extractTemplateProperties = async () => {
