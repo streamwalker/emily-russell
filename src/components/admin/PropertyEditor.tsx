@@ -406,6 +406,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     });
     setSmartAddPreview(null);
     setSmartAddText("");
+    setSmartAddFiles([]);
     setShowSmartAdd(false);
   };
 
