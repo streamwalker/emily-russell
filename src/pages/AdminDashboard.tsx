@@ -487,6 +487,7 @@ export default function AdminDashboard() {
       setNewJson("{}");
       setNewRawText("");
       setExtractedData(null);
+      setUploadedImages([]);
       fetchData();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create dossier");
@@ -758,19 +759,53 @@ export default function AdminDashboard() {
                     <div>
                       <label className="er-label block mb-1 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
-                        Paste property info (addresses, MLS data, listing descriptions, URLs)
+                        Paste property info or upload images (screenshots of listings, MLS sheets)
                       </label>
                       <textarea
                         value={newRawText}
                         onChange={e => setNewRawText(e.target.value)}
-                        rows={12}
-                        placeholder={"Paste listing info here. For example:\n\n1234 Oak Lane, Round Rock TX 78665\n$385,000 | 4 bed 2.5 bath | 2,400 sqft\nBuilder: Meritage Homes | Plan: The Aspen\nCommunity: Siena\nhttps://zillow.com/listing/1234\n\n5678 Elm Dr, Georgetown TX 78626\n$420,000 | 3 bed 2 bath | 1,800 sqft\nBuilder: Taylor Morrison"}
+                        rows={8}
+                        placeholder={"Paste listing info here. For example:\n\n1234 Oak Lane, Round Rock TX 78665\n$385,000 | 4 bed 2.5 bath | 2,400 sqft\nBuilder: Meritage Homes | Plan: The Aspen\nhttps://zillow.com/listing/1234"}
                         className="er-input text-sm"
                         style={{ resize: "vertical" }}
                       />
+
+                      {/* Image upload zone */}
+                      <div
+                        onDragOver={e => e.preventDefault()}
+                        onDrop={e => handleImageDrop(e, setUploadedImages)}
+                        className="mt-2 border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                        onClick={() => document.getElementById("dossier-img-input")?.click()}
+                      >
+                        <input
+                          id="dossier-img-input"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={e => handleImageSelect(e, setUploadedImages)}
+                        />
+                        <ImagePlus className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Drag & drop images or click to upload (max 10)</p>
+                      </div>
+
+                      {uploadedImages.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {uploadedImages.map((img, i) => (
+                            <div key={i} className="relative group">
+                              <img src={img} alt={`Upload ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
+                              <button
+                                onClick={() => setUploadedImages(prev => prev.filter((_, j) => j !== i))}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                              >×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <button
                         onClick={extractProperties}
-                        disabled={extracting || newRawText.trim().length < 10}
+                        disabled={extracting || (newRawText.trim().length < 10 && uploadedImages.length === 0)}
                         className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
                       >
                         {extracting ? (
