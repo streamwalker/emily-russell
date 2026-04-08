@@ -32,9 +32,11 @@ async function fileToArrayBuffer(file: File): Promise<ArrayBuffer> {
   });
 }
 
-async function parsePdf(file: File): Promise<string> {
+async function parsePdf(file: File): Promise<string | ParsedFile[]> {
   const buffer = await fileToArrayBuffer(file);
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+
+  // Try native text extraction first
   const pages: string[] = [];
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
@@ -42,7 +44,32 @@ async function parsePdf(file: File): Promise<string> {
     const text = content.items.map((item: any) => item.str).join(" ");
     if (text.trim()) pages.push(text);
   }
-  return pages.join("\n\n");
+  const fullText = pages.join("\n\n");
+
+  // Check text quality
+  const hasGoodText = fullText.length > 50 && (fullText.match(/[a-zA-Z]/g) || []).length > 30;
+  if (hasGoodText) {
+    return fullText;
+  }
+
+  // Fallback: render pages to images for vision pipeline
+  const images: ParsedFile[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) continue;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    images.push({
+      name: `${file.name}_page${i}.jpg`,
+      type: "image",
+      dataUrl: canvas.toDataURL("image/jpeg", 0.8),
+    });
+  }
+  return images;
 }
 
 async function parseDocx(file: File): Promise<string> {
@@ -64,7 +91,6 @@ async function parseXlsx(file: File): Promise<string> {
 }
 
 const DOC_EXTENSIONS: Record<string, (f: File) => Promise<string>> = {
-  "application/pdf": parsePdf,
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": parseDocx,
   "application/msword": parseDocx,
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": parseXlsx,
@@ -74,11 +100,14 @@ const DOC_EXTENSIONS: Record<string, (f: File) => Promise<string>> = {
 
 function getParserByName(name: string): ((f: File) => Promise<string>) | null {
   const ext = name.split(".").pop()?.toLowerCase();
-  if (ext === "pdf") return parsePdf;
   if (ext === "docx" || ext === "doc") return parseDocx;
   if (ext === "xlsx" || ext === "xls") return parseXlsx;
   if (ext === "csv" || ext === "txt") return async (f) => f.text();
   return null;
+}
+
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 }
 
 export async function parseFiles(files: FileList | File[]): Promise<ParsedFile[]> {
@@ -87,6 +116,19 @@ export async function parseFiles(files: FileList | File[]): Promise<ParsedFile[]
     if (IMAGE_TYPES.includes(file.type)) {
       const dataUrl = await fileToDataUrl(file);
       results.push({ name: file.name, type: "image", dataUrl });
+    } else if (isPdf(file)) {
+      try {
+        const result = await parsePdf(file);
+        if (Array.isArray(result)) {
+          // Vision fallback — each page rendered as an image
+          results.push(...result);
+        } else {
+          results.push({ name: file.name, type: "document", text: result });
+        }
+      } catch (e) {
+        console.error(`Failed to parse ${file.name}:`, e);
+        results.push({ name: file.name, type: "document", text: `[Failed to parse ${file.name}]` });
+      }
     } else {
       const parser = DOC_EXTENSIONS[file.type] || getParserByName(file.name);
       if (parser) {
