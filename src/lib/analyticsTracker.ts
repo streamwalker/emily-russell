@@ -20,12 +20,11 @@ export function trackPageView(page: string) {
     referrer: document.referrer || null,
     user_agent: navigator.userAgent,
     session_id: sessionId,
-  }).then(() => {});
+  }).then(() => {}).catch(() => {});
 
-  // On page unload, log duration
+  // On page unload, log duration using fetch + keepalive (headers instead of query-string key)
   const handleUnload = () => {
     const duration_ms = Date.now() - startTime;
-    // Use sendBeacon for reliability on unload
     const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/analytics_events`;
     const body = JSON.stringify({
       event_type: "page_view_duration",
@@ -33,10 +32,17 @@ export function trackPageView(page: string) {
       session_id: sessionId,
       duration_ms,
     });
-    navigator.sendBeacon(
-      url + `?apikey=${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      new Blob([body], { type: "application/json" })
-    );
+    fetch(url, {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        "Prefer": "return=minimal",
+      },
+      body,
+    }).catch(() => {});
   };
 
   window.addEventListener("beforeunload", handleUnload, { once: true });
@@ -54,5 +60,5 @@ export function trackLinkClick(label: string, target: string) {
     target,
     page: window.location.pathname,
     session_id: sessionId,
-  }).then(() => {});
+  }).then(() => {}).catch(() => {});
 }

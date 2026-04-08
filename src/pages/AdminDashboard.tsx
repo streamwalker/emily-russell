@@ -191,7 +191,7 @@ export default function AdminDashboard() {
     
     // Fetch replies for all interactions
     const interactionIds = (data || []).map(r => r.id);
-    let repliesMap: Record<string, { id: string; reply_text: string; created_at: string }[]> = {};
+    const repliesMap: Record<string, { id: string; reply_text: string; created_at: string }[]> = {};
     if (interactionIds.length > 0) {
       const { data: repliesData } = await supabase
         .from("comment_replies")
@@ -272,6 +272,14 @@ export default function AdminDashboard() {
     }
   }, [adminLoading, isAdmin, navigate, fetchData, fetchAnalytics]);
 
+  // Use refs to avoid re-subscribing when these values change
+  const profilesRef = useRef(profiles);
+  profilesRef.current = profiles;
+  const resolvePropertyRef = useRef(resolvePropertyFromDossiers);
+  resolvePropertyRef.current = resolvePropertyFromDossiers;
+  const fetchDataRef = useRef(fetchData);
+  fetchDataRef.current = fetchData;
+
   // Realtime subscription for new comments
   useEffect(() => {
     if (!isAdmin) return;
@@ -284,15 +292,14 @@ export default function AdminDashboard() {
         (payload) => {
           const row = payload.new as any;
           if (row.comments) {
-            const profile = profiles.find(p => p.user_id === row.user_id);
+            const profile = profilesRef.current.find(p => p.user_id === row.user_id);
             const clientName = profile?.full_name || profile?.email || "A client";
-            const resolved = resolvePropertyFromDossiers(row.property_id, row.user_id);
+            const resolved = resolvePropertyRef.current(row.property_id, row.user_id);
             toast.info(`${clientName} commented on ${resolved.address}`, {
               description: row.comments.length > 80 ? row.comments.slice(0, 80) + "…" : row.comments,
               duration: 8000,
             });
-            // Update interaction summaries
-            fetchData();
+            fetchDataRef.current();
           }
         }
       )
@@ -303,14 +310,14 @@ export default function AdminDashboard() {
           const row = payload.new as any;
           const old = payload.old as any;
           if (row.comments && row.comments !== old.comments) {
-            const profile = profiles.find(p => p.user_id === row.user_id);
+            const profile = profilesRef.current.find(p => p.user_id === row.user_id);
             const clientName = profile?.full_name || profile?.email || "A client";
-            const resolved = resolvePropertyFromDossiers(row.property_id, row.user_id);
+            const resolved = resolvePropertyRef.current(row.property_id, row.user_id);
             toast.info(`${clientName} commented on ${resolved.address}`, {
               description: row.comments.length > 80 ? row.comments.slice(0, 80) + "…" : row.comments,
               duration: 8000,
             });
-            fetchData();
+            fetchDataRef.current();
           }
         }
       )
@@ -319,7 +326,7 @@ export default function AdminDashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, profiles, resolvePropertyFromDossiers, fetchData]);
+  }, [isAdmin]);
 
   const getClientEmail = (userId: string) => profiles.find(p => p.user_id === userId)?.email || userId;
   const getClientName = (userId: string) => profiles.find(p => p.user_id === userId)?.full_name || "";

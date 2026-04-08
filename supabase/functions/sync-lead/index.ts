@@ -15,11 +15,11 @@ const LeadSchema = z.object({
   form_type: z.enum(["valuation", "contact"]).optional().nullable(),
 });
 
-const LEADGENIUS_URL = "https://cjsnpkvxajgyudlsange.supabase.co";
-const LEADGENIUS_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNqc25wa3Z4YWpneXVkbHNhbmdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDExNDQsImV4cCI6MjA4ODU3NzE0NH0.V6NxUw3XTUf9Xssu_tC5T3Mg2TrssveMs6RkrsZEY34";
+const LEADGENIUS_URL = Deno.env.get("LEADGENIUS_URL") ?? "";
+const LEADGENIUS_KEY = Deno.env.get("LEADGENIUS_KEY") ?? "";
 
-const RELOCATE_URL = "https://kicutcjdmsdannmkbzhq.supabase.co";
-const RELOCATE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpY3V0Y2pkbXNkYW5ubWtiemhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTc4MzIsImV4cCI6MjA4ODczMzgzMn0.PARYFRc5dYer4baQaIfRlHoxyQKrfqe9TNxwCmhCRxg";
+const RELOCATE_URL = Deno.env.get("RELOCATE_URL") ?? "";
+const RELOCATE_KEY = Deno.env.get("RELOCATE_KEY") ?? "";
 
 async function postToSupabase(url: string, key: string, table: string, data: Record<string, unknown>) {
   try {

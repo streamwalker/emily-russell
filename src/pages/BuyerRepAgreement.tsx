@@ -197,6 +197,8 @@ const BuyerRepAgreement = () => {
       });
       if (!resp.ok) throw new Error("PDF generation failed");
       const blob = await resp.blob();
+      // Revoke previous blob URL to prevent memory leak
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
       const url = URL.createObjectURL(blob);
       setPdfBlobUrl(url);
       const a = document.createElement("a");
