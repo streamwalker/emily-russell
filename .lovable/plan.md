@@ -1,44 +1,57 @@
 
 
-## Add "Create New Client" Option to Dossier Client Selector
+## Fix PDF Extraction for Smart Add
 
-### Overview
+### Problem
 
-Replace the plain `<select>` dropdown for client selection with a combo that includes an "+ Add New Client" option at the bottom. Selecting it reveals inline fields to enter the new client's email and name, creates a user account via the backend, inserts a profile row, then auto-selects the new client for the dossier.
+The client-side PDF parser (`pdfjs-dist`) extracts text natively, but this PDF (and many real-estate PDFs) contains styled/image-based content that yields empty or garbled text. The result: `[Failed to parse streamwalkers_property_portfolio.pdf]` gets sent to the AI, which returns 0 properties.
+
+### Solution
+
+Add a **vision fallback** in `documentParser.ts`: when native PDF text extraction produces poor results (short or empty text), render each PDF page to a canvas image and return those as base64 images instead. The existing vision pipeline in `parse-properties` already handles images via Gemini — so no edge function changes needed.
 
 ### Steps
 
-**1. Add inline "new client" UI in `AdminDashboard.tsx`**
+**1. Update `src/lib/documentParser.ts` — enhance `parsePdf`**
 
-- Add state: `addingNewClient`, `newClientEmail`, `newClientName`
-- Add an `<option value="__new__">+ Add New Client</option>` at the bottom of the existing `<select>`
-- When `__new__` is selected, show inline email + name inputs below the dropdown with a "Create Client" button
-- On create: call the backend to create the user, insert a profile row, refresh profiles, and auto-set `newUserId` to the new user's ID
+- After native text extraction, check quality: if extracted text has fewer than ~50 meaningful characters, treat the PDF as image-based
+- When quality is poor, use `pdf.getPage(i)` → render to an off-screen canvas at 150 DPI → convert to base64 JPEG data URL
+- Return multiple `ParsedFile` entries: one per page as `type: "image"` with the rendered data URL
+- Change `parseFiles` to support a parser returning multiple `ParsedFile` results (currently it expects a single text string)
 
-**2. Create an edge function `create-client` to handle user creation**
+**2. Update `ParsedFile` type and `parseFiles` function**
 
-- Accepts `{ email, full_name }` in the request body
-- Uses the Supabase Admin API (`supabase.auth.admin.createUser`) to create the auth user with a random password and `email_confirm: true`
-- Inserts a row into `profiles` with the new `user_id`, `email`, and `full_name`
-- Returns the new `user_id`
-- Only callable by authenticated admins (check `has_role`)
+- Add a new internal parser return type that can produce either text or an array of images
+- When a PDF falls back to image mode, push each page image as a separate `ParsedFile` with `type: "image"` so `getImagesAndText` in AdminDashboard automatically picks them up as vision inputs
 
-**3. Wire up the AdminDashboard**
+### No other files change
 
-- Call the `create-client` edge function from the "Create Client" button handler
-- On success: re-fetch profiles, set `newUserId` to the returned user ID, reset the inline form
-- On error: show the error message inline
+The `AdminDashboard.tsx` `getImagesAndText` helper already separates images from documents and sends images to the edge function's vision pipeline. The edge function already sends images to Gemini 2.5 Flash for extraction. This fix is entirely in the document parser.
 
-### Technical Details
+### Technical Detail
 
-- The edge function needs the `SUPABASE_SERVICE_ROLE_KEY` (already available as a default secret in edge functions)
-- No new database tables needed — uses existing `profiles` table
-- The created user gets a random password; the admin can trigger a password reset email separately if needed
+```typescript
+// In parsePdf, after native extraction:
+const hasGoodText = text.length > 50 && (text.match(/[a-zA-Z]/g) || []).length > 30;
+if (!hasGoodText) {
+  // Render pages to canvas → base64 JPEG
+  const images: ParsedFile[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
+    images.push({ name: `${fileName}_page${i}.jpg`, type: "image", dataUrl: canvas.toDataURL("image/jpeg", 0.8) });
+  }
+  return images; // array of image ParsedFiles
+}
+```
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `supabase/functions/create-client/index.ts` | New — edge function to create auth user + profile |
-| `src/pages/AdminDashboard.tsx` | Add "new client" option, inline form, and edge function call |
+| `src/lib/documentParser.ts` | Add vision fallback for PDFs with poor native text; update `parseFiles` to handle multi-result returns |
 
