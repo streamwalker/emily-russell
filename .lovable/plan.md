@@ -1,57 +1,55 @@
 
 
-## Fix PDF Extraction for Smart Add
+## Fix Property Data Extraction Quality
 
 ### Problem
 
-The client-side PDF parser (`pdfjs-dist`) extracts text natively, but this PDF (and many real-estate PDFs) contains styled/image-based content that yields empty or garbled text. The result: `[Failed to parse streamwalkers_property_portfolio.pdf]` gets sent to the AI, which returns 0 properties.
+Two issues are causing garbled extraction results (prices in address fields, broken data):
+
+1. **Lost table structure in PDF text extraction**: `parsePdf` joins all text items on a page with a single space (`items.map(i => i.str).join(" ")`), destroying row/column layout. A table row like `13860 Chital Chase | $227,999 | 3/2 | 1,402` becomes an unstructured blob.
+
+2. **Weak address validation in the AI prompt**: The system prompt doesn't tell the AI how to distinguish a real street address from other data (prices, plan names, metadata).
 
 ### Solution
 
-Add a **vision fallback** in `documentParser.ts`: when native PDF text extraction produces poor results (short or empty text), render each PDF page to a canvas image and return those as base64 images instead. The existing vision pipeline in `parse-properties` already handles images via Gemini — so no edge function changes needed.
+**1. Fix PDF text extraction to preserve spatial layout** (`src/lib/documentParser.ts`)
 
-### Steps
-
-**1. Update `src/lib/documentParser.ts` — enhance `parsePdf`**
-
-- After native text extraction, check quality: if extracted text has fewer than ~50 meaningful characters, treat the PDF as image-based
-- When quality is poor, use `pdf.getPage(i)` → render to an off-screen canvas at 150 DPI → convert to base64 JPEG data URL
-- Return multiple `ParsedFile` entries: one per page as `type: "image"` with the rendered data URL
-- Change `parseFiles` to support a parser returning multiple `ParsedFile` results (currently it expects a single text string)
-
-**2. Update `ParsedFile` type and `parseFiles` function**
-
-- Add a new internal parser return type that can produce either text or an array of images
-- When a PDF falls back to image mode, push each page image as a separate `ParsedFile` with `type: "image"` so `getImagesAndText` in AdminDashboard automatically picks them up as vision inputs
-
-### No other files change
-
-The `AdminDashboard.tsx` `getImagesAndText` helper already separates images from documents and sends images to the edge function's vision pipeline. The edge function already sends images to Gemini 2.5 Flash for extraction. This fix is entirely in the document parser.
-
-### Technical Detail
+Replace the naive `.join(" ")` with position-aware reconstruction:
+- Use each text item's `transform` matrix (Y coordinate) to detect line breaks
+- When the Y position changes significantly, insert a newline instead of a space
+- This preserves the table row structure so the AI receives clean, line-separated data
 
 ```typescript
-// In parsePdf, after native extraction:
-const hasGoodText = text.length > 50 && (text.match(/[a-zA-Z]/g) || []).length > 30;
-if (!hasGoodText) {
-  // Render pages to canvas → base64 JPEG
-  const images: ParsedFile[] = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 1.5 });
-    const canvas = document.createElement("canvas");
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
-    images.push({ name: `${fileName}_page${i}.jpg`, type: "image", dataUrl: canvas.toDataURL("image/jpeg", 0.8) });
+// Before (line 44):
+const text = content.items.map((item: any) => item.str).join(" ");
+
+// After:
+let text = "";
+let lastY: number | null = null;
+for (const item of content.items) {
+  const y = item.transform?.[5];
+  if (lastY !== null && y !== undefined && Math.abs(y - lastY) > 5) {
+    text += "\n";
+  } else if (text.length > 0) {
+    text += " ";
   }
-  return images; // array of image ParsedFiles
+  text += item.str;
+  if (y !== undefined) lastY = y;
 }
 ```
+
+**2. Add address validation rules to the system prompt** (`supabase/functions/parse-properties/index.ts`)
+
+Add explicit instructions to the SYSTEM_PROMPT:
+- A valid address MUST start with a street number (digits) followed by a street name
+- Prices, plan names, bed/bath counts, sqft values are NOT addresses
+- If a price range appears (e.g. "$227,999–$238,399"), use the lower value for `price`
+- Community/subdivision names in parentheses after the street (e.g. "123 Oak Ln (Hidden Oasis)") should be extracted as `community`, with only the street portion as `address`
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/lib/documentParser.ts` | Add vision fallback for PDFs with poor native text; update `parseFiles` to handle multi-result returns |
+| `src/lib/documentParser.ts` | Fix `parsePdf` to preserve line breaks using Y-coordinate detection |
+| `supabase/functions/parse-properties/index.ts` | Add address validation rules and price range handling to SYSTEM_PROMPT |
 
