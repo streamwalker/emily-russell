@@ -56,6 +56,13 @@ const BuyerRepAgreement = () => {
   const [signature2Data, setSignature2Data] = useState<string | null>(null);
   const [signature2Type, setSignature2Type] = useState<"draw" | "typed">("draw");
 
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    };
+  }, [pdfBlobUrl]);
+
   // Load user + admin client list
   useEffect(() => {
     const check = async () => {
@@ -197,6 +204,8 @@ const BuyerRepAgreement = () => {
       });
       if (!resp.ok) throw new Error("PDF generation failed");
       const blob = await resp.blob();
+      // Revoke previous blob URL to prevent memory leak
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
       const url = URL.createObjectURL(blob);
       setPdfBlobUrl(url);
       const a = document.createElement("a");
