@@ -1,68 +1,34 @@
 
 
-## Apply Codebase Scan Fixes
+## Deploy Three-File Bundle: OSINT Analyst + Updated Parse/PropertyEditor
 
-Addressing the actionable issues from the scan report. Skipping #5 (shared types), #7 (AdminDashboard decomposition), and #13 (tests) as they are large refactors better done separately. Skipping #15-16 (shadcn warnings) as they're not worth changing.
+### Summary
 
-### Critical Fixes
+Deploy the user's three uploaded files that add an AI-powered "OSINT Analyst" feature for enriching property data with web intelligence, alongside an updated parse-properties function and PropertyEditor UI.
 
-**1. Hardcoded API keys → secrets** (`supabase/functions/sync-lead/index.ts`)
-- Replace hardcoded `LEADGENIUS_KEY`, `LEADGENIUS_URL`, `RELOCATE_KEY`, `RELOCATE_URL` with `Deno.env.get(...)` calls
-- Add 4 secrets via the secrets tool: `LEADGENIUS_URL`, `LEADGENIUS_KEY`, `RELOCATE_URL`, `RELOCATE_KEY`
+### Changes
 
-**2. API key in URL query string** (`src/lib/analyticsTracker.ts`)
-- The `sendBeacon` call appends the anon key as a query param. Replace with a proper `fetch` + `keepalive: true` approach that puts the key in headers instead, or document as accepted risk since the table has insert-only RLS for anon.
-- Also add `.catch(() => {})` to both fire-and-forget calls (fixes #14 too).
+| File | Destination | Action |
+|------|-------------|--------|
+| `enrich-properties-index.ts` | `supabase/functions/enrich-properties/index.ts` | Create new edge function |
+| `parse-properties-index-2.ts` | `supabase/functions/parse-properties/index.ts` | Replace existing file |
+| `PropertyEditor.tsx` | `src/components/admin/PropertyEditor.tsx` | Replace existing file |
 
-**3. Blob URL memory leak** (`src/pages/BuyerRepAgreement.tsx`)
-- Revoke previous blob URL before creating a new one
-- Add `useEffect` cleanup to revoke on unmount
+### Steps
 
-### High Fixes
+1. **Create `supabase/functions/enrich-properties/index.ts`** — Copy the uploaded `enrich-properties-index.ts` as-is. This is a new edge function that:
+   - Accepts an array of properties, identifies missing fields
+   - Searches the web via Firecrawl for each property address
+   - Feeds results to Gemini 2.5 Flash to extract only missing field values
+   - Returns validated enrichment data with a detailed log
 
-**4. Realtime subscription churn** (`src/pages/AdminDashboard.tsx`)
-- Use `useRef` for `profiles`, `resolvePropertyFromDossiers`, and `fetchData` so the realtime effect only depends on `[isAdmin]`
+2. **Replace `supabase/functions/parse-properties/index.ts`** — Copy the uploaded `parse-properties-index-2.ts`. Contains the improved detail-string parsing and field merging logic.
 
-**8. Missing database indexes** (migration)
-- Add indexes on `analytics_events(event_type, created_at)`, `analytics_events(session_id)`, `property_interactions(user_id)`
+3. **Replace `src/components/admin/PropertyEditor.tsx`** — Copy the uploaded `PropertyEditor.tsx`. Adds the "Deploy OSINT Analyst" button, progress display, batch processing, and enrichment log UI.
 
-### Medium Fixes
+4. **Deploy both edge functions** — `enrich-properties` and `parse-properties`.
 
-**9. Ternary as statement** (`src/components/portal/ClientDossierView.tsx` ~line 658)
-- Replace `n.has(id) ? n.delete(id) : n.add(id)` with `if/else`
+### No New Secrets Needed
 
-**10. useCallback missing dep** (`src/components/portal/SignaturePad.tsx`)
-- `getCtx` and `getCanvas` are stable (defined in component body referencing a ref) — no actual bug, but make `getCanvas`/`getCtx` into refs or wrap in useCallback for correctness
-
-**11. `let` → `const`** (`src/pages/AdminDashboard.tsx` line 194)
-- Change `let repliesMap` to `const repliesMap`
-
-**12. Error boundary** (`src/App.tsx`)
-- Add a top-level React ErrorBoundary wrapping `<Routes>`
-
-**14. Analytics error handling** (`src/lib/analyticsTracker.ts`)
-- Add `.catch(() => {})` to both insert calls (combined with fix #2)
-
-**17. Console statements**
-- Skip for now — low impact and requires auditing many files
-
-**18. process-email-queue CORS comment** (`supabase/functions/process-email-queue/index.ts`)
-- Add comment noting this is a webhook-only function, no CORS needed
-
-### Files Changed
-
-| File | Changes |
-|------|---------|
-| `supabase/functions/sync-lead/index.ts` | Replace 4 hardcoded values with `Deno.env.get()` |
-| `src/lib/analyticsTracker.ts` | Fix sendBeacon key exposure; add `.catch()` to both calls |
-| `src/pages/BuyerRepAgreement.tsx` | Revoke blob URLs on cleanup |
-| `src/pages/AdminDashboard.tsx` | Use refs for realtime deps; `let` → `const` |
-| `src/components/portal/ClientDossierView.tsx` | Ternary → if/else |
-| `src/components/portal/SignaturePad.tsx` | Minor dep fix |
-| `src/App.tsx` | Add ErrorBoundary component |
-| `supabase/functions/process-email-queue/index.ts` | Add "no CORS" comment |
-| New migration | Add 3 database indexes |
-
-### Secrets Needed
-Will need the user to input values for 4 new secrets: `LEADGENIUS_URL`, `LEADGENIUS_KEY`, `RELOCATE_URL`, `RELOCATE_KEY` (values are currently hardcoded in the file, so we know them).
+Both functions reuse existing `FIRECRAWL_API_KEY` and `LOVABLE_API_KEY` already configured.
 
