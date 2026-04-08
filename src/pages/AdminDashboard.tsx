@@ -7,7 +7,7 @@ import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X, ImagePlus } from "lucide-react";
 import ClientDossierView from "@/components/portal/ClientDossierView";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
@@ -84,6 +84,7 @@ export default function AdminDashboard() {
   const [extracting, setExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [useRawJson, setUseRawJson] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   // New client inline form
   const [addingNewClient, setAddingNewClient] = useState(false);
@@ -106,6 +107,7 @@ export default function AdminDashboard() {
   const [newTemplateUseRawJson, setNewTemplateUseRawJson] = useState(false);
   const [newTemplateJson, setNewTemplateJson] = useState("{}");
   const [templateExtracting, setTemplateExtracting] = useState(false);
+  const [templateUploadedImages, setTemplateUploadedImages] = useState<string[]>([]);
 
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
