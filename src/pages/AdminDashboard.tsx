@@ -759,7 +759,7 @@ export default function AdminDashboard() {
                     <div>
                       <label className="er-label block mb-1 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5 text-primary" />
-                        Paste property info or upload images (screenshots of listings, MLS sheets)
+                        Paste property info or upload files (images, PDFs, Word docs, spreadsheets)
                       </label>
                       <textarea
                         value={newRawText}
