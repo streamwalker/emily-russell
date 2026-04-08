@@ -7,15 +7,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Property fields the analyst should try to fill ──
 const ENRICHABLE_FIELDS = [
   "price", "beds", "baths", "sqft", "stories", "garages",
   "builder", "plan", "type", "status", "community", "area", "city",
   "rentEst", "sourceUrl",
 ] as const;
 
-// ── Firecrawl search ──
+const INFERRABLE_FIELDS = ["city", "area", "builder", "type", "status", "stories", "garages"];
+
+// ── Firecrawl search with logging ──
 async function firecrawlSearch(query: string, apiKey: string): Promise<any[]> {
+  console.log(`Firecrawl search: "${query}"`);
   const resp = await fetch("https://api.firecrawl.dev/v1/search", {
     method: "POST",
     headers: {
@@ -28,26 +30,42 @@ async function firecrawlSearch(query: string, apiKey: string): Promise<any[]> {
       scrapeOptions: { formats: ["markdown"] },
     }),
   });
-  if (!resp.ok) return [];
+  console.log(`Firecrawl response: ${resp.status} ${resp.statusText}`);
+  if (!resp.ok) {
+    const body = await resp.text();
+    console.log(`Firecrawl error body (${body.length} chars): ${body.slice(0, 500)}`);
+    return [];
+  }
   const data = await resp.json();
-  return data.data || [];
+  const results = data.data || [];
+  console.log(`Firecrawl returned ${results.length} results`);
+  return results;
 }
 
-// ── Build a search query from what we know about a property ──
-function buildSearchQuery(prop: any): string {
-  const parts: string[] = [];
+// ── Build multiple search queries, progressively broader ──
+function buildSearchQueries(prop: any): string[] {
+  const queries: string[] = [];
 
-  if (prop.address) parts.push(prop.address);
-  if (prop.community) parts.push(prop.community);
-  if (prop.city) parts.push(prop.city);
-  else parts.push("TX"); // Default — Emily operates in Texas
-  if (prop.builder) parts.push(prop.builder);
+  // Query 1: Quoted exact address
+  if (prop.address) {
+    queries.push(`"${prop.address}" ${prop.city || ""} TX property`.trim());
+  }
 
-  parts.push("property listing");
-  return parts.join(" ");
+  // Query 2: Unquoted address + city + state
+  if (prop.address) {
+    queries.push(`${prop.address} ${prop.city || ""} TX`.trim());
+  }
+
+  // Query 3: Community + builder broad search
+  const broadParts = [prop.community, prop.area, prop.builder, "new construction TX"].filter(Boolean);
+  const broad = broadParts.join(" ");
+  if (broad.length > 20) {
+    queries.push(broad);
+  }
+
+  return queries;
 }
 
-// ── Determine which fields are missing for a property ──
 function getMissingFields(prop: any): string[] {
   return ENRICHABLE_FIELDS.filter(f => {
     const val = prop[f];
@@ -55,7 +73,6 @@ function getMissingFields(prop: any): string[] {
   });
 }
 
-// ── AI extraction prompt ──
 const ENRICHMENT_PROMPT = `You are a real estate data enrichment specialist. You receive a property's known data and web search results about that property. Your job is to extract ONLY the missing field values from the search results.
 
 RULES:
@@ -137,7 +154,6 @@ serve(async (req) => {
     for (const prop of properties) {
       const missing = getMissingFields(prop);
 
-      // Skip properties that are already complete or have no address
       if (missing.length === 0 || !prop.address) {
         enriched.push({ id: prop.id, updates: {}, status: "complete" });
         continue;
@@ -145,26 +161,32 @@ serve(async (req) => {
 
       let searchContext = "";
 
-      // ── Web search for each property ──
+      // ── Multi-query web search ──
       if (FIRECRAWL_API_KEY) {
-        const query = buildSearchQuery(prop);
-        console.log(`OSINT searching: "${query}" (${missing.length} missing fields)`);
+        const queries = buildSearchQueries(prop);
+        console.log(`Property "${prop.address}": trying ${queries.length} queries (${missing.length} missing fields)`);
 
-        const results = await firecrawlSearch(query, FIRECRAWL_API_KEY);
-        searchesUsed++;
+        for (const query of queries) {
+          const results = await firecrawlSearch(query, FIRECRAWL_API_KEY);
+          searchesUsed++;
 
-        if (results.length > 0) {
-          searchContext = results.map((r: any) => {
-            const url = r.url || "";
-            const title = r.title || "";
-            const markdown = r.markdown || r.description || "";
-            return `[Source: ${url}]\n${title}\n${markdown.slice(0, 8000)}`;
-          }).join("\n\n---\n\n");
+          if (results.length > 0) {
+            searchContext = results.map((r: any) => {
+              const url = r.url || "";
+              const title = r.title || "";
+              const markdown = r.markdown || r.description || "";
+              return `[Source: ${url}]\n${title}\n${markdown.slice(0, 8000)}`;
+            }).join("\n\n---\n\n");
+            console.log(`Found results with query: "${query}"`);
+            break;
+          }
+          // Small delay between retries
+          await new Promise(r => setTimeout(r, 300));
         }
       }
 
       if (!searchContext) {
-        log.push(`${prop.address}: No search results found`);
+        log.push(`${prop.address}: No search results found (tried ${buildSearchQueries(prop).length} queries)`);
         enriched.push({ id: prop.id, updates: {}, status: "no_results" });
         continue;
       }
@@ -205,25 +227,21 @@ Return a JSON object with ONLY the missing fields you can confidently fill from 
         const aiResult = await aiResp.json();
         const rawContent = aiResult.choices?.[0]?.message?.content || "";
 
-        // Parse AI response — strip markdown fences if present
         const cleanJson = rawContent.replace(/```(?:json)?\s*/g, "").replace(/```\s*/g, "").trim();
         let updates: Record<string, any> = {};
 
         try {
           updates = JSON.parse(cleanJson);
         } catch {
-          // Try to extract JSON from the response
           const jsonMatch = cleanJson.match(/\{[^]*\}/);
           if (jsonMatch) {
             try { updates = JSON.parse(jsonMatch[0]); } catch { /* ignore */ }
           }
         }
 
-        // Validate: only keep fields that were actually missing and have reasonable values
         const validUpdates: Record<string, any> = {};
         for (const field of missing) {
           if (updates[field] !== null && updates[field] !== undefined && updates[field] !== "") {
-            // Type validation
             if (["price", "beds", "sqft", "stories", "garages"].includes(field)) {
               const num = Number(updates[field]);
               if (!isNaN(num) && num > 0) validUpdates[field] = num;
@@ -243,10 +261,55 @@ Return a JSON object with ONLY the missing fields you can confidently fill from 
         enriched.push({ id: prop.id, updates: {}, status: "ai_error" });
       }
 
-      // Small delay between properties to avoid rate limits
+      // Small delay between properties
       if (properties.indexOf(prop) < properties.length - 1) {
         await new Promise(r => setTimeout(r, 500));
       }
+    }
+
+    // ── Sibling inference pass ──
+    // For properties in the same community, fill missing fields from unanimous sibling values
+    const byCommunity: Record<string, any[]> = {};
+    for (const prop of properties) {
+      if (prop.community) {
+        (byCommunity[prop.community] ||= []).push(prop);
+      }
+    }
+
+    let siblingFieldsInferred = 0;
+    for (const item of enriched) {
+      const prop = properties.find((p: any) => p.id === item.id);
+      if (!prop?.community) continue;
+
+      const siblings = byCommunity[prop.community].filter((s: any) => s.id !== prop.id);
+      if (siblings.length === 0) continue;
+
+      for (const field of INFERRABLE_FIELDS) {
+        // Skip if prop already has the value or if we already enriched it
+        const currentVal = prop[field];
+        if (currentVal && currentVal !== "" && currentVal !== 0) continue;
+        if (item.updates[field] !== undefined) continue;
+
+        // Collect non-empty values from siblings (including their enriched updates)
+        const vals = siblings.map((s: any) => {
+          const sibItem = enriched.find((e: any) => e.id === s.id);
+          return sibItem?.updates?.[field] || s[field];
+        }).filter((v: any) => v && v !== "" && v !== 0);
+
+        if (vals.length > 0 && vals.every((v: any) => String(v) === String(vals[0]))) {
+          item.updates[field] = vals[0];
+          siblingFieldsInferred++;
+        }
+      }
+
+      if (Object.keys(item.updates).length > 0 && item.status === "no_results") {
+        item.status = "inferred_from_siblings";
+      }
+    }
+
+    if (siblingFieldsInferred > 0) {
+      fieldsFound += siblingFieldsInferred;
+      log.push(`Sibling inference: filled ${siblingFieldsInferred} fields from community neighbors`);
     }
 
     return new Response(JSON.stringify({
