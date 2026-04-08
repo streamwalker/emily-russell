@@ -1,45 +1,44 @@
 
 
-## Property Comparison Dashboard — Matrix View + KPI Charts
+## Add "Create New Client" Option to Dossier Client Selector
 
-### What We're Building
+### Overview
 
-A new tab-like toggle in the client dossier that switches from the current card-based property list to a full-screen comparison dashboard with two sections:
-
-1. **KPI Summary Charts** (inspired by image 1) — A grid of 4-6 charts showing portfolio-level metrics: price distribution bar chart, price per sq ft comparison, beds/baths breakdown, grade distribution donut, expense breakdown, and yield comparison.
-
-2. **Property Comparison Matrix** (inspired by image 2) — A feature-comparison table with properties as columns and attributes as rows, using checkmarks and values. Rows include: price, sqft, beds, baths, stories, garages, status, grade, favorite, PITI, rent estimate, yield, net cash flow. Toggle between "All Homes" and "Selected Homes" (favorited/graded properties).
+Replace the plain `<select>` dropdown for client selection with a combo that includes an "+ Add New Client" option at the bottom. Selecting it reveals inline fields to enter the new client's email and name, creates a user account via the backend, inserts a profile row, then auto-selects the new client for the dossier.
 
 ### Steps
 
-**1. Create `src/components/portal/DossierDashboardView.tsx`**
+**1. Add inline "new client" UI in `AdminDashboard.tsx`**
 
-New component that receives `properties`, `interactions`, and renders:
+- Add state: `addingNewClient`, `newClientEmail`, `newClientName`
+- Add an `<option value="__new__">+ Add New Client</option>` at the bottom of the existing `<select>`
+- When `__new__` is selected, show inline email + name inputs below the dropdown with a "Create Client" button
+- On create: call the backend to create the user, insert a profile row, refresh profiles, and auto-set `newUserId` to the new user's ID
 
-- **Toggle bar** at top: "All Homes" | "Favorited/Graded Only"
-- **KPI Charts section** (top half, 2x3 grid using Recharts — already available via the chart UI component):
-  - Horizontal bar chart: price by property (sorted)
-  - Bar chart: $/sq ft comparison
-  - Grouped bar: beds & baths by property
-  - Donut/pie: grade distribution (A/B/C/D/F counts from interactions)
-  - Stacked bar: monthly expense breakdown (PITI, HOA, utilities)
-  - Bar chart: projected yield comparison
-- **Comparison Matrix** (bottom half): Styled table matching image 2 aesthetic — dark header row with property names as columns, attribute rows with alternating gray bands, checkmarks for boolean features (favorite, has garage, move-in ready), values for numeric fields
+**2. Create an edge function `create-client` to handle user creation**
 
-**2. Add toggle button in `ClientDossierView.tsx`**
+- Accepts `{ email, full_name }` in the request body
+- Uses the Supabase Admin API (`supabase.auth.admin.createUser`) to create the auth user with a random password and `email_confirm: true`
+- Inserts a row into `profiles` with the new `user_id`, `email`, and `full_name`
+- Returns the new `user_id`
+- Only callable by authenticated admins (check `has_role`)
 
-- Add a "📊 Dashboard View" / "📋 List View" toggle button near the filter toolbar
-- When dashboard mode is active, hide the property card list and render `DossierDashboardView` instead
-- Pass all properties (or filtered subset), interactions, and grades
+**3. Wire up the AdminDashboard**
 
-**3. Recharts integration**
+- Call the `create-client` edge function from the "Create Client" button handler
+- On success: re-fetch profiles, set `newUserId` to the returned user ID, reset the inline form
+- On error: show the error message inline
 
-Use the existing `src/components/ui/chart.tsx` (Recharts wrapper) for all charts. No new dependencies needed.
+### Technical Details
+
+- The edge function needs the `SUPABASE_SERVICE_ROLE_KEY` (already available as a default secret in edge functions)
+- No new database tables needed — uses existing `profiles` table
+- The created user gets a random password; the admin can trigger a password reset email separately if needed
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/components/portal/DossierDashboardView.tsx` | New — KPI charts + comparison matrix |
-| `src/components/portal/ClientDossierView.tsx` | Add dashboard/list toggle, render new component |
+| `supabase/functions/create-client/index.ts` | New — edge function to create auth user + profile |
+| `src/pages/AdminDashboard.tsx` | Add "new client" option, inline form, and edge function call |
 
