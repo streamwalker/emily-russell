@@ -1,55 +1,47 @@
 
 
-## Fix Property Data Extraction Quality
+## Fix AI Merging Address + Detail Lines Into Single Properties
 
 ### Problem
 
-Two issues are causing garbled extraction results (prices in address fields, broken data):
+The source PDF has property data on alternating lines:
+- Line 1: `13860 Chital Chase (Hidden Oasis)`
+- Line 2: `$227,999–$238,399 | 3/2 | 1,402 | Kitson`
 
-1. **Lost table structure in PDF text extraction**: `parsePdf` joins all text items on a page with a single space (`items.map(i => i.str).join(" ")`), destroying row/column layout. A table row like `13860 Chital Chase | $227,999 | 3/2 | 1,402` becomes an unstructured blob.
+The AI treats each line as a separate property — one with just the address, another with just `Price: $234,999` as the "address". Despite address validation rules saying addresses must start with digits, the AI still creates entries for detail-only lines.
 
-2. **Weak address validation in the AI prompt**: The system prompt doesn't tell the AI how to distinguish a real street address from other data (prices, plan names, metadata).
+### Root Cause
+
+The SYSTEM_PROMPT tells the AI what a valid address looks like, but doesn't explicitly tell it to **merge detail lines with the preceding address line**. The AI sees two chunks of data and creates two entries.
 
 ### Solution
 
-**1. Fix PDF text extraction to preserve spatial layout** (`src/lib/documentParser.ts`)
+Add a **line-merging rule** to the `SYSTEM_PROMPT` in `supabase/functions/parse-properties/index.ts`:
 
-Replace the naive `.join(" ")` with position-aware reconstruction:
-- Use each text item's `transform` matrix (Y coordinate) to detect line breaks
-- When the Y position changes significantly, insert a newline instead of a space
-- This preserves the table row structure so the AI receives clean, line-separated data
+1. **Add explicit merging instructions**: Tell the AI that if a line contains only price, beds/baths, sqft, plan name, or other property attributes but NO street address, it is continuation data for the nearest preceding property — merge it, don't create a new entry.
 
-```typescript
-// Before (line 44):
-const text = content.items.map((item: any) => item.str).join(" ");
+2. **Add a post-extraction dedup rule**: Tell the AI that the final output should never contain a property whose "address" is a price, a bed/bath string, a sqft value, or a plan name. If it does, that data belongs to an adjacent property.
 
-// After:
-let text = "";
-let lastY: number | null = null;
-for (const item of content.items) {
-  const y = item.transform?.[5];
-  if (lastY !== null && y !== undefined && Math.abs(y - lastY) > 5) {
-    text += "\n";
-  } else if (text.length > 0) {
-    text += " ";
-  }
-  text += item.str;
-  if (y !== undefined) lastY = y;
-}
+3. **Strengthen examples**: Add a concrete example of this alternating-line pattern so the AI knows exactly how to handle it.
+
+### Changes
+
+**`supabase/functions/parse-properties/index.ts`** — Update `SYSTEM_PROMPT` (lines 69-74 area), adding after the existing ADDRESS VALIDATION block:
+
 ```
-
-**2. Add address validation rules to the system prompt** (`supabase/functions/parse-properties/index.ts`)
-
-Add explicit instructions to the SYSTEM_PROMPT:
-- A valid address MUST start with a street number (digits) followed by a street name
-- Prices, plan names, bed/bath counts, sqft values are NOT addresses
-- If a price range appears (e.g. "$227,999–$238,399"), use the lower value for `price`
-- Community/subdivision names in parentheses after the street (e.g. "123 Oak Ln (Hidden Oasis)") should be extracted as `community`, with only the street portion as `address`
+MERGING RULES (critical for PDFs and tabular data):
+- Property data often spans MULTIPLE lines. A street address line may be followed by a separate line containing price, beds/baths, sqft, plan name, etc.
+- If a line or data chunk has NO valid street address (no leading digits + street name), it is NOT a separate property. Merge its data (price, beds, baths, sqft, plan, status, etc.) into the most recent preceding property that HAS a valid address.
+- NEVER create a property entry whose address field contains a price (e.g. "$227,999"), a bed/bath spec (e.g. "3/2"), a sqft value, or a plan/model name. These are attributes, not addresses.
+- Example of multi-line property data:
+  Line 1: "13860 Chital Chase (Hidden Oasis)"
+  Line 2: "$227,999–$238,399 | Beds/Baths: 3/2 | Sq Ft: 1,402 | Plan: Kitson"
+  → This is ONE property: address="13860 Chital Chase", community="Hidden Oasis", price=227999, beds=3, baths="2", sqft=1402, plan="Kitson"
+```
 
 ### Files
 
 | File | Action |
 |------|--------|
-| `src/lib/documentParser.ts` | Fix `parsePdf` to preserve line breaks using Y-coordinate detection |
-| `supabase/functions/parse-properties/index.ts` | Add address validation rules and price range handling to SYSTEM_PROMPT |
+| `supabase/functions/parse-properties/index.ts` | Add merging rules to SYSTEM_PROMPT to prevent splitting multi-line property data into separate entries |
 
