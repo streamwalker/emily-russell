@@ -7,7 +7,8 @@ import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X } from "lucide-react";
+import ClientDossierView from "@/components/portal/ClientDossierView";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
 
@@ -102,6 +103,9 @@ export default function AdminDashboard() {
 
   // Client interaction summaries (for dossier tab)
   const [interactionSummaries, setInteractionSummaries] = useState<Record<string, { favorites: number; grades: number; tours: number; comments: number }>>({});
+
+  // Client preview
+  const [previewDossier, setPreviewDossier] = useState<DossierRow | null>(null);
 
   // Comment detail dialog
   const [commentDialogUserId, setCommentDialogUserId] = useState<string | null>(null);
@@ -791,6 +795,9 @@ export default function AdminDashboard() {
                               </div>
                             </div>
                             <div className="flex gap-2 flex-wrap">
+                              <button onClick={() => setPreviewDossier(d)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
+                                👁 Client View
+                              </button>
                               <button onClick={() => { setPropertyEditId(d.id); setExpenseEditId(null); setEditingId(null); setError(""); }} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors">
                                 🏠 Properties
                               </button>
@@ -1237,6 +1244,30 @@ export default function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Client Preview Dialog */}
+      <Dialog open={!!previewDossier} onOpenChange={(open) => { if (!open) setPreviewDossier(null); }}>
+        <DialogContent className="max-w-[1100px] w-[95vw] max-h-[90vh] overflow-y-auto p-0">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 bg-background border-b border-border">
+            <DialogTitle className="font-display text-base flex items-center gap-2">
+              <Eye className="w-4 h-4 text-primary" />
+              Client View — {previewDossier ? (getClientName(previewDossier.user_id) || getClientEmail(previewDossier.user_id)) : ""}
+            </DialogTitle>
+            <button onClick={() => setPreviewDossier(null)} className="p-1.5 rounded hover:bg-muted transition-colors cursor-pointer bg-transparent border-none">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {previewDossier && (
+            <ClientDossierView
+              dossierData={previewDossier.dossier_data as any}
+              dossierId={previewDossier.id}
+              clientUserId={previewDossier.user_id}
+              clientName={getClientName(previewDossier.user_id) || getClientEmail(previewDossier.user_id)}
+              readOnly={true}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Comment Details Dialog */}
       <Dialog open={!!commentDialogUserId} onOpenChange={(open) => { if (!open) setCommentDialogUserId(null); }}>
