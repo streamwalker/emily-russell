@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check, Upload, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check, Upload, FileText, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react";
 import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import {
   Dialog,
@@ -669,16 +669,18 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                     {props.map((prop, i) => {
                       const previewId = `${tab.key}-${i}`;
                       const isExpanded = expandedPreviewProp === previewId;
+                      const isSuspicious = !prop.address || /\$/.test(prop.address || "") || !/^\d/.test((prop.address || "").trim());
                       return (
-                        <div key={prop.id || i} className="border border-border rounded mb-2 bg-card overflow-hidden">
+                        <div key={prop.id || i} className={`border rounded mb-2 overflow-hidden ${isSuspicious ? "border-destructive/60 bg-destructive/5" : "border-border bg-card"}`}>
                           <div
-                            className="flex justify-between items-center px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
-                            onClick={() => setExpandedPreviewProp(isExpanded ? null : previewId)}
-                          >
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <span className="text-sm font-semibold text-foreground truncate">
-                                {prop.address || "(no address)"}
-                              </span>
+                             className="flex justify-between items-center px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                             onClick={() => setExpandedPreviewProp(isExpanded ? null : previewId)}
+                           >
+                             <div className="flex items-center gap-3 min-w-0 flex-1">
+                               {isSuspicious && <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                               <span className={`text-sm font-semibold truncate ${isSuspicious ? "text-destructive" : "text-foreground"}`}>
+                                 {prop.address || "(no address)"}
+                               </span>
                               {prop.city && <span className="text-xs text-muted-foreground">{prop.city}</span>}
                               {prop.price && <span className="text-xs text-muted-foreground">${Number(prop.price).toLocaleString()}</span>}
                               {prop.beds && <span className="text-xs text-muted-foreground">{prop.beds}bd</span>}
