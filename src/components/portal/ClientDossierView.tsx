@@ -1,0 +1,950 @@
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import PaymentCalculator from "@/components/portal/PaymentCalculator";
+import ComparisonView from "@/components/portal/ComparisonView";
+import FilterSortToolbar from "@/components/portal/FilterSortToolbar";
+import RankBadge from "@/components/portal/RankBadge";
+import TabSummary from "@/components/portal/TabSummary";
+import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Heart, CalendarIcon, GraduationCap } from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import {
+  scorePrimaryResidence,
+  scoreIncomeGeneration,
+  applyFilters,
+  applySort,
+  getUniqueCities,
+  getUniqueBuilders,
+  defaultFilters,
+  type FilterState,
+  type SortField,
+  type RankedProperty,
+} from "@/lib/dossierScoring";
+
+/* ── Types ── */
+export interface Property {
+  id: string;
+  address: string;
+  city: string;
+  community: string;
+  area: string;
+  builder: string;
+  price: number;
+  beds: number;
+  baths: string;
+  sqft: number;
+  stories: number;
+  garages: number;
+  status: string;
+  plan: string;
+  type: string;
+  notes: string;
+  sourceUrl?: string;
+  rentEst?: string;
+  rentNote?: string;
+  yieldEst?: string;
+  expenses?: {
+    piti?: number;
+    hoa?: number;
+    gas?: number;
+    electric?: number;
+    water?: number;
+    trash?: number;
+    other?: number;
+    otherLabel?: string;
+  };
+}
+
+export interface Tab {
+  key: string;
+  label: string;
+  color: string;
+}
+
+export interface DossierData {
+  tabs: Tab[];
+  properties: Record<string, Property[]>;
+  preparedBy?: string;
+  subtitle?: string;
+  date?: string;
+  phone?: string;
+}
+
+export interface PropertyInteraction {
+  id?: string;
+  user_id: string;
+  property_id: string;
+  dossier_id?: string;
+  is_favorite: boolean;
+  preferred_tour_date: string | null;
+  preferred_tour_time: string | null;
+  comments: string | null;
+  grade: string | null;
+}
+
+export interface CommentReply {
+  id: string;
+  reply_text: string;
+  created_at: string;
+}
+
+const GRADE_OPTIONS = [
+  "A+", "A", "A-",
+  "B+", "B", "B-",
+  "C+", "C", "C-",
+  "D+", "D", "D-",
+  "F", "F-",
+];
+
+const LIMITED_GRADES = ["A+", "A", "A-"];
+const GRADE_LIMIT = 3;
+
+const fmt = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+const ALL_HOMES_TAB: Tab = { key: "all-homes", label: "📋 All Homes", color: "#6B7280" };
+
+const RANK_TABS: Tab[] = [
+  { key: "rank-primary", label: "🏠 Primary Residence", color: "#5B7FA5" },
+  { key: "rank-income", label: "💰 Income Generation", color: "#2e7d32" },
+];
+
+const RAINBOW_PALETTE = [
+  "#E81416", "#F97306", "#FACA09", "#79C314", "#487DE7", "#7B1FA2", "#C2185B",
+];
+
+function getRainbowColor(index: number) {
+  return RAINBOW_PALETTE[index % RAINBOW_PALETTE.length];
+}
+
+/* ── Tab Scroll Container ── */
+function TabScrollContainer({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(true);
+  const [showFade, setShowFade] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowFade(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+    setShowLeft(el.scrollLeft > 4);
+    setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [checkScroll]);
+
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -200 : 200, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative flex items-end">
+      {showLeft && (
+        <button onClick={() => scroll("left")} className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors mr-1 cursor-pointer border-none">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+      <div className="relative flex-1 min-w-0">
+        <div ref={scrollRef} onScroll={checkScroll} className="tab-scroll-container flex gap-1 overflow-x-auto items-end pb-1">
+          {children}
+        </div>
+        {showFade && (
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 transition-opacity duration-300" style={{ background: "linear-gradient(to right, transparent, #1a1a1a)" }} />
+        )}
+      </div>
+      {showRight && (
+        <button onClick={() => scroll("right")} className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors ml-1 cursor-pointer border-none">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── Payment Calculator Toggle ── */
+function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userId, readOnly }: { price: number; hoaFee?: number; accentColor: string; propertyId?: string; userId?: string; readOnly?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-2">
+      <button onClick={() => setOpen(!open)} className="text-[11px] font-semibold font-body cursor-pointer bg-transparent border-none p-0 transition-colors hover:opacity-80" style={{ color: accentColor }}>
+        {open ? "▾ Hide Payment Estimator" : "▸ Estimate Monthly Payment"}
+      </button>
+      {open && <PaymentCalculator price={price} hoaFee={hoaFee} propertyId={propertyId} userId={readOnly ? undefined : userId} />}
+    </div>
+  );
+}
+
+/* ── Property Row ── */
+function PropertyRow({
+  prop, isExpanded, onToggle, accentColor, rankInfo, isCompareSelected, onCompareToggle,
+  userId, interaction, onInteractionChange, gradeCounts, replies, readOnly,
+}: {
+  prop: Property;
+  isExpanded: boolean;
+  onToggle: () => void;
+  accentColor: string;
+  rankInfo?: { rank: number; scoreSummary: string; sourceTab: string };
+  isCompareSelected?: boolean;
+  onCompareToggle?: () => void;
+  userId?: string;
+  interaction?: PropertyInteraction;
+  onInteractionChange?: (propertyId: string, field: string, value: any) => void;
+  gradeCounts?: Record<string, number>;
+  replies?: CommentReply[];
+  readOnly?: boolean;
+}) {
+  const isFav = interaction?.is_favorite || false;
+
+  const handleGradeChange = (newGrade: string) => {
+    if (!onInteractionChange || readOnly) return;
+    if (LIMITED_GRADES.includes(newGrade)) {
+      const currentGrade = interaction?.grade;
+      const currentCount = gradeCounts?.[newGrade] || 0;
+      const alreadyHasThisGrade = currentGrade === newGrade;
+      if (!alreadyHasThisGrade && currentCount >= GRADE_LIMIT) {
+        toast.error(`Only ${GRADE_LIMIT} properties can receive a grade of ${newGrade} per dossier.`);
+        return;
+      }
+    }
+    onInteractionChange(prop.id, "grade", newGrade);
+  };
+
+  return (
+    <div className="bg-card rounded border border-border mb-3.5 overflow-hidden shadow-sm">
+      <div className="flex items-center justify-between px-5 pt-3 pb-1">
+        <div className="flex items-center gap-2">
+          {rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}
+        </div>
+        <div className="flex items-center gap-2">
+          {interaction?.grade && (
+            <span className={cn(
+              "text-[10px] font-bold px-1.5 py-0.5 rounded font-body",
+              interaction.grade.startsWith("A") ? "bg-emerald-500/15 text-emerald-600" :
+              interaction.grade.startsWith("B") ? "bg-blue-500/15 text-blue-600" :
+              interaction.grade.startsWith("C") ? "bg-yellow-500/15 text-yellow-700" :
+              interaction.grade.startsWith("D") ? "bg-orange-500/15 text-orange-600" :
+              "bg-red-500/15 text-red-600"
+            )}>
+              {interaction.grade}
+            </span>
+          )}
+          {!readOnly && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onInteractionChange?.(prop.id, "is_favorite", !isFav); }}
+              className="cursor-pointer bg-transparent border-none p-0 transition-transform hover:scale-110"
+              title={isFav ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart className={cn("h-5 w-5 transition-colors", isFav ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
+            </button>
+          )}
+          {readOnly && isFav && (
+            <Heart className="h-5 w-5 fill-red-500 text-red-500" />
+          )}
+          {onCompareToggle && (
+            <label className="inline-flex items-center gap-1.5 cursor-pointer text-[10px] text-muted-foreground font-body" onClick={e => e.stopPropagation()}>
+              <Checkbox checked={isCompareSelected} onCheckedChange={() => onCompareToggle()} className="h-3.5 w-3.5" />
+              Compare
+            </label>
+          )}
+        </div>
+      </div>
+      <div
+        onClick={onToggle}
+        className="flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
+        style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))" }}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="text-[17px] font-bold font-display">{prop.address}</div>
+          <div className="text-xs opacity-70 mt-0.5 font-body">{prop.city} · {prop.community}</div>
+        </div>
+        <div className="flex items-center gap-4 flex-shrink-0">
+          {prop.beds && (
+            <div className="text-center font-body">
+              <div className="text-[9px] opacity-50 uppercase tracking-widest">Bed</div>
+              <div className="text-[15px] font-bold">{prop.beds}</div>
+            </div>
+          )}
+          {prop.baths && (
+            <div className="text-center font-body">
+              <div className="text-[9px] opacity-50 uppercase tracking-widest">Bath</div>
+              <div className="text-[15px] font-bold">{prop.baths}</div>
+            </div>
+          )}
+          {prop.sqft && (
+            <div className="text-center font-body">
+              <div className="text-[9px] opacity-50 uppercase tracking-widest">Sq Ft</div>
+              <div className="text-[15px] font-bold">{prop.sqft.toLocaleString()}</div>
+            </div>
+          )}
+          <div className="text-right min-w-[90px]">
+            <div className="text-[17px] font-bold font-display">{prop.price ? fmt(prop.price) : "Call"}</div>
+            <span
+              className="text-[9px] px-2 py-0.5 rounded inline-block mt-0.5 font-semibold tracking-wide font-body"
+              style={{
+                background: isExpanded
+                  ? "rgba(255,255,255,0.2)"
+                  : prop.status === "Move-In Ready" || prop.status === "New Construction"
+                    ? "rgba(76,175,80,0.12)"
+                    : "rgba(255,193,7,0.15)",
+                color: isExpanded
+                  ? "rgba(255,255,255,0.85)"
+                  : prop.status === "Move-In Ready" || prop.status === "New Construction"
+                    ? "#2e7d32"
+                    : "#f57f17",
+              }}
+            >
+              {prop.status}
+            </span>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-xs ml-1 opacity-50">{isExpanded ? "▲" : "▼"}</div>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="text-xs max-w-[200px]">
+              Click to see full details, rental estimates, and expenses.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+
+      {isExpanded && (
+        <div className="px-5 py-4 border-t" style={{ borderColor: `${accentColor}15` }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Property Details</div>
+              <div className="font-body text-[13px]">
+                {([
+                  ["Area", prop.area],
+                  ["Builder", prop.builder],
+                  ["Plan", prop.plan],
+                  ["Type", prop.type],
+                  ["Stories", prop.stories],
+                  ["Garages", prop.garages ? `${prop.garages}-car` : null],
+                ] as [string, string | number | null][])
+                  .filter(([, v]) => v)
+                  .map(([label, value], i) => (
+                    <div key={i} className="flex justify-between py-1.5 border-b border-border/50">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="font-semibold text-foreground text-right max-w-[65%] text-xs">{value}</span>
+                    </div>
+                  ))}
+              </div>
+
+              {/* Tour Scheduling */}
+              {!readOnly ? (
+                <div className="mt-4">
+                  <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">When would you like to see this home?</div>
+                  <div className="flex gap-2 items-start">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-[140px] justify-start text-left font-normal text-xs h-8", !interaction?.preferred_tour_date && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
+                          {interaction?.preferred_tour_date ? format(new Date(interaction.preferred_tour_date + "T12:00:00"), "MMM d, yyyy") : "Pick date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={interaction?.preferred_tour_date ? new Date(interaction.preferred_tour_date + "T12:00:00") : undefined}
+                          onSelect={(d) => onInteractionChange?.(prop.id, "preferred_tour_date", d ? format(d, "yyyy-MM-dd") : null)}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <Input
+                      placeholder="e.g. 10:00 AM"
+                      value={interaction?.preferred_tour_time || ""}
+                      onChange={(e) => onInteractionChange?.(prop.id, "preferred_tour_time", e.target.value)}
+                      className="w-[110px] text-xs h-8"
+                    />
+                  </div>
+                </div>
+              ) : interaction?.preferred_tour_date && (
+                <div className="mt-4">
+                  <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Tour Requested</div>
+                  <div className="text-xs font-body text-foreground">
+                    {format(new Date(interaction.preferred_tour_date + "T12:00:00"), "MMM d, yyyy")}
+                    {interaction.preferred_tour_time && ` at ${interaction.preferred_tour_time}`}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Agent Notes</div>
+              <div className="text-[12.5px] leading-relaxed text-foreground font-body bg-muted p-3 rounded border border-border/50">
+                {prop.notes}
+              </div>
+              {(prop.rentEst || prop.yieldEst) && (
+                <div className="mt-2.5 p-2.5 rounded border" style={{ background: "#f0f7f0", borderColor: "#c8e6c9" }}>
+                  <div className="flex justify-between items-start gap-4">
+                    {prop.rentEst && (
+                      <div>
+                        <div className="text-[9px] uppercase tracking-[2px] mb-1 font-body" style={{ color: "#2e7d32" }}>Rental Income Est.</div>
+                        <div className="text-sm font-bold font-body" style={{ color: "#2e7d32" }}>{prop.rentEst}</div>
+                      </div>
+                    )}
+                    {prop.yieldEst && (
+                      <div className="text-right">
+                        <div className="text-[9px] uppercase tracking-[2px] mb-1 font-body" style={{ color: "#2e7d32" }}>Projected Gross Yield</div>
+                        <div className="text-sm font-bold font-body" style={{ color: "#2e7d32" }}>{prop.yieldEst}</div>
+                      </div>
+                    )}
+                  </div>
+                  {prop.rentNote && <div className="text-[11px] text-muted-foreground mt-1 italic">{prop.rentNote}</div>}
+                </div>
+              )}
+              {prop.expenses && Object.values(prop.expenses).some(v => v && v !== 0) && (() => {
+                const e = prop.expenses!;
+                const items: [string, number][] = [
+                  ["PITI (Principal, Interest, Taxes, Insurance)", e.piti || 0],
+                  ["HOA Fees", e.hoa || 0],
+                  ["Gas", e.gas || 0],
+                  ["Electric", e.electric || 0],
+                  ["Water", e.water || 0],
+                  ["Trash Pickup", e.trash || 0],
+                  [e.otherLabel || "Other", e.other || 0],
+                ].filter(([, v]) => typeof v === "number" && v > 0) as [string, number][];
+                const totalExpenses = items.reduce((sum, [, v]) => sum + v, 0);
+                const rentNum = (() => { const m = (prop.rentEst || "").replace(/,/g, "").match(/\$?([\d]+)/); return m ? parseInt(m[1], 10) : 0; })();
+                const netIncome = rentNum > 0 ? rentNum - totalExpenses : 0;
+                return (
+                  <div className="mt-2.5 p-2.5 rounded border border-border bg-card">
+                    <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Monthly Expenses</div>
+                    {items.map(([label, value], i) => (
+                      <div key={i} className="flex justify-between py-1 border-b border-border/30 text-[12px] font-body">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className="font-semibold text-foreground">${value.toLocaleString()}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between py-1.5 mt-1 text-[12px] font-body font-bold">
+                      <span className="text-muted-foreground">Total Expenses</span>
+                      <span className="text-foreground">${totalExpenses.toLocaleString()}/mo</span>
+                    </div>
+                    {netIncome !== 0 && (
+                      <div className="flex justify-between py-1.5 text-[12px] font-body font-bold border-t border-border">
+                        <span style={{ color: netIncome > 0 ? "#2e7d32" : "#c62828" }}>Net Cash Flow</span>
+                        <span style={{ color: netIncome > 0 ? "#2e7d32" : "#c62828" }}>
+                          {netIncome > 0 ? "+" : ""}${netIncome.toLocaleString()}/mo
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              {prop.sourceUrl && (
+                <a
+                  href={prop.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-3 text-[12px] font-semibold font-body transition-colors hover:opacity-80"
+                  style={{ color: accentColor }}
+                >
+                  View Listing →
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Feedback Section */}
+          {!readOnly ? (
+            <div className="mt-4 p-3 rounded border border-border bg-muted/50">
+              <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Your Feedback</div>
+              <div className="flex gap-3 items-start">
+                <div className="flex-1">
+                  <Textarea
+                    placeholder="Add your notes about this property..."
+                    value={interaction?.comments || ""}
+                    onChange={(e) => onInteractionChange?.(prop.id, "comments", e.target.value)}
+                    className="text-xs min-h-[60px] resize-y"
+                  />
+                </div>
+                <div className="w-[100px]">
+                  <div className="text-[9px] text-muted-foreground mb-1 font-body">Grade</div>
+                  <Select value={interaction?.grade || ""} onValueChange={handleGradeChange}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Grade" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GRADE_OPTIONS.map(g => {
+                        const isLimited = LIMITED_GRADES.includes(g);
+                        const count = gradeCounts?.[g] || 0;
+                        const atLimit = isLimited && count >= GRADE_LIMIT && interaction?.grade !== g;
+                        return (
+                          <SelectItem key={g} value={g} disabled={atLimit} className="text-xs">
+                            {g} {isLimited && <span className="text-muted-foreground ml-1">({count}/{GRADE_LIMIT})</span>}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          ) : interaction?.comments && (
+            <div className="mt-4 p-3 rounded border border-border bg-muted/50">
+              <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Client Feedback</div>
+              <div className="text-xs text-foreground font-body leading-relaxed italic">"{interaction.comments}"</div>
+            </div>
+          )}
+
+          {/* Admin Replies */}
+          {replies && replies.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {replies.map(r => (
+                <div key={r.id} className="ml-4 p-2.5 rounded border border-primary/20 bg-primary/5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] font-bold text-primary font-body">Emily replied</span>
+                    <span className="text-[9px] text-muted-foreground font-body">
+                      · {format(new Date(r.created_at), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                  </div>
+                  <div className="text-[12px] text-foreground font-body leading-relaxed">{r.reply_text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {prop.price && (
+            <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main ClientDossierView ── */
+interface ClientDossierViewProps {
+  dossierData: DossierData;
+  dossierId: string;
+  clientUserId: string;
+  clientName?: string;
+  readOnly?: boolean;
+}
+
+export default function ClientDossierView({ dossierData, dossierId, clientUserId, clientName, readOnly = false }: ClientDossierViewProps) {
+  const dossier = dossierData;
+  const [activeTab, setActiveTab] = useState(dossier.tabs?.[0]?.key || "");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+    const firstIds = Object.values(dossier.properties).map(arr => arr[0]?.id).filter(Boolean);
+    return new Set(firstIds);
+  });
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [sort, setSort] = useState<SortField>("price-asc");
+  const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
+  const [showCompare, setShowCompare] = useState(false);
+  const [interactions, setInteractions] = useState<Record<string, PropertyInteraction>>({});
+  const [replies, setReplies] = useState<Record<string, CommentReply[]>>({});
+  const [loading, setLoading] = useState(true);
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Fetch interactions and replies for the client
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const [interactionsRes] = await Promise.all([
+        supabase.from("property_interactions").select("*").eq("user_id", clientUserId),
+      ]);
+
+      if (interactionsRes.data) {
+        const map: Record<string, PropertyInteraction> = {};
+        const ids: string[] = [];
+        interactionsRes.data.forEach((row: any) => {
+          map[row.property_id] = row;
+          if (row.id) ids.push(row.id);
+        });
+        setInteractions(map);
+
+        if (ids.length > 0) {
+          const { data: repliesData } = await supabase
+            .from("comment_replies")
+            .select("id, interaction_id, reply_text, created_at")
+            .in("interaction_id", ids)
+            .order("created_at", { ascending: true });
+
+          if (repliesData) {
+            const rmap: Record<string, CommentReply[]> = {};
+            repliesData.forEach((r: any) => {
+              if (!rmap[r.interaction_id]) rmap[r.interaction_id] = [];
+              rmap[r.interaction_id].push(r);
+            });
+            setReplies(rmap);
+          }
+        }
+      }
+      setLoading(false);
+    };
+    load();
+  }, [clientUserId]);
+
+  const toggleCompare = (id: string) => {
+    setCompareIds(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) { n.delete(id); return n; }
+      if (n.size >= 3) { toast.error("You can compare up to 3 properties at a time."); return prev; }
+      n.add(id);
+      return n;
+    });
+  };
+
+  const allProperties = useMemo(() => Object.values(dossier.properties).flat(), [dossier]);
+  const compareProperties = useMemo(() => allProperties.filter(p => compareIds.has(p.id)), [allProperties, compareIds]);
+
+  const gradeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.values(interactions).forEach(i => {
+      if (i.grade) counts[i.grade] = (counts[i.grade] || 0) + 1;
+    });
+    return counts;
+  }, [interactions]);
+
+  const favCount = useMemo(() => Object.values(interactions).filter(i => i.is_favorite).length, [interactions]);
+
+  // Upsert interaction (only when not readOnly)
+  const upsertInteraction = useCallback(async (propertyId: string, data: Partial<PropertyInteraction>) => {
+    if (!clientUserId || readOnly) return;
+    const existing = interactions[propertyId];
+    const payload = {
+      user_id: clientUserId,
+      property_id: propertyId,
+      is_favorite: data.is_favorite ?? existing?.is_favorite ?? false,
+      preferred_tour_date: data.preferred_tour_date !== undefined ? data.preferred_tour_date : existing?.preferred_tour_date || null,
+      preferred_tour_time: data.preferred_tour_time !== undefined ? data.preferred_tour_time : existing?.preferred_tour_time || null,
+      comments: data.comments !== undefined ? data.comments : existing?.comments || null,
+      grade: data.grade !== undefined ? data.grade : existing?.grade || null,
+    };
+    const { error } = await supabase.from("property_interactions").upsert(payload, { onConflict: "user_id,property_id" });
+    if (error) {
+      console.error("Failed to save interaction:", error);
+      toast.error("Failed to save. Please try again.");
+    }
+  }, [clientUserId, interactions, readOnly]);
+
+  const handleInteractionChange = useCallback((propertyId: string, field: string, value: any) => {
+    if (readOnly) return;
+    setInteractions(prev => {
+      const existing = prev[propertyId] || { user_id: clientUserId, property_id: propertyId, is_favorite: false, preferred_tour_date: null, preferred_tour_time: null, comments: null, grade: null };
+      return { ...prev, [propertyId]: { ...existing, [field]: value } };
+    });
+    const key = `${propertyId}-${field}`;
+    if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key]);
+    if (field === "comments" || field === "preferred_tour_time") {
+      debounceTimers.current[key] = setTimeout(() => { upsertInteraction(propertyId, { [field]: value }); }, 1000);
+    } else {
+      upsertInteraction(propertyId, { [field]: value });
+    }
+  }, [clientUserId, upsertInteraction, readOnly]);
+
+  const toggle = (id: string) => {
+    setExpandedIds(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const allTabs = useMemo(() => [...dossier.tabs, ALL_HOMES_TAB, ...RANK_TABS], [dossier]);
+  const tabLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    dossier.tabs.forEach(t => (map[t.key] = t.label));
+    return map;
+  }, [dossier]);
+
+  const cities = useMemo(() => getUniqueCities(dossier.properties), [dossier]);
+  const builders = useMemo(() => getUniqueBuilders(dossier.properties), [dossier]);
+
+  const primaryRanked = useMemo(() => {
+    let result = applyFilters(scorePrimaryResidence(dossier.properties, tabLabels), filters);
+    if (filters.favoritesOnly) result = result.filter(p => interactions[p.id]?.is_favorite);
+    return result;
+  }, [dossier, tabLabels, filters, interactions]);
+
+  const incomeRanked = useMemo(
+    () => scoreIncomeGeneration(dossier.properties, tabLabels),
+    [dossier, tabLabels]
+  );
+  const incomeFiltered = useMemo(() => {
+    let fr = applyFilters(incomeRanked.fullRental, filters);
+    let ab = applyFilters(incomeRanked.airbnbPotential, filters);
+    if (filters.favoritesOnly) {
+      fr = fr.filter(p => interactions[p.id]?.is_favorite);
+      ab = ab.filter(p => interactions[p.id]?.is_favorite);
+    }
+    return { fullRental: fr, airbnbPotential: ab };
+  }, [incomeRanked, filters, interactions]);
+
+  const isRankTab = activeTab.startsWith("rank-");
+  const isAllHomes = activeTab === "all-homes";
+
+  const allHomesProperties = useMemo(() => {
+    if (!isAllHomes) return [];
+    const all = Object.values(dossier.properties).flat().map(p => ({
+      ...p,
+      _builderTag: dossier.tabs.find(t => (dossier.properties[t.key] || []).some(pp => pp.id === p.id))?.label || "",
+    }));
+    let result = applySort(applyFilters(all, filters), sort);
+    if (filters.favoritesOnly) result = result.filter(p => interactions[p.id]?.is_favorite);
+    return result;
+  }, [dossier, isAllHomes, filters, sort, interactions]);
+
+  const builderProperties = useMemo(() => {
+    if (isRankTab || isAllHomes) return [];
+    const raw = dossier.properties[activeTab] || [];
+    let result = applySort(applyFilters(raw, filters), sort);
+    if (filters.favoritesOnly) result = result.filter(p => interactions[p.id]?.is_favorite);
+    return result;
+  }, [dossier, activeTab, filters, sort, isRankTab, isAllHomes, interactions]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-primary font-body text-lg">Loading client view…</div>
+      </div>
+    );
+  }
+
+  const currentTab = allTabs.find(t => t.key === activeTab) || allTabs[0];
+  const totalProps = Object.values(dossier.properties).flat().length;
+
+  const outOfTownByCity =
+    activeTab === "outoftown" && !isRankTab
+      ? builderProperties.reduce<Record<string, Property[]>>((acc, p) => {
+          const city = p.city.split(",")[0].trim();
+          if (!acc[city]) acc[city] = [];
+          acc[city].push(p);
+          return acc;
+        }, {})
+      : null;
+
+  const renderPropertyRow = (p: Property, color: string, rankInfo?: { rank: number; scoreSummary: string; sourceTab: string }) => {
+    const interactionId = interactions[p.id]?.id;
+    return (
+      <PropertyRow
+        key={p.id}
+        prop={p}
+        isExpanded={expandedIds.has(p.id)}
+        onToggle={() => toggle(p.id)}
+        accentColor={color}
+        rankInfo={rankInfo}
+        isCompareSelected={compareIds.has(p.id)}
+        onCompareToggle={() => toggleCompare(p.id)}
+        userId={clientUserId}
+        interaction={interactions[p.id]}
+        onInteractionChange={readOnly ? undefined : handleInteractionChange}
+        gradeCounts={gradeCounts}
+        replies={interactionId ? replies[interactionId] : undefined}
+        readOnly={readOnly}
+      />
+    );
+  };
+
+  return (
+    <TooltipProvider delayDuration={300}>
+      <div className="font-body min-h-0" style={{ background: "hsl(var(--background))", color: "hsl(var(--foreground))" }}>
+        {/* Header */}
+        <div style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)", color: "#fff", padding: "24px 24px 0" }}>
+          <div className="max-w-[960px] mx-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <div className="text-[10px] tracking-[3px] uppercase opacity-45 mb-1.5">
+                  {readOnly && clientName ? `Viewing as ${clientName}` : (dossier.preparedBy || "Prepared by Emily Russell · Fathom Realty · TREC #791742")}
+                </div>
+                <h2 className="font-display text-[22px] font-bold m-0">Client Property Dossier</h2>
+                <p className="text-xs opacity-55 mt-1">
+                  {dossier.subtitle || `Multi-Builder New Construction · San Antonio Metro & Beyond · ${totalProps} Properties`}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="opacity-45 text-[11px] leading-relaxed">
+                  <div>{dossier.date || "April 6, 2026"}</div>
+                  <div>{dossier.phone || "(210) 912-0806"}</div>
+                </div>
+                {favCount > 0 && (
+                  <div className="flex items-center gap-1 text-[11px] text-red-400 font-body mt-1 justify-end">
+                    <Heart className="h-3.5 w-3.5 fill-red-400" /> {favCount}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Interaction Summary */}
+            <div className="flex gap-4 mb-4">
+              {[
+                { icon: Heart, label: "Favorited", count: favCount, color: "text-red-400" },
+                { icon: GraduationCap, label: "Graded", count: Object.values(interactions).filter(i => i.grade).length, color: "text-emerald-400" },
+                { icon: CalendarIcon, label: "Tours Scheduled", count: Object.values(interactions).filter(i => i.preferred_tour_date).length, color: "text-blue-400" },
+              ].map(stat => (
+                <div key={stat.label} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded px-3 py-1.5">
+                  <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
+                  <span className="text-[11px] text-white/60 font-body">{stat.label}</span>
+                  <span className="text-[13px] font-bold text-white/90 font-body">{stat.count}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Tabs */}
+            <TabScrollContainer>
+              {allTabs.map((tab, idx) => {
+                const rainbowColor = getRainbowColor(idx);
+                const isActive = activeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
+                    style={{
+                      background: isActive ? rainbowColor : "rgba(255,255,255,0.06)",
+                      color: isActive ? "#fff" : rainbowColor,
+                      borderBottom: isActive ? "none" : `2px solid ${rainbowColor}40`,
+                      opacity: isActive ? 1 : 0.85,
+                    }}
+                  >
+                    {tab.label}{" "}
+                    {!tab.key.startsWith("rank-") && tab.key !== "all-homes" && (
+                      <span className="opacity-50">({(dossier.properties[tab.key] || []).length})</span>
+                    )}
+                    {tab.key === "all-homes" && (
+                      <span className="opacity-50">({totalProps})</span>
+                    )}
+                  </button>
+                );
+              })}
+            </TabScrollContainer>
+          </div>
+        </div>
+
+        {/* Accent bar */}
+        <div className="h-[3px]" style={{ background: getRainbowColor(allTabs.findIndex(t => t.key === activeTab)) }} />
+
+        {/* Content */}
+        <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
+          <FilterSortToolbar
+            filters={filters}
+            sort={sort}
+            onFiltersChange={setFilters}
+            onSortChange={setSort}
+            cities={cities}
+            builders={builders}
+            favCount={favCount}
+          />
+
+          <h2 className="font-display text-lg font-semibold mb-3.5" style={{ color: currentTab.color }}>
+            {currentTab.label}
+          </h2>
+
+          {/* Tab Summary */}
+          {activeTab === "rank-primary" ? (
+            <TabSummary properties={primaryRanked} color={currentTab.color} label="Primary Residence Rankings" />
+          ) : activeTab === "rank-income" ? (
+            <TabSummary properties={incomeFiltered.fullRental} color={currentTab.color} label="Income Generation Rankings" />
+          ) : activeTab === "all-homes" ? (
+            <TabSummary properties={allHomesProperties} color={currentTab.color} label="All Homes" />
+          ) : (
+            <TabSummary properties={builderProperties} color={currentTab.color} label={currentTab.label} />
+          )}
+
+          {/* Rank: Primary Residence */}
+          {activeTab === "rank-primary" && (
+            <div>
+              <p className="text-xs text-muted-foreground font-body mb-4">
+                All {primaryRanked.length} properties ranked best-to-worst for primary residence living.
+              </p>
+              {primaryRanked.map(p => renderPropertyRow(p, currentTab.color, { rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }))}
+            </div>
+          )}
+
+          {/* Rank: Income Generation */}
+          {activeTab === "rank-income" && (
+            <div>
+              <div className="mb-6">
+                <h3 className="font-display text-base font-semibold mb-1" style={{ color: "#2e7d32" }}>Full Rental</h3>
+                <p className="text-xs text-muted-foreground font-body mb-3">
+                  Ranked by gross yield, rental income, and barrier to entry — {incomeFiltered.fullRental.length} properties.
+                </p>
+                {incomeFiltered.fullRental.map(p => renderPropertyRow(p, currentTab.color, { rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }))}
+              </div>
+              {incomeFiltered.airbnbPotential.length > 0 && (
+                <div>
+                  <h3 className="font-display text-base font-semibold mb-1" style={{ color: "#1565c0" }}>Airbnb / House-Hack Potential</h3>
+                  <p className="text-xs text-muted-foreground font-body mb-3">
+                    Properties suited for short-term rentals — {incomeFiltered.airbnbPotential.length} properties.
+                  </p>
+                  {incomeFiltered.airbnbPotential.map(p => renderPropertyRow(p, "#1565c0", { rank: p.rank, scoreSummary: p.scoreSummary, sourceTab: p.sourceTab }))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* All Homes */}
+          {isAllHomes && (
+            <div>
+              <p className="text-xs text-muted-foreground font-body mb-4">
+                All {allHomesProperties.length} properties from every builder in one view.
+              </p>
+              {allHomesProperties.map((p: any) => (
+                <div key={p.id} className="relative">
+                  {p._builderTag && (
+                    <div className="absolute top-2 right-2 z-10 text-[9px] uppercase tracking-wider font-body font-semibold px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+                      {p._builderTag}
+                    </div>
+                  )}
+                  {renderPropertyRow(p, currentTab.color)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Regular builder tabs */}
+          {!isRankTab && !isAllHomes && (
+            <>
+              {activeTab === "outoftown" && outOfTownByCity ? (
+                Object.entries(outOfTownByCity).map(([city, props]) => (
+                  <div key={city} className="mb-5">
+                    <div className="text-[11px] font-bold uppercase tracking-[2px] text-muted-foreground mb-2 pb-1 border-b border-border">
+                      {city}
+                    </div>
+                    {props.map(p => renderPropertyRow(p, currentTab.color))}
+                  </div>
+                ))
+              ) : (
+                builderProperties.map(p => renderPropertyRow(p, currentTab.color))
+              )}
+            </>
+          )}
+
+          {/* Disclaimer */}
+          <div className="mt-6 p-3.5 bg-card rounded border border-border text-[10px] text-muted-foreground leading-relaxed">
+            <span className="font-bold uppercase tracking-wider" style={{ color: "#666" }}>Disclaimer: </span>
+            Pricing, availability, and specifications subject to change without notice. Rental estimates based on comparables as of April 2026. Not financial or investment advice. Builder incentives subject to lender approval. Consult a financial advisor before investing. Prepared by Emily Russell, REALTOR® — Fathom Realty · (210) 912-0806 · emily@streamwalkers.com · alamocitydesigns.com
+          </div>
+        </div>
+
+        {/* Compare */}
+        {compareIds.size >= 2 && (
+          <button
+            onClick={() => setShowCompare(true)}
+            className="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-full shadow-lg font-body text-sm font-semibold cursor-pointer border-none transition-transform hover:scale-105 bg-primary text-primary-foreground"
+          >
+            Compare ({compareIds.size})
+          </button>
+        )}
+        <ComparisonView open={showCompare} onOpenChange={setShowCompare} properties={compareProperties} />
+      </div>
+    </TooltipProvider>
+  );
+}
