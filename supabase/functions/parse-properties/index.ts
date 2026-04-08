@@ -14,7 +14,7 @@ Your job is to extract structured property data and group them into tabs (typica
 Each property has these fields (all optional except address):
 - address (string, required)
 - city (string)
-- price (number, no commas or $). CRITICAL: price MUST be the full integer amount. "$227,999" → 227999 (NOT 227). "$1,234,567" → 1234567. Remove dollar signs, commas, and spaces before converting to a number.
+- price (number, no commas or $)
 - beds (number)
 - baths (string, e.g. "2.5")
 - sqft (number)
@@ -533,13 +533,24 @@ serve(async (req) => {
         } else {
           const target = merged.length > 0 ? merged[merged.length - 1] : null;
           if (target) {
-            // Parse the orphan's address field (which is really a detail string)
-            const parsedFromAddr = parseDetailString(addr);
-            applyParsed(target, parsedFromAddr);
+            // Reassemble split numbers: AI sometimes splits "$227,999" into
+            // address="Price: $227" + city="999–$238,399 | Beds/Baths: 3/2 | ..."
+            // Detect this: address ends with digits, city starts with digits
+            let combinedDetail = addr;
+            const cityStr = (p.city || "").trim();
+            if (/\d$/.test(addr) && /^\d/.test(cityStr)) {
+              // Concatenate to recover the split number: "$227" + "999" → "$227999"
+              combinedDetail = addr + cityStr;
+              console.log(`Reassembled split detail: "${addr}" + "${cityStr.slice(0, 30)}…" → parsing as one string`);
+            }
 
-            // Parse the orphan's city field (often contains the detail string)
-            if (p.city && typeof p.city === "string" && /[\|\/]/.test(p.city)) {
-              const parsedFromCity = parseDetailString(p.city);
+            // Parse the combined/address detail string
+            const parsedFromCombined = parseDetailString(combinedDetail);
+            applyParsed(target, parsedFromCombined);
+
+            // Also parse city separately if it wasn't combined (or has extra data)
+            if (cityStr && /[\|\/]/.test(cityStr) && !/^\d/.test(cityStr)) {
+              const parsedFromCity = parseDetailString(cityStr);
               applyParsed(target, parsedFromCity);
             }
 
@@ -578,27 +589,6 @@ serve(async (req) => {
             p.community = communityMatch[1].trim();
           }
           p.address = p.address.replace(/\s*\([^)]+\)\s*/, "").trim();
-        }
-      }
-    }
-
-    // ── PRICE SANITY CHECK: Fix truncated prices ──
-    for (const tabKey of Object.keys(dossierData.properties)) {
-      for (const p of dossierData.properties[tabKey] as any[]) {
-        if (p.price && p.price > 0 && p.price < 10000) {
-          const addr = p.address || "";
-          const addrIdx = enrichedText.indexOf(addr);
-          if (addrIdx >= 0) {
-            const nearby = enrichedText.slice(addrIdx, addrIdx + 500);
-            const priceMatch = nearby.match(/\$([\d,]+)/);
-            if (priceMatch) {
-              const corrected = parseInt(priceMatch[1].replace(/,/g, ""), 10);
-              if (corrected > 10000) {
-                console.log(`Fixed truncated price for "${addr}": ${p.price} → ${corrected}`);
-                p.price = corrected;
-              }
-            }
-          }
         }
       }
     }
