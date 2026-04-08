@@ -770,32 +770,39 @@ export default function AdminDashboard() {
                         style={{ resize: "vertical" }}
                       />
 
-                      {/* Image upload zone */}
+                      {/* File upload zone */}
                       <div
                         onDragOver={e => e.preventDefault()}
-                        onDrop={e => handleImageDrop(e, setUploadedImages)}
+                        onDrop={e => handleFileDrop(e, setUploadedFiles)}
                         className="mt-2 border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
-                        onClick={() => document.getElementById("dossier-img-input")?.click()}
+                        onClick={() => document.getElementById("dossier-file-input")?.click()}
                       >
                         <input
-                          id="dossier-img-input"
+                          id="dossier-file-input"
                           type="file"
-                          accept="image/*"
+                          accept={ACCEPTED_FILE_TYPES}
                           multiple
                           className="hidden"
-                          onChange={e => handleImageSelect(e, setUploadedImages)}
+                          onChange={e => handleFileSelect(e, setUploadedFiles)}
                         />
-                        <ImagePlus className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Drag & drop images or click to upload (max 10)</p>
+                        <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
+                        <p className="text-xs text-muted-foreground">Drag & drop files or click to upload — images, PDFs, Word, Excel (max 10)</p>
                       </div>
 
-                      {uploadedImages.length > 0 && (
+                      {uploadedFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {uploadedImages.map((img, i) => (
+                          {uploadedFiles.map((file, i) => (
                             <div key={i} className="relative group">
-                              <img src={img} alt={`Upload ${i + 1}`} className="w-16 h-16 object-cover rounded border border-border" />
+                              {file.type === "image" && file.dataUrl ? (
+                                <img src={file.dataUrl} alt={file.name} className="w-16 h-16 object-cover rounded border border-border" />
+                              ) : (
+                                <div className="w-16 h-16 rounded border border-border bg-muted flex flex-col items-center justify-center p-1">
+                                  <FileText className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-[7px] text-muted-foreground truncate w-full text-center mt-0.5">{file.name.split('.').pop()?.toUpperCase()}</span>
+                                </div>
+                              )}
                               <button
-                                onClick={() => setUploadedImages(prev => prev.filter((_, j) => j !== i))}
+                                onClick={() => setUploadedFiles(prev => prev.filter((_, j) => j !== i))}
                                 className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
                               >×</button>
                             </div>
@@ -805,7 +812,7 @@ export default function AdminDashboard() {
 
                       <button
                         onClick={extractProperties}
-                        disabled={extracting || (newRawText.trim().length < 10 && uploadedImages.length === 0)}
+                        disabled={extracting || (newRawText.trim().length < 10 && uploadedFiles.length === 0)}
                         className="btn-er-primary !py-2.5 !px-6 !text-[10px] mt-3 flex items-center gap-2"
                       >
                         {extracting ? (
