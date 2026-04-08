@@ -85,6 +85,12 @@ export default function AdminDashboard() {
   const [extractedData, setExtractedData] = useState<any>(null);
   const [useRawJson, setUseRawJson] = useState(false);
 
+  // New client inline form
+  const [addingNewClient, setAddingNewClient] = useState(false);
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [newClientName, setNewClientName] = useState("");
+  const [creatingClient, setCreatingClient] = useState(false);
+
   // Analytics
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
