@@ -1,30 +1,68 @@
 
 
-## Replace parse-properties with Uploaded Version
+## Apply Codebase Scan Fixes
 
-### What's Different
+Addressing the actionable issues from the scan report. Skipping #5 (shared types), #7 (AdminDashboard decomposition), and #13 (tests) as they are large refactors better done separately. Skipping #15-16 (shadcn warnings) as they're not worth changing.
 
-The uploaded `parse-properties-index.ts` has two key improvements over the current deployed version:
+### Critical Fixes
 
-1. **Stronger merging rules in SYSTEM_PROMPT** (lines 76-87): Added "THIS IS THE MOST IMPORTANT RULE" emphasis, a "WRONG vs RIGHT" example, and the explicit rule that `"Price: $234,999" is NEVER a property`.
+**1. Hardcoded API keys → secrets** (`supabase/functions/sync-lead/index.ts`)
+- Replace hardcoded `LEADGENIUS_KEY`, `LEADGENIUS_URL`, `RELOCATE_KEY`, `RELOCATE_URL` with `Deno.env.get(...)` calls
+- Add 4 secrets via the secrets tool: `LEADGENIUS_URL`, `LEADGENIUS_KEY`, `RELOCATE_URL`, `RELOCATE_KEY`
 
-2. **Post-processing merge step** (lines 443-498): A new server-side safety net that runs AFTER the AI returns results. It uses regex to detect entries whose "address" field doesn't start with digits + street name (or starts with price/beds/sqft patterns), and merges those orphan entries' data into the nearest preceding valid property. It also cleans up empty tabs afterward.
+**2. API key in URL query string** (`src/lib/analyticsTracker.ts`)
+- The `sendBeacon` call appends the anon key as a query param. Replace with a proper `fetch` + `keepalive: true` approach that puts the key in headers instead, or document as accepted risk since the table has insert-only RLS for anon.
+- Also add `.catch(() => {})` to both fire-and-forget calls (fixes #14 too).
 
-### Plan
+**3. Blob URL memory leak** (`src/pages/BuyerRepAgreement.tsx`)
+- Revoke previous blob URL before creating a new one
+- Add `useEffect` cleanup to revoke on unmount
 
-**`supabase/functions/parse-properties/index.ts`** — Replace the current file content with the uploaded version. The specific changes are:
+### High Fixes
 
-1. **SYSTEM_PROMPT update** (line 76-87): Replace the current merging rules section with the stronger version that includes the WRONG/RIGHT example and "Price line is NEVER a property" rule.
+**4. Realtime subscription churn** (`src/pages/AdminDashboard.tsx`)
+- Use `useRef` for `profiles`, `resolvePropertyFromDossiers`, and `fetchData` so the realtime effect only depends on `[isAdmin]`
 
-2. **Add post-processing merge block** (after the fallback extraction, before ID assignment): Insert ~45 lines of server-side dedup logic that catches any remaining detail-only entries the AI missed, merging them into valid address entries using `ADDRESS_RE` and `NOT_ADDRESS_RE` patterns.
+**8. Missing database indexes** (migration)
+- Add indexes on `analytics_events(event_type, created_at)`, `analytics_events(session_id)`, `property_interactions(user_id)`
 
-3. **Add empty-tab cleanup**: After merging, remove any tabs that ended up with 0 properties.
+### Medium Fixes
 
-Then redeploy the edge function.
+**9. Ternary as statement** (`src/components/portal/ClientDossierView.tsx` ~line 658)
+- Replace `n.has(id) ? n.delete(id) : n.add(id)` with `if/else`
 
-### Files
+**10. useCallback missing dep** (`src/components/portal/SignaturePad.tsx`)
+- `getCtx` and `getCanvas` are stable (defined in component body referencing a ref) — no actual bug, but make `getCanvas`/`getCtx` into refs or wrap in useCallback for correctness
 
-| File | Action |
-|------|--------|
-| `supabase/functions/parse-properties/index.ts` | Update SYSTEM_PROMPT merging rules + add post-processing merge/dedup logic |
+**11. `let` → `const`** (`src/pages/AdminDashboard.tsx` line 194)
+- Change `let repliesMap` to `const repliesMap`
+
+**12. Error boundary** (`src/App.tsx`)
+- Add a top-level React ErrorBoundary wrapping `<Routes>`
+
+**14. Analytics error handling** (`src/lib/analyticsTracker.ts`)
+- Add `.catch(() => {})` to both insert calls (combined with fix #2)
+
+**17. Console statements**
+- Skip for now — low impact and requires auditing many files
+
+**18. process-email-queue CORS comment** (`supabase/functions/process-email-queue/index.ts`)
+- Add comment noting this is a webhook-only function, no CORS needed
+
+### Files Changed
+
+| File | Changes |
+|------|---------|
+| `supabase/functions/sync-lead/index.ts` | Replace 4 hardcoded values with `Deno.env.get()` |
+| `src/lib/analyticsTracker.ts` | Fix sendBeacon key exposure; add `.catch()` to both calls |
+| `src/pages/BuyerRepAgreement.tsx` | Revoke blob URLs on cleanup |
+| `src/pages/AdminDashboard.tsx` | Use refs for realtime deps; `let` → `const` |
+| `src/components/portal/ClientDossierView.tsx` | Ternary → if/else |
+| `src/components/portal/SignaturePad.tsx` | Minor dep fix |
+| `src/App.tsx` | Add ErrorBoundary component |
+| `supabase/functions/process-email-queue/index.ts` | Add "no CORS" comment |
+| New migration | Add 3 database indexes |
+
+### Secrets Needed
+Will need the user to input values for 4 new secrets: `LEADGENIUS_URL`, `LEADGENIUS_KEY`, `RELOCATE_URL`, `RELOCATE_KEY` (values are currently hardcoded in the file, so we know them).
 
