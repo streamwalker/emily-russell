@@ -14,7 +14,7 @@ Your job is to extract structured property data and group them into tabs (typica
 Each property has these fields (all optional except address):
 - address (string, required)
 - city (string)
-- price (number, no commas or $)
+- price (number, no commas or $). CRITICAL: price MUST be the full integer amount. "$227,999" → 227999 (NOT 227). "$1,234,567" → 1234567. Remove dollar signs, commas, and spaces before converting to a number.
 - beds (number)
 - baths (string, e.g. "2.5")
 - sqft (number)
@@ -578,6 +578,27 @@ serve(async (req) => {
             p.community = communityMatch[1].trim();
           }
           p.address = p.address.replace(/\s*\([^)]+\)\s*/, "").trim();
+        }
+      }
+    }
+
+    // ── PRICE SANITY CHECK: Fix truncated prices ──
+    for (const tabKey of Object.keys(dossierData.properties)) {
+      for (const p of dossierData.properties[tabKey] as any[]) {
+        if (p.price && p.price > 0 && p.price < 10000) {
+          const addr = p.address || "";
+          const addrIdx = enrichedText.indexOf(addr);
+          if (addrIdx >= 0) {
+            const nearby = enrichedText.slice(addrIdx, addrIdx + 500);
+            const priceMatch = nearby.match(/\$([\d,]+)/);
+            if (priceMatch) {
+              const corrected = parseInt(priceMatch[1].replace(/,/g, ""), 10);
+              if (corrected > 10000) {
+                console.log(`Fixed truncated price for "${addr}": ${p.price} → ${corrected}`);
+                p.price = corrected;
+              }
+            }
+          }
         }
       }
     }
