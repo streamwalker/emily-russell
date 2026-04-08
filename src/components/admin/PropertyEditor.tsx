@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check } from "lucide-react";
+import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check, Upload, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import {
   Dialog,
   DialogContent,
@@ -242,6 +243,8 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
   const [smartAdding, setSmartAdding] = useState(false);
   const [smartAddError, setSmartAddError] = useState("");
   const [smartAddPreview, setSmartAddPreview] = useState<DossierData | null>(null);
+  const [smartAddFiles, setSmartAddFiles] = useState<ParsedFile[]>([]);
+  const [expandedPreviewProp, setExpandedPreviewProp] = useState<string | null>(null);
   const [newTabLabel, setNewTabLabel] = useState("");
   const [showAddTab, setShowAddTab] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -354,8 +357,11 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     setSmartAdding(true);
     setSmartAddError("");
     try {
+      const images = smartAddFiles.filter(f => f.type === "image").map(f => f.dataUrl!);
+      const docTexts = smartAddFiles.filter(f => f.type === "document" && f.text).map(f => `\n--- From ${f.name} ---\n${f.text}\n--- End ---`);
+      const combinedText = smartAddText + (docTexts.length > 0 ? "\n\n[Extracted from uploaded documents:]\n" + docTexts.join("\n") : "");
       const { data: result, error } = await supabase.functions.invoke("parse-properties", {
-        body: { rawText: smartAddText },
+        body: { rawText: combinedText, images },
       });
       if (error) throw new Error(error.message || "Extraction failed");
       if (result?.error) throw new Error(result.error);
@@ -365,6 +371,19 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
       setSmartAddError(e instanceof Error ? e.message : "Failed to extract properties");
     }
     setSmartAdding(false);
+  };
+
+  const handleSmartAddFileDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const parsed = await parseFiles(e.dataTransfer.files);
+    setSmartAddFiles(prev => [...prev, ...parsed].slice(0, 10));
+  };
+
+  const handleSmartAddFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const parsed = await parseFiles(e.target.files);
+    setSmartAddFiles(prev => [...prev, ...parsed].slice(0, 10));
+    e.target.value = "";
   };
 
   const confirmSmartAdd = () => {
@@ -387,6 +406,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
     });
     setSmartAddPreview(null);
     setSmartAddText("");
+    setSmartAddFiles([]);
     setShowSmartAdd(false);
   };
 
@@ -542,7 +562,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         <div className="bg-muted/30 border border-border rounded p-4 mb-4">
           <label className="er-label block mb-1 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
-            Paste property info or URLs to add via AI
+            Paste property info or upload files (images, PDFs, Word docs, spreadsheets)
           </label>
           <textarea
             value={smartAddText}
@@ -552,17 +572,58 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
             className="er-input text-sm w-full mb-2"
             style={{ resize: "vertical" }}
           />
+
+          {/* File upload zone */}
+          <div
+            onDragOver={e => e.preventDefault()}
+            onDrop={handleSmartAddFileDrop}
+            className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-3 text-center hover:border-primary/50 transition-colors cursor-pointer mb-2"
+            onClick={() => document.getElementById("smart-add-file-input")?.click()}
+          >
+            <input
+              id="smart-add-file-input"
+              type="file"
+              accept={ACCEPTED_FILE_TYPES}
+              multiple
+              className="hidden"
+              onChange={handleSmartAddFileSelect}
+            />
+            <Upload className="w-4 h-4 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">Drag & drop or click — images, PDFs, Word, Excel (max 10)</p>
+          </div>
+
+          {smartAddFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {smartAddFiles.map((file, i) => (
+                <div key={i} className="relative group">
+                  {file.type === "image" && file.dataUrl ? (
+                    <img src={file.dataUrl} alt={file.name} className="w-14 h-14 object-cover rounded border border-border" />
+                  ) : (
+                    <div className="w-14 h-14 rounded border border-border bg-muted flex flex-col items-center justify-center p-1">
+                      <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-[7px] text-muted-foreground truncate w-full text-center mt-0.5">{file.name.split('.').pop()?.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSmartAddFiles(prev => prev.filter((_, j) => j !== i)); }}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                  >×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {smartAddError && <div className="text-destructive text-xs mb-2">{smartAddError}</div>}
           <div className="flex gap-2">
             <button
               onClick={smartAdd}
-              disabled={smartAdding || smartAddText.trim().length < 10}
+              disabled={smartAdding || (smartAddText.trim().length < 10 && smartAddFiles.length === 0)}
               className="btn-er-primary !py-2 !px-4 !text-[10px] flex items-center gap-1.5"
             >
               {smartAdding ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Extracting…</> : <><Sparkles className="w-3.5 h-3.5" /> Extract & Preview</>}
             </button>
             <button
-              onClick={() => { setShowSmartAdd(false); setSmartAddText(""); setSmartAddError(""); }}
+              onClick={() => { setShowSmartAdd(false); setSmartAddText(""); setSmartAddError(""); setSmartAddFiles([]); }}
               className="btn-outline-light !text-charcoal !border-border !py-2 !px-4 !text-[10px]"
             >
               Cancel
@@ -573,14 +634,14 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
 
       {/* Smart Add Preview Modal */}
       <Dialog open={!!smartAddPreview} onOpenChange={(open) => { if (!open) setSmartAddPreview(null); }}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-primary" />
               Preview Extracted Properties ({previewTotalCount})
             </DialogTitle>
             <DialogDescription>
-              Review and edit extracted properties before adding them to the dossier.
+              Review and edit extracted properties before adding them to the dossier. Click a property to expand all fields.
             </DialogDescription>
           </DialogHeader>
 
@@ -605,34 +666,93 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
                         <Trash2 className="w-3 h-3" /> Remove Tab
                       </button>
                     </div>
-                    {props.map((prop, i) => (
-                      <div key={prop.id || i} className="border border-border rounded p-3 mb-2 bg-card">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-semibold text-foreground">
-                            {prop.address || "(no address)"}
-                          </span>
-                          <button
-                            onClick={() => removePreviewProperty(tab.key, i)}
-                            className="text-destructive/50 hover:text-destructive bg-transparent border-none cursor-pointer p-1"
+                    {props.map((prop, i) => {
+                      const previewId = `${tab.key}-${i}`;
+                      const isExpanded = expandedPreviewProp === previewId;
+                      return (
+                        <div key={prop.id || i} className="border border-border rounded mb-2 bg-card overflow-hidden">
+                          <div
+                            className="flex justify-between items-center px-3 py-2.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={() => setExpandedPreviewProp(isExpanded ? null : previewId)}
                           >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {PREVIEW_FIELDS.map(({ key, label }) => (
-                            <div key={key}>
-                              <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
-                              <input
-                                type="text"
-                                value={prop[key] != null ? String(prop[key]) : ""}
-                                onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
-                                className="er-input !py-1 !text-xs w-full"
-                              />
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <span className="text-sm font-semibold text-foreground truncate">
+                                {prop.address || "(no address)"}
+                              </span>
+                              {prop.city && <span className="text-xs text-muted-foreground">{prop.city}</span>}
+                              {prop.price && <span className="text-xs text-muted-foreground">${Number(prop.price).toLocaleString()}</span>}
+                              {prop.beds && <span className="text-xs text-muted-foreground">{prop.beds}bd</span>}
+                              {prop.sqft && <span className="text-xs text-muted-foreground">{Number(prop.sqft).toLocaleString()}sf</span>}
                             </div>
-                          ))}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removePreviewProperty(tab.key, i); }}
+                                className="text-destructive/50 hover:text-destructive bg-transparent border-none cursor-pointer p-1"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                              {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="px-3 pb-3 pt-1 border-t border-border">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                                {TEXT_FIELDS.map(({ key, label }) => (
+                                  <div key={key}>
+                                    <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
+                                    <input
+                                      type="text"
+                                      value={(prop[key] as string) || ""}
+                                      onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
+                                      className="er-input !py-1 !text-xs w-full"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-2">
+                                {NUMBER_FIELDS.map(({ key, label }) => (
+                                  <div key={key}>
+                                    <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={prop[key] != null ? String(prop[key]) : ""}
+                                      onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
+                                      className="er-input !py-1 !text-xs w-full"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+                                {ESTIMATE_FIELDS.map(({ key, label }) => (
+                                  <div key={key}>
+                                    <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">{label}</label>
+                                    <input
+                                      type="text"
+                                      value={(prop[key] as string) || ""}
+                                      onChange={e => updatePreviewField(tab.key, i, key as string, e.target.value)}
+                                      className="er-input !py-1 !text-xs w-full"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div>
+                                <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-body block mb-0.5">Agent Notes</label>
+                                <textarea
+                                  value={(prop.notes as string) || ""}
+                                  onChange={e => updatePreviewField(tab.key, i, "notes", e.target.value)}
+                                  rows={2}
+                                  placeholder="Add notes..."
+                                  className="er-input !py-1 !text-xs w-full"
+                                  style={{ resize: "vertical" }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })}
