@@ -199,8 +199,8 @@ serve(async (req) => {
     }
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    const urls = rawText.match(URL_REGEX) || [];
-    let enrichedText = rawText;
+    const urls = (rawText || "").match(URL_REGEX) || [];
+    let enrichedText = rawText || "";
 
     if (urls.length === 0 && FIRECRAWL_API_KEY) {
       // ── Research Agent: address-only input → search the web ──────────
