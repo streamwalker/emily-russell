@@ -563,14 +563,91 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="er-label block mb-1">Client</label>
-                    <select value={newUserId} onChange={e => setNewUserId(e.target.value)} className="er-input">
+                    <select
+                      value={addingNewClient ? "__new__" : newUserId}
+                      onChange={e => {
+                        if (e.target.value === "__new__") {
+                          setAddingNewClient(true);
+                          setNewUserId("");
+                        } else {
+                          setAddingNewClient(false);
+                          setNewUserId(e.target.value);
+                          setNewClientEmail("");
+                          setNewClientName("");
+                        }
+                      }}
+                      className="er-input"
+                    >
                       <option value="">Select client…</option>
                       {profiles.map(p => (
                         <option key={p.user_id} value={p.user_id}>
                           {p.email} {p.full_name ? `(${p.full_name})` : ""}
                         </option>
                       ))}
+                      <option value="__new__">+ Add New Client</option>
                     </select>
+                    {addingNewClient && (
+                      <div className="mt-3 p-4 bg-muted/30 border border-border rounded space-y-3">
+                        <div>
+                          <label className="er-label block mb-1">Email <span className="text-destructive">*</span></label>
+                          <input
+                            type="email"
+                            value={newClientEmail}
+                            onChange={e => setNewClientEmail(e.target.value)}
+                            placeholder="client@example.com"
+                            className="er-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="er-label block mb-1">Full Name</label>
+                          <input
+                            value={newClientName}
+                            onChange={e => setNewClientName(e.target.value)}
+                            placeholder="Jane Doe"
+                            className="er-input"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              if (!newClientEmail.includes("@")) { setError("Enter a valid email"); return; }
+                              setCreatingClient(true);
+                              setError("");
+                              try {
+                                const { data, error: fnErr } = await supabase.functions.invoke("create-client", {
+                                  body: { email: newClientEmail.trim(), full_name: newClientName.trim() || null },
+                                });
+                                if (fnErr) throw new Error(fnErr.message || "Failed to create client");
+                                if (data?.error) throw new Error(data.error);
+                                const userId = data.user_id;
+                                // Refresh profiles and auto-select new client
+                                const { data: refreshed } = await supabase.from("profiles").select("user_id, email, full_name");
+                                if (refreshed) setProfiles(refreshed);
+                                setNewUserId(userId);
+                                setAddingNewClient(false);
+                                setNewClientEmail("");
+                                setNewClientName("");
+                                toast.success("Client created successfully");
+                              } catch (e: unknown) {
+                                setError(e instanceof Error ? e.message : "Failed to create client");
+                              }
+                              setCreatingClient(false);
+                            }}
+                            disabled={creatingClient || !newClientEmail}
+                            className="btn-er-primary !py-2 !px-4 !text-[10px] flex items-center gap-1.5"
+                          >
+                            {creatingClient && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {creatingClient ? "Creating…" : "Create Client"}
+                          </button>
+                          <button
+                            onClick={() => { setAddingNewClient(false); setNewClientEmail(""); setNewClientName(""); }}
+                            className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-muted-foreground px-4 py-2 hover:text-foreground transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="er-label block mb-1">Title</label>
