@@ -245,7 +245,6 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
   const [smartAddPreview, setSmartAddPreview] = useState<DossierData | null>(null);
   const [smartAddFiles, setSmartAddFiles] = useState<ParsedFile[]>([]);
   const [expandedPreviewProp, setExpandedPreviewProp] = useState<string | null>(null);
-  const [smartAddPreview, setSmartAddPreview] = useState<DossierData | null>(null);
   const [newTabLabel, setNewTabLabel] = useState("");
   const [showAddTab, setShowAddTab] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
