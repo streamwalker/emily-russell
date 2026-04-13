@@ -71,7 +71,7 @@ const NEW_HOME_DEALS = [
   },
 ];
 
-const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["Blog","blog"],["Contact","contact"]];
+const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["FAQ","faq"],["Blog","blog"],["Contact","contact"]];
 const PORTAL_LINK = "/portal";
 
 const AFFILIATE_LINKS = [
@@ -640,7 +640,36 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ═══════════ CTA BANNER ═══════════ */}
+      {/* ═══════════ FAQ (AEO) ═══════════ */}
+      <section id="faq" className="py-[92px] px-10 bg-white">
+        <div className="max-w-[800px] mx-auto">
+          <FadeIn>
+            <div className="text-center mb-11">
+              <div className="er-label">Common Questions</div>
+              <h2 className="er-heading">Frequently Asked <span className="italic text-sage">Questions</span></h2>
+            </div>
+          </FadeIn>
+          {[
+            { q: "How much does it cost to hire a buyer's agent in San Antonio?", a: "In most San Antonio transactions, the seller pays the buyer's agent commission — so working with Emily Russell as your buyer's agent typically costs you nothing out of pocket. Emily also offers transparent buyer representation agreements that clearly outline any fees before you begin your home search." },
+            { q: "What are the best neighborhoods in San Antonio for families?", a: "Top family-friendly neighborhoods include Alamo Ranch (78253) with top-rated Northside ISD schools, Stone Oak (78258) known for upscale dining and excellent schools, Helotes for Hill Country charm with acreage options, and Boerne/Fair Oaks Ranch for small-town feel with a booming market." },
+            { q: "Should I buy new construction or a resale home in San Antonio?", a: "Both have advantages. New construction offers builder warranties, modern floor plans, and energy efficiency. Resale homes often feature established landscaping, larger lots, and mature neighborhoods. Emily can guide you through builder negotiations for new builds or help find the perfect resale home." },
+            { q: "How do I relocate to San Antonio from out of state?", a: "Emily provides full relocation support including virtual home tours, neighborhood guides, school district information, cost-of-living comparisons, and coordination with moving services. She helps families and professionals transition smoothly from anywhere in the U.S." },
+            { q: "What is the average home price in San Antonio in 2026?", a: "The median home price in greater San Antonio ranges from approximately $250,000 to $380,000 depending on the neighborhood. Alamo Ranch starts around $217,000 for new construction, while Stone Oak and gated communities can range from $350,000 to $500,000+. Contact Emily for a current market analysis." },
+            { q: "Do I need a REALTOR® to buy a new construction home in Texas?", a: "While not legally required, having a REALTOR® represent you is highly recommended. Builders have sales agents who represent the builder's interests — not yours. Emily negotiates upgrades, reviews contracts, ensures inspections, and helps you understand builder incentives so you get the best deal." },
+          ].map((item, i) => (
+            <FadeIn key={i} delay={i * 0.05}>
+              <details className="group border-b border-charcoal/10 py-5">
+                <summary className="flex justify-between items-center cursor-pointer list-none font-display text-lg font-medium text-charcoal pr-4">
+                  {item.q}
+                  <span className="text-gold text-2xl transition-transform duration-300 group-open:rotate-45 flex-shrink-0 ml-4">+</span>
+                </summary>
+                <p className="er-body mt-3 pr-8">{item.a}</p>
+              </details>
+            </FadeIn>
+          ))}
+        </div>
+      </section>
+
       <section className="py-[72px] px-10 text-center" style={{
         background: `linear-gradient(rgba(28,28,28,.82),rgba(28,28,28,.82)),url('https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=1400&q=80') center/cover`,
       }}>
