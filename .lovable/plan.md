@@ -1,83 +1,43 @@
 
 
-## Fix OSINT Analyst: Add Search Retries, Sibling Inference, and Broader Queries
+## Plan: "Rent vs. Buy" Subpage at `/rent-vs-buy`
 
-### Problem
-The OSINT Analyst finds "No search results" for all 9 properties because Firecrawl returns empty results for new construction addresses not yet indexed by major listing sites. The function gives up after a single failed search query.
+### Approach
+The uploaded file is a fully self-contained HTML page (2,661 lines) with inline CSS, inline JavaScript calculator logic, and JSON-LD structured data. The cleanest, lowest-risk way to load it as a subpage is to **serve it as a static asset** from the `public/` folder and route to it — preserving its exact styling, scripts, and SEO/AEO schemas without needing to port hundreds of lines of CSS/JS into React.
 
-### Solution — Three improvements
+### Steps
 
-**1. Multi-query search strategy** (in `enrich-properties/index.ts`)
+1. **Copy the HTML file into `public/`**
+   - Destination: `public/rent-vs-buy.html`
+   - Files placed in `public/` are served as-is at the matching URL path on Lovable hosting.
 
-Instead of one search query, try up to 3 progressively broader queries before giving up:
-- Query 1: `"12334 Winding Oak Ridge" TX property` (quoted address for exact match)
-- Query 2: `12334 Winding Oak Ridge Conroe TX` (drop "property listing", add state)
-- Query 3: `Tesoro Area Hoffmann new construction TX` (community + builder + "new construction")
+2. **Add a React route that renders the static page**
+   - Create `src/pages/RentVsBuy.tsx` — a thin wrapper that immediately redirects (`window.location.replace("/rent-vs-buy.html")`) so the URL `/rent-vs-buy` loads the static HTML.
+   - Register the route in `src/App.tsx`: `<Route path="/rent-vs-buy" element={<RentVsBuy />} />` placed above the catch-all `*`.
+   - This gives the user the clean URL they asked for (`/rent-vs-buy`) while serving the rich self-contained page.
 
-Stop as soon as any query returns results.
+3. **Update canonical URLs inside the copied HTML**
+   - The uploaded file references `https://www.emilyrussellrealty.com/buy-vs-rent-san-antonio-2026` in its canonical / OG / Twitter / JSON-LD tags.
+   - Replace those with `https://www.alamocitydesigns.com/rent-vs-buy` (the project's actual custom domain) so SEO/AEO signals point to the correct live URL.
 
-**2. Sibling property inference** (new pass in `enrich-properties/index.ts`)
+4. **Add a navigation link on the homepage**
+   - Add "Rent vs. Buy" to the `NAV_ITEMS` in `src/pages/Index.tsx` as an external link (since it lives at a different route, not an in-page anchor) — link target `/rent-vs-buy`.
 
-Before returning results, add a pass that fills fields from "sibling" properties in the same batch/dossier. For example, if 8 of 9 properties in "Hidden Oasis" community all have `city: "Conroe"`, fill the 9th. Apply to: `city`, `area`, `builder`, `type`, `status`, `stories`, `garages`.
-
-Logic: for each missing field, check if all other properties in the same `community` have the same value for that field. If unanimous, apply it.
-
-**3. Log Firecrawl response status** (debugging aid)
-
-Add `console.log` for Firecrawl HTTP status and response body length so future debugging is easier.
+5. **Add the page to `public/sitemap.xml`**
+   - Append a `<url>` entry for `/rent-vs-buy` so search engines discover it.
 
 ### Files Changed
 
-| File | Changes |
+| File | Action |
 |------|--------|
-| `supabase/functions/enrich-properties/index.ts` | Replace `firecrawlSearch` with multi-query retry, add sibling inference pass, improve logging |
+| `public/rent-vs-buy.html` | Create (copy of uploaded file with canonical URLs swapped to alamocitydesigns.com) |
+| `src/pages/RentVsBuy.tsx` | Create (redirect wrapper) |
+| `src/App.tsx` | Add `/rent-vs-buy` route + import |
+| `src/pages/Index.tsx` | Add "Rent vs. Buy" nav link pointing to `/rent-vs-buy` |
+| `public/sitemap.xml` | Add sitemap entry |
 
-### Key Code Changes
-
-```typescript
-// Multi-query strategy
-function buildSearchQueries(prop: any): string[] {
-  const queries: string[] = [];
-  // Exact address quoted
-  if (prop.address) queries.push(`"${prop.address}" TX property`);
-  // Address + city/state
-  if (prop.address) queries.push(`${prop.address} ${prop.city || ""} TX`.trim());
-  // Community + builder broad search
-  const broad = [prop.community, prop.builder, "new construction TX"].filter(Boolean).join(" ");
-  if (broad.length > 20) queries.push(broad);
-  return queries;
-}
-
-// Try queries in order until results found
-for (const query of buildSearchQueries(prop)) {
-  const results = await firecrawlSearch(query, FIRECRAWL_API_KEY);
-  if (results.length > 0) { searchContext = ...; break; }
-}
-```
-
-```typescript
-// Sibling inference after all properties processed
-const INFERRABLE = ["city", "area", "builder", "type", "status", "stories", "garages"];
-const byCommunity: Record<string, any[]> = {};
-for (const prop of properties) {
-  if (prop.community) {
-    (byCommunity[prop.community] ||= []).push(prop);
-  }
-}
-for (const item of enriched) {
-  const prop = properties.find(p => p.id === item.id);
-  if (!prop?.community) continue;
-  const siblings = byCommunity[prop.community].filter(s => s.id !== prop.id);
-  for (const field of INFERRABLE) {
-    if (prop[field] && prop[field] !== "" && prop[field] !== 0) continue;
-    const vals = siblings.map(s => s[field]).filter(v => v && v !== "" && v !== 0);
-    if (vals.length > 0 && vals.every(v => v === vals[0])) {
-      item.updates[field] = vals[0];
-    }
-  }
-}
-```
-
-### Deployment
-Redeploy `enrich-properties` edge function after changes.
+### Why static HTML rather than porting to React
+- The page is 2,661 lines with its own design system, custom CSS, and a stateful vanilla-JS calculator. Porting to React/Tailwind would take many hours and risk breaking the calculator logic or schema markup.
+- Lovable hosting serves `public/` files directly with proper MIME types — JSON-LD, meta tags, and inline scripts all work normally for SEO/AEO.
+- The page remains independently editable and won't be affected by future React/Tailwind refactors.
 
