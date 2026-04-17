@@ -1976,7 +1976,11 @@
 
             <!-- Share Results Button -->
             <div class="share-row">
-              <button type="button" class="share-btn" onclick="shareResults()">📸 Share My Results</button>
+              <button type="button" class="share-btn" id="share-btn" onclick="openShareMenu(event)">📸 Share My Results ▾</button>
+              <div class="share-menu" id="share-menu" role="menu">
+                <button type="button" onclick="shareResults('png')"><span class="sm-icon">🖼️</span> Save as Image (PNG)</button>
+                <button type="button" onclick="shareResults('pdf')"><span class="sm-icon">📄</span> Save as Printable PDF</button>
+              </div>
             </div>
           </div>
 
@@ -2317,7 +2321,18 @@
       <div id="lead-message" class="lead-message" role="status" aria-live="polite"></div>
       <button type="submit" class="lead-submit" id="lead-submit-btn">Send My Analysis Request →</button>
     </form>
-    <div class="lead-trust">🔒 Your info goes straight to Emily. Never sold, never spammed.</div>
+    <div class="lead-trust" id="lead-trust">🔒 Your info goes straight to Emily. Never sold, never spammed.</div>
+
+    <!-- Success state (shown after submit) -->
+    <div class="lead-success-state" id="lead-success">
+      <div class="ls-check">✓</div>
+      <h3 id="ls-headline">Thanks — Emily's on it!</h3>
+      <p>Your analysis request is in. Want to skip the wait and grab a 15-minute call right now?</p>
+      <a href="mailto:emily@streamwalkers.com?subject=Book%20a%2015-min%20Rent%20vs.%20Buy%20Call&amp;body=Hi%20Emily%2C%0A%0AI%20just%20used%20your%20Rent%20vs.%20Buy%20calculator%20and%20I%27d%20like%20to%20book%20a%2015-minute%20call%20to%20discuss%20my%20numbers.%0A%0AThanks%21" class="lead-book-btn" id="lead-book-btn">
+        <span class="lb-icon">📅</span> Book a 15-min call with Emily
+      </a>
+      <span class="ls-secondary">Prefer to call now? <a href="tel:+12109120806">(210) 912-0806</a></span>
+    </div>
   </div>
 </section>
 
