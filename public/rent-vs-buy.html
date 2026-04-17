@@ -2785,11 +2785,12 @@
         pdf.setTextColor(120,120,120);
         pdf.text('Generated at alamocitydesigns.com/rent-vs-buy · Emily Russell, REALTOR®', pageW/2, pageH - 0.3, { align: 'center' });
         pdf.save('rent-vs-buy-san-antonio.pdf');
+        ANALYTICS.track('share_success', format, filename);
         return;
       }
       // PNG path
       canvas.toBlob(function(blob){
-        if (!blob) return;
+        if (!blob) { ANALYTICS.track('share_error', format, 'blob_null'); return; }
         var file = new File([blob], 'rent-vs-buy-san-antonio.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           navigator.share({
@@ -2804,9 +2805,11 @@
           document.body.appendChild(a); a.click();
           setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 500);
         }
+        ANALYTICS.track('share_success', format, filename);
       }, 'image/png');
     }).catch(function(err){
       console.error('Share failed', err);
+      ANALYTICS.track('share_error', format, String(err).slice(0, 80));
       alert('Could not generate file. Please try again.');
     });
   };
