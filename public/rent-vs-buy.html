@@ -1594,12 +1594,14 @@
         </div>
         <div class="calc-panel-body">
 
+          <div class="tip-banner">💡 Hover any <span class="tip-icon" style="cursor:default">i</span> icon for expert guidance on that field.</div>
+
           <!-- LOAN TYPE -->
           <div class="calc-group">
             <div class="calc-group-title">Loan Program</div>
 
             <div class="field">
-              <div class="field-label"><span>Loan Type</span></div>
+              <div class="field-label"><span>Loan Type</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> The mortgage program you'll use — FHA, Conventional, VA, USDA, or DPA.</div><div class="tip-row"><b>How:</b> Pick based on credit, income, military status, and area eligibility.</div><div class="tip-row"><b>Why:</b> Drives your minimum down payment, PMI rules, and qualifying rate.</div><div class="tip-row"><b>Means:</b> The right program can save you tens of thousands at closing and over the loan.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
               <div class="select-wrap">
                 <select id="b-loantype" class="loan-type-select" onchange="handleLoanType()">
                   <option value="fha">FHA (3.5% Down)</option>
@@ -1613,7 +1615,7 @@
 
             <!-- Conventional down payment buttons -->
             <div class="field" id="conv-options" style="display:none;">
-              <div class="field-label"><span>Conventional Down Payment</span></div>
+              <div class="field-label"><span>Conventional Down Payment</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Quick presets for common Conventional down payment amounts.</div><div class="tip-row"><b>How:</b> 3% is the floor; 20% removes PMI entirely.</div><div class="tip-row"><b>Why:</b> Lower down = higher loan, PMI added; higher down = lower payment, less liquidity.</div><div class="tip-row"><b>Means:</b> 20% down is best long-term; 3–5% gets you in faster if cash is tight.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
               <div class="term-buttons" id="conv-buttons">
                 <button type="button" data-conv="3" onclick="setConvDown(3)">3%</button>
                 <button type="button" data-conv="5" onclick="setConvDown(5)">5%</button>
@@ -1633,7 +1635,7 @@
             <div class="calc-group-title">VA Loan Details</div>
 
             <div class="field">
-              <div class="field-label"><span>VA Status</span></div>
+              <div class="field-label"><span>VA Status</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Whether you're currently serving or already separated/retired.</div><div class="tip-row"><b>How:</b> Use your DD-214 or current orders to confirm.</div><div class="tip-row"><b>Why:</b> Active duty pays a higher VA funding fee on first-time use; veterans pay less.</div><div class="tip-row"><b>Means:</b> Affects upfront cost — but VA still beats FHA/Conventional for most.</div></span></span></div>
               <div class="select-wrap">
                 <select id="va-status" onchange="handleVAStatus()">
                   <option value="">Select status</option>
@@ -1644,7 +1646,7 @@
             </div>
 
             <div class="field" id="va-rating-wrap" style="display:none;">
-              <div class="field-label"><span>VA Disability Rating</span></div>
+              <div class="field-label"><span>VA Disability Rating</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Your VA-assigned service-connected disability percentage.</div><div class="tip-row"><b>How:</b> Found on your VA benefits letter (eBenefits or VA.gov).</div><div class="tip-row"><b>Why:</b> 10%+ waives the VA funding fee AND unlocks a Texas property tax exemption.</div><div class="tip-row"><b>Means:</b> 100% rating = full Texas property tax exemption — huge monthly savings.</div></span></span></div>
               <div class="select-wrap">
                 <select id="va-rating" onchange="handleVARating()">
                   <option value="0">No Rating</option>
@@ -1658,7 +1660,7 @@
             </div>
 
             <div class="field" id="va-age-wrap" style="display:none;">
-              <div class="field-label"><span>Veteran Age (Optional) — for 65+ bonus exemption</span></div>
+              <div class="field-label"><span>Veteran Age (Optional) — for 65+ bonus exemption</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Veterans 65+ with a 10%+ rating get an extra $12,000 exemption.</div><div class="tip-row"><b>How:</b> Enter your current age if 65 or older.</div><div class="tip-row"><b>Why:</b> Stacks with your standard disability exemption.</div><div class="tip-row"><b>Means:</b> Could lower your annual property tax bill by hundreds more.</div></span></span></div>
               <div class="input-wrap no-prefix">
                 <input type="number" id="va-age" placeholder="Enter age (if 65+)" oninput="calcBuyer()">
               </div>
@@ -1669,7 +1671,7 @@
             <div class="calc-group-title">Property Details</div>
 
             <div class="field">
-              <div class="field-label"><span>Offer Price</span></div>
+              <div class="field-label"><span>Offer Price</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> The price you plan to offer on a home.</div><div class="tip-row"><b>How:</b> Use a real listing or pre-approval target.</div><div class="tip-row"><b>Why:</b> Drives your loan amount, P&amp;I, taxes, and insurance.</div><div class="tip-row"><b>Means:</b> The single biggest lever — every $10K up = ~$50/mo more on a 30-yr loan.</div></span></span></div>
               <div class="input-wrap">
                 <span class="prefix">$</span>
                 <input type="number" id="b-price" value="201999" oninput="syncDown();calcBuyer()">
@@ -1677,7 +1679,7 @@
             </div>
 
             <div class="field">
-              <div class="field-label"><span>Interest Rate</span></div>
+              <div class="field-label"><span>Interest Rate</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Annual mortgage rate offered by your lender.</div><div class="tip-row"><b>How:</b> Get a real quote — don't guess. National avg ≠ your rate.</div><div class="tip-row"><b>Why:</b> 1% difference on a $200K loan = ~$120/mo and $43K over 30 years.</div><div class="tip-row"><b>Means:</b> Locking the right rate is one of the biggest money decisions in your life.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
               <div class="slider-row">
                 <input type="range" id="b-rate-slider" min="3" max="10" step="0.125" value="4.5" oninput="document.getElementById('b-rate').value=this.value;calcBuyer()">
                 <div class="input-wrap suffix-only">
@@ -1689,7 +1691,7 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span>Down Payment %</span></div>
+                <div class="field-label"><span>Down Payment %</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Cash you put down as a percentage of the offer price.</div><div class="tip-row"><b>How:</b> VA/USDA can be 0%, FHA 3.5%, Conventional 3–20%+.</div><div class="tip-row"><b>Why:</b> Lower % = larger loan + possible PMI; higher % = smaller payment.</div><div class="tip-row"><b>Means:</b> Don't drain savings — keeping reserves is often smarter than 20% down.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
                 <div class="slider-row">
                   <input type="range" id="b-downpct-slider" min="0" max="50" step="0.5" value="3.5" oninput="document.getElementById('b-downpct').value=this.value;syncDownDollar();calcBuyer()">
                   <div class="input-wrap suffix-only">
@@ -1699,7 +1701,7 @@
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Down Payment $</span></div>
+                <div class="field-label"><span>Down Payment $</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> The actual dollar amount you'll bring to closing as down payment.</div><div class="tip-row"><b>How:</b> Auto-calculates from the % above, or type a specific number.</div><div class="tip-row"><b>Why:</b> Plus closing costs (~2–4%), this is your "cash to close."</div><div class="tip-row"><b>Means:</b> Down Payment Assistance programs can cover most or all of this.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="b-down" value="7070" oninput="syncDownPct();calcBuyer()">
@@ -1713,7 +1715,7 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span>Annual Tax Rate</span></div>
+                <div class="field-label"><span>Annual Tax Rate</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Combined property tax rate across city, county, school, and special districts.</div><div class="tip-row"><b>How:</b> Bexar County avg is ~1.8–2.5%. Stone Oak/Boerne can be lower; new MUDs higher.</div><div class="tip-row"><b>Why:</b> Texas has no state income tax — but property taxes are above the U.S. average.</div><div class="tip-row"><b>Means:</b> Homestead exemption + (if eligible) VA exemption can drop this dramatically.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
                 <div class="slider-row">
                   <input type="range" id="b-tax-slider" min="0" max="5" step="0.1" value="1.8" oninput="document.getElementById('b-tax').value=this.value;calcBuyer()">
                   <div class="input-wrap suffix-only">
@@ -1723,7 +1725,7 @@
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Monthly Insurance</span></div>
+                <div class="field-label"><span>Monthly Insurance</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Homeowner's insurance escrowed into your monthly payment.</div><div class="tip-row"><b>How:</b> SA average is ~$120–$200/mo for typical homes.</div><div class="tip-row"><b>Why:</b> Lender-required; protects the structure, not just contents.</div><div class="tip-row"><b>Means:</b> Bundle with auto for ~10–15% off; shop yearly.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="b-insurance" value="150" oninput="calcBuyer()">
@@ -1732,7 +1734,7 @@
             </div>
 
             <div class="field">
-              <div class="field-label"><span>Monthly HOA</span></div>
+              <div class="field-label"><span>Monthly HOA</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Homeowners Association dues for community amenities and upkeep.</div><div class="tip-row"><b>How:</b> $0 (no HOA) up to $300+/mo in master-planned communities.</div><div class="tip-row"><b>Why:</b> Pays for pool, gates, common areas, sometimes front-yard maintenance.</div><div class="tip-row"><b>Means:</b> Compare neighborhoods — HOA can swing total monthly cost by hundreds.</div></span></span></div>
               <div class="input-wrap">
                 <span class="prefix">$</span>
                 <input type="number" id="b-hoa" value="51" oninput="calcBuyer()">
@@ -1741,7 +1743,7 @@
 
             <div class="field">
               <div class="field-label">
-                <span>Monthly Utilities (home)</span>
+                <span>Monthly Utilities (home)</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Electric, water, gas, internet, trash for a single-family home.</div><div class="tip-row"><b>How:</b> SA avg ~$275/mo for a 1,800–2,400 sqft home.</div><div class="tip-row"><b>Why:</b> Higher than apartment utilities — but you control the thermostat.</div><div class="tip-row"><b>Means:</b> Solar, energy-efficient builds, and shaded lots can cut this 30–50%.</div></span></span>
                 <span class="helper-link" onclick="document.getElementById('b-util').value=275;calcBuyer();">Use average ($275)</span>
               </div>
               <div class="input-wrap">
@@ -1751,7 +1753,7 @@
             </div>
 
             <div class="field">
-              <div class="field-label"><span>Loan Term</span></div>
+              <div class="field-label"><span>Loan Term</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Length of the mortgage in years (5, 15, 20, or 30).</div><div class="tip-row"><b>How:</b> 30-yr is most common; 15-yr cuts interest in half but raises payment ~40%.</div><div class="tip-row"><b>Why:</b> Shorter term = less interest paid + faster equity, but tighter monthly cash flow.</div><div class="tip-row"><b>Means:</b> Most buyers pick 30-yr for flexibility, then make extra principal payments when possible.</div></span></span></div>
               <div class="term-buttons">
                 <button type="button" data-term="5" onclick="setTerm(5)">5 yr</button>
                 <button type="button" data-term="15" onclick="setTerm(15)">15 yr</button>
@@ -1762,18 +1764,18 @@
           </div>
 
           <div class="total-display buyer-total">
-            <div class="total-label">Total Monthly Obligation</div>
+            <div class="total-label">Total Monthly Obligation <span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> P&amp;I + property tax + insurance + HOA + utilities — your true monthly housing cost.</div><div class="tip-row"><b>How:</b> Compare directly against the renter total to the left.</div><div class="tip-row"><b>Why:</b> The only fair "rent vs. buy" number — anything less is misleading.</div><div class="tip-row"><b>Means:</b> If buy ≤ rent + a small premium, owning wins almost every time long-term.</div></span></span></div>
             <div class="total-value" id="b-monthly-total">$0</div>
             <div class="total-sub">
               P&amp;I: <strong id="b-pi">$0</strong> &middot; Tax: <strong id="b-taxes">$0</strong> &middot; Ins: <strong id="b-ins-out">$0</strong> &middot; HOA: <strong id="b-hoa-out">$0</strong> &middot; Util: <strong id="b-util-out">$0</strong>
             </div>
             <div class="mini-breakdown">
               <div class="mini-stat">
-                <div class="label">Year-1 Equity Built</div>
+                <div class="label">Year-1 Equity Built <span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Principal you pay down in your first 12 months of ownership.</div><div class="tip-row"><b>How:</b> Calculated from your amortization schedule.</div><div class="tip-row"><b>Why:</b> This is "forced savings" — money that becomes yours, not the bank's.</div><div class="tip-row"><b>Means:</b> Renters build $0 in equity. This number is the core argument for buying.</div></span></span></div>
                 <div class="value" id="b-equity" style="color:var(--green-muted)">$0</div>
               </div>
               <div class="mini-stat">
-                <div class="label">Total Interest (loan)</div>
+                <div class="label">Total Interest (loan) <span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Total interest you'll pay over the full loan term.</div><div class="tip-row"><b>How:</b> Sum of every interest payment across all months.</div><div class="tip-row"><b>Why:</b> Eye-opening — often equals or exceeds the original loan amount.</div><div class="tip-row"><b>Means:</b> Extra principal payments, refinancing, or shorter terms can slash this dramatically.</div></span></span></div>
                 <div class="value" id="b-interest">$0</div>
               </div>
             </div>
