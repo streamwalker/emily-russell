@@ -1,40 +1,51 @@
 
 
-## Plan: Fix Photo + Contact Info + Internal Links on /rent-vs-buy
+## Plan: Add "Rent vs. Buy Calculator" Promo Section on Homepage
 
-### 1. Replace agent photo
-- Copy uploaded `user-uploads://emily-russell.png` to `public/emily-russell.png` so the four existing `<img src="emily-russell.png">` references render the real photo (currently broken — file doesn't exist in `public/`).
+### Placement
+Insert a new full-width promo section in `src/pages/Index.tsx` between the "Featured New Home Deals" section (ends line 569) and the dark "Reviews" section (line 572). This placement is ideal because:
+- Visitors browsing new construction naturally ask "should I rent or buy?" — perfect contextual hand-off
+- Sits between two strong sections so it gets eyeballs without disrupting flow
+- The cream background of New Homes → tools card → dark Reviews creates good visual rhythm
 
-### 2. Fix contact info to match the rest of the site
-Current placeholders in `public/rent-vs-buy.html` don't match brand memory. Replace:
+### What it looks like
+A single centered card (matching existing `card-hover` / `er-heading` brand styling — Playfair Display heading, gold accent, charcoal body, cream background section):
 
-| Field | Current | Replace with |
-|------|---------|--------------|
-| Phone (line 40, JSON-LD) | `+1-210-555-0142` | `+1-210-912-0806` |
-| Phone link (line 2112) | `tel:+12105550142` | `tel:+12109120806` |
-| Email (line 41, JSON-LD) | `emily@emilyrussellrealty.com` | `emily@streamwalkers.com` |
-| Email link (line 2113) | `mailto:emily@emilyrussellrealty.com` | `mailto:emily@streamwalkers.com` |
-| JSON-LD `image` (line 43) | `emilyrussellrealty.com/emily-russell.jpg` | `https://www.alamocitydesigns.com/emily-russell.png` |
-| JSON-LD `url` (line 42) | `https://www.emilyrussellrealty.com` | `https://www.alamocitydesigns.com` |
+```text
+┌─────────────────────────────────────────────────────┐
+│  TOOLS & CALCULATORS                                │
+│                                                     │
+│  Should You Rent or Buy in San Antonio?            │
+│                                                     │
+│  Use our free 2026 calculator with real San        │
+│  Antonio property tax, insurance, and HOA data     │
+│  to find your break-even point in seconds.         │
+│                                                     │
+│  ✦ Live mortgage rates    ✦ Local tax rates        │
+│  ✦ Break-even analysis    ✦ 30-year projections    │
+│                                                     │
+│        [ Launch Calculator → ]                      │
+└─────────────────────────────────────────────────────┘
+```
 
-Also add TREC license `#791742` and Fathom Realty mention to the JSON-LD `RealEstateAgent` schema (`brand` + `identifier`) for AEO consistency with the rest of the site.
+### Implementation details
 
-### 3. Add internal links back to homepage (SEO juice)
-Add contextual links to two high-value spots:
+1. **New section** (inserted ~line 570 in `src/pages/Index.tsx`):
+   - `<section id="tools" className="py-[92px] px-10 bg-[hsl(var(--blush))]/30">` (subtle blush tint to differentiate from cream above and dark below)
+   - Wrapped in `<FadeIn>` for animation consistency
+   - Uses existing brand classes (`er-label`, `er-heading`, `er-body`, `btn-er-primary`)
+   - CTA: `<a href="/rent-vs-buy">` with `onClick={() => trackLinkClick("rent_vs_buy_cta", "homepage_tools_section")}` to mirror existing analytics tracking
 
-- **In the closing FAQ block** (around line 2086, "Who is Emily Russell" answer): add link `<a href="/#faq">See more San Antonio buyer FAQs →</a>` and `<a href="/#newhomes">Browse new construction homes in San Antonio →</a>`.
-- **In the dedicated Emily section** (around line 2102, after the "$180K starter homes to $5M Dominion estates" paragraph): add a small `internal-links` line:
-  > "Explore more: <a href='/#newhomes'>New Construction Homes</a> · <a href='/#faq'>Buyer FAQ</a> · <a href='/#areas'>San Antonio Neighborhoods</a>"
-- **In the fine-print/footer** (line 2121 area): add a discreet "Back to alamocitydesigns.com home" link.
+2. **Add to navigation** — Update `NAV_ITEMS` (line 74) to optionally add a "Tools" anchor, OR keep the existing "Rent vs. Buy" nav link (already there) which now scroll-targets are unchanged. Recommendation: leave nav as-is since "Rent vs. Buy" link already exists and goes directly to the page.
 
-These links use root-relative `/#anchor` URLs so they work from `/rent-vs-buy.html` and land on the React homepage at the right scroll position.
+3. **No new files** — Pure addition to `src/pages/Index.tsx`.
 
 ### Files Changed
 
-| File | Action |
+| File | Change |
 |------|--------|
-| `public/emily-russell.png` | Create (copy from upload) |
-| `public/rent-vs-buy.html` | Update phone, email, JSON-LD URLs + image, add 3 internal-link blocks |
+| `src/pages/Index.tsx` | Insert new `<section id="tools">` block between New Homes (line 569) and Reviews (line 572) |
 
-No React/route changes needed — image and links are all inside the static HTML.
+### Why this placement (not hero)
+The hero is already loaded with the home valuation lead capture form (the site's #1 conversion goal per brand memory). Adding a second CTA there would dilute it. A dedicated mid-page tools section drives traffic to /rent-vs-buy without hurting lead capture.
 
