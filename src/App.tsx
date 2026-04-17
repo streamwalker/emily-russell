@@ -13,6 +13,7 @@ import ClientLogin from "./pages/ClientLogin.tsx";
 import ClientPortal from "./pages/ClientPortal.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
+import AdminLeads from "./pages/AdminLeads.tsx";
 import ChangeEmail from "./pages/ChangeEmail.tsx";
 import PortalDashboard from "./pages/PortalDashboard.tsx";
 import BuyerRepAgreement from "./pages/BuyerRepAgreement.tsx";
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/portal/reset-password" element={<ResetPassword />} />
             <Route path="/portal/change-email" element={<ProtectedRoute><ChangeEmail /></ProtectedRoute>} />
             <Route path="/portal/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/portal/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
             <Route path="/portal/dashboard" element={<ProtectedRoute><PortalDashboard /></ProtectedRoute>} />
             <Route path="/portal/agreement" element={<ProtectedRoute><BuyerRepAgreement /></ProtectedRoute>} />
             <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />

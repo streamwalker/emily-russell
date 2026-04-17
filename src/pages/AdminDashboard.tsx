@@ -548,6 +548,9 @@ export default function AdminDashboard() {
             <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Dossiers · Templates · Analytics · Engagement</p>
           </div>
           <div className="flex gap-3 items-center">
+            <Link to="/portal/admin/leads" className="font-body text-[11px] uppercase tracking-[2px] text-white/70 no-underline hover:text-white transition-colors">
+              Recent Leads
+            </Link>
             <Link to="/portal" className="font-body text-[11px] uppercase tracking-[2px] text-white/70 no-underline hover:text-white transition-colors">
               My Portal
             </Link>

@@ -21,6 +21,9 @@ const LEADGENIUS_KEY = Deno.env.get("LEADGENIUS_KEY") ?? "";
 const RELOCATE_URL = Deno.env.get("RELOCATE_URL") ?? "";
 const RELOCATE_KEY = Deno.env.get("RELOCATE_KEY") ?? "";
 
+const LOCAL_SUPA_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const LOCAL_SUPA_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
 async function postToSupabase(url: string, key: string, table: string, data: Record<string, unknown>) {
   try {
     const res = await fetch(`${url}/rest/v1/${table}`, {
