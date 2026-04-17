@@ -1,86 +1,64 @@
 
 
-## Plan: iOS Splash Screens + Legal Page OG Images
+## Plan: iOS Splash Screens + Standalone PWA Mode
 
-Two additive asset-generation tasks. No UI/logic changes — only new image files and `<head>` metadata wiring.
+Generate iOS splash screen images and switch the manifest to `display: standalone` so iOS actually fires them when the site is launched from the home screen.
 
----
+### Manifest change
 
-### Problem with iOS splash screens in this app
+Update `public/site.webmanifest`: `"display": "browser"` → `"display": "standalone"`. This makes iOS launch the site fullscreen (no Safari chrome) from the home-screen icon, which is the prerequisite for splash screens to render.
 
-iOS only shows splash screens for sites added to the home screen **as standalone PWAs**. Our `site.webmanifest` uses `display: "browser"` (intentional — we don't want PWA app-shell behavior). With `display: browser`, iOS opens the site in Safari from the home-screen icon and **never shows a splash screen** regardless of how many `apple-touch-startup-image` tags we add.
+### Splash screen generation
 
-**Two options** (need user input):
+**Master image**: One AI-generated 2048×2732 portrait (iPad Pro 12.9" — largest target) with:
+- Cream background (`#fdfaf3`)
+- Emily's headshot centered in upper-middle area, circular crop with subtle gold ring (matches favicon)
+- Below the portrait: "Emily Russell" (Playfair Display) / "REALTOR® · San Antonio" (DM Sans) / small gold divider
+- Generous safe-zone padding so nothing gets clipped on narrow phone aspect ratios
+- Generated via `google/gemini-3-pro-image-preview` using `public/emily-russell.png` as input
 
-**Option A — Switch to `display: "standalone"`** so splash screens actually fire. Trade-off: site opens in a fullscreen webview instead of Safari (no address bar, no Safari back gesture, share sheet works differently). This is what real PWAs do.
+**Resize pipeline**: Pillow center-crops/letterboxes the master into each target resolution (cream-fill on letterbox bars to preserve brand), producing crisp PNGs at each device size — no AI re-rendering at smaller sizes.
 
-**Option B — Skip splash screens** and just generate the legal page OG images. Keep `display: browser` for normal Safari behavior.
+**16 files in `public/splash/`** (8 sizes × portrait + landscape):
 
-I'll ask before generating ~10 large image files that may not even render.
-
----
-
-### 2. Legal page OG images (no blockers)
-
-Three dedicated 1200×630 OG images, one per legal page, all featuring brand identity (cream bg, charcoal/gold accents, Playfair + DM Sans) but with page-specific headlines:
-
-| File | Headline | Subtext |
+| Device | Portrait | Landscape |
 |---|---|---|
-| `public/og-trec.jpg` | "TREC Disclosures" | "Texas Real Estate Commission · Emily Russell, REALTOR®" |
-| `public/og-privacy.jpg` | "Privacy Policy" | "Emily Russell · alamocitydesigns.com" |
-| `public/og-terms.jpg` | "Terms of Service" | "Emily Russell · alamocitydesigns.com" |
+| iPhone 15 Pro Max | 1290×2796 | 2796×1290 |
+| iPhone 15 Pro / 14 Pro | 1179×2556 | 2556×1179 |
+| iPhone 14/13/12 | 1170×2532 | 2532×1170 |
+| iPhone SE | 750×1334 | 1334×750 |
+| iPad Pro 12.9" | 2048×2732 | 2732×2048 |
+| iPad Pro 11" / Air | 1668×2388 | 2388×1668 |
+| iPad 10.9" | 1640×2360 | 2360×1640 |
+| iPad mini | 1488×2266 | 2266×1488 |
 
-Composition: Brand mark / Emily's small headshot in a corner, large headline, subtle gold divider. Generated via the ai-gateway skill (`google/gemini-3-pro-image-preview`) using `public/emily-russell.png` as input. Visual QA each one.
+**QA**: View 4 representative outputs (smallest iPhone portrait, largest iPad portrait, one landscape, one mid-size) to confirm no face clipping, correct aspect, legible text. Regenerate master if issues.
 
----
+### Index.html wiring
 
-### Wiring for legal pages
+Add 16 `<link rel="apple-touch-startup-image">` tags inside `<head>`, each scoped with a precise media query matching device-width × device-height × `-webkit-device-pixel-ratio` × orientation. Example:
 
-`TRECDisclosures.tsx`, `PrivacyPolicy.tsx`, `TermsOfService.tsx` are React routes — `index.html` `<head>` is static and shared. To give each route its own OG image, install **`react-helmet-async`** (lightweight, standard) and add a `<Helmet>` block per page setting:
-- `<meta property="og:image">`, `og:image:width/height/alt`
-- `<meta name="twitter:image">`
-- `<meta property="og:title">` / `og:description` per page
-- `<link rel="canonical">` per page
+```html
+<link rel="apple-touch-startup-image" href="/splash/iphone-15-pro-max-portrait.png"
+  media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+```
 
-Wrap `<App>` in `<HelmetProvider>` in `src/main.tsx`.
+Without exact media queries iOS picks none of them, so each splash needs its own scoped tag.
 
-(Note: crawlers like LinkedIn/Twitter run JS now, but they prefer static `<head>` tags. For best results we'd need SSR — out of scope. `react-helmet-async` works for Facebook/LinkedIn's modern crawlers and for any AEO/AI scraper using a headless browser, which is the realistic audience.)
+### PWA caveat (already handled)
 
----
+This is a **manifest-only** PWA — no service worker, no `vite-plugin-pwa`. Per Lovable PWA guidance that's the safe path: it makes the site installable + splash-capable without the iframe/cache problems service workers cause in the preview. The Lovable preview iframe itself won't show splash screens (those only fire from the iOS home-screen launcher), but published `alamocitydesigns.com` will work correctly when added to home screen.
 
-### iOS splash screens (pending choice above)
-
-If user picks Option A, generate 8 `apple-touch-startup-image` PNGs covering the major iPhone/iPad sizes (portrait + landscape for each), wire them with media-query-scoped `<link>` tags in `index.html`, and flip manifest to `display: standalone`. Generation: one master cream-bg portrait of Emily centered with brand mark, then Pillow-resize/letterbox to each target resolution.
-
-Sizes (portrait, with landscape pairs):
-- iPhone 15 Pro Max: 1290×2796
-- iPhone 15 Pro / 14 Pro: 1179×2556
-- iPhone 14 / 13 / 12: 1170×2532
-- iPhone SE: 750×1334
-- iPad Pro 12.9": 2048×2732
-- iPad Pro 11" / Air: 1668×2388
-- iPad 10.9": 1640×2360
-- iPad mini: 1488×2266
-
----
-
-### Files Changed (if both options approved)
+### Files Changed
 
 | File | Change |
 |---|---|
-| `public/og-trec.jpg` (new) | AI-generated 1200×630 |
-| `public/og-privacy.jpg` (new) | AI-generated 1200×630 |
-| `public/og-terms.jpg` (new) | AI-generated 1200×630 |
-| `public/splash/*.png` (new, ×16) | Splash images, portrait+landscape, only if Option A |
-| `src/pages/TRECDisclosures.tsx` | Add `<Helmet>` block |
-| `src/pages/PrivacyPolicy.tsx` | Add `<Helmet>` block |
-| `src/pages/TermsOfService.tsx` | Add `<Helmet>` block |
-| `src/main.tsx` | Wrap `<App>` in `<HelmetProvider>` |
-| `package.json` | Add `react-helmet-async` |
-| `index.html` | Only if Option A: add `apple-touch-startup-image` link tags |
-| `public/site.webmanifest` | Only if Option A: change `display` to `standalone` |
+| `public/site.webmanifest` | `display: browser` → `display: standalone` |
+| `public/splash/*.png` (×16, new) | iPhone + iPad splash screens, portrait + landscape |
+| `index.html` | Add 16 `apple-touch-startup-image` `<link>` tags with media queries |
 
-### Decision needed
-
-Please pick an iOS splash option below before I proceed.
+### Out of Scope
+- Service worker / offline support
+- Splash screens for older iPhones (8/SE 1st gen) — covered by SE 2nd/3rd gen fallback
+- Dark-mode splash variants
 
