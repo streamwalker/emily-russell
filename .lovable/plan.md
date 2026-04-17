@@ -1,64 +1,66 @@
 
 
-## Plan: iOS Splash Screens + Standalone PWA Mode
+## Plan: Complete TREC + Fair Housing Footer Compliance
 
-Generate iOS splash screen images and switch the manifest to `display: standalone` so iOS actually fires them when the site is launched from the home screen.
+Goal: Make the footer fully TREC- and NAR-compliant by exposing both required Texas disclosure links separately and adding the standard trust/compliance logos.
 
-### Manifest change
+### What's there now
 
-Update `public/site.webmanifest`: `"display": "browser"` → `"display": "standalone"`. This makes iOS launch the site fullscreen (no Safari chrome) from the home-screen icon, which is the prerequisite for splash screens to render.
+The footer currently has a single combined "TREC Disclosures" link to `/trec` (which renders both IABS and Consumer Protection Notice on one page). Per TREC rules, both notices must be conspicuously available — a single combined link satisfies the rule, but splitting them into two clearly labeled links is the standard compliant pattern most Texas brokerages use, and it's what TREC's own example markup shows.
 
-### Splash screen generation
+I need to read the current footer + Index page to confirm exact markup before planning surgical edits.
 
-**Master image**: One AI-generated 2048×2732 portrait (iPad Pro 12.9" — largest target) with:
-- Cream background (`#fdfaf3`)
-- Emily's headshot centered in upper-middle area, circular crop with subtle gold ring (matches favicon)
-- Below the portrait: "Emily Russell" (Playfair Display) / "REALTOR® · San Antonio" (DM Sans) / small gold divider
-- Generous safe-zone padding so nothing gets clipped on narrow phone aspect ratios
-- Generated via `google/gemini-3-pro-image-preview` using `public/emily-russell.png` as input
+### Investigation step (will do during implementation)
 
-**Resize pipeline**: Pillow center-crops/letterboxes the master into each target resolution (cream-fill on letterbox bars to preserve brand), producing crisp PNGs at each device size — no AI re-rendering at smaller sizes.
+- `code--view src/pages/Index.tsx` — locate the footer block, confirm current TREC link markup, surrounding layout, classes
+- `code--list_dir public/images` — confirm what's already there so I name new logo files without collisions
 
-**16 files in `public/splash/`** (8 sizes × portrait + landscape):
+### Changes
 
-| Device | Portrait | Landscape |
+**1. Split TREC disclosures into two side-by-side footer links**
+
+Replace the single "TREC Disclosures" link with two links rendered side-by-side (separated by a `·` or `|` divider, matching the existing footer typography):
+
+- "Information About Brokerage Services" → `/trec#iabs`
+- "Consumer Protection Notice" → `/trec#cn`
+
+Then add `id="iabs"` and `id="cn"` anchors to the two `<section>` blocks in `src/pages/TRECDisclosures.tsx` so the deep links scroll to the right disclosure. Both still live on the same `/trec` page (one canonical disclosures page is cleaner for SEO and matches what the TREC page already renders), but each link goes straight to its specific notice.
+
+**2. Add compliance logos to footer**
+
+Three standard logos, displayed inline beside the disclosure links in the footer (small, ~32–40px tall, monochrome/light variants to fit the dark charcoal footer):
+
+| Logo | Source | Notes |
 |---|---|---|
-| iPhone 15 Pro Max | 1290×2796 | 2796×1290 |
-| iPhone 15 Pro / 14 Pro | 1179×2556 | 2556×1179 |
-| iPhone 14/13/12 | 1170×2532 | 2532×1170 |
-| iPhone SE | 750×1334 | 1334×750 |
-| iPad Pro 12.9" | 2048×2732 | 2732×2048 |
-| iPad Pro 11" / Air | 1668×2388 | 2388×1668 |
-| iPad 10.9" | 1640×2360 | 2360×1640 |
-| iPad mini | 1488×2266 | 2266×1488 |
+| Equal Housing Opportunity (EHO) | Generate via AI image edit (white version on transparent bg) | Required by HUD for any real estate marketing |
+| REALTOR® "R" mark | Generate via AI image edit (gold/white version) | NAR member trademark |
+| Fathom Realty / sponsoring broker | Skip unless user wants it — Fathom branding text is already in the footer disclaimer | Optional |
 
-**QA**: View 4 representative outputs (smallest iPhone portrait, largest iPad portrait, one landscape, one mid-size) to confirm no face clipping, correct aspect, legible text. Regenerate master if issues.
+All three logos placed in `public/images/compliance/` as SVG or PNG (PNG via AI image edit, since we don't have official SVG sources and downloading from third parties has trademark licensing concerns). Each wrapped in a small text label (`alt="Equal Housing Opportunity"`, etc.) for accessibility.
 
-### Index.html wiring
+Layout in footer (mobile-stacked, desktop-row):
 
-Add 16 `<link rel="apple-touch-startup-image">` tags inside `<head>`, each scoped with a precise media query matching device-width × device-height × `-webkit-device-pixel-ratio` × orientation. Example:
-
-```html
-<link rel="apple-touch-startup-image" href="/splash/iphone-15-pro-max-portrait.png"
-  media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+```text
+[ EHO logo ] [ REALTOR® logo ]    Information About Brokerage Services · Consumer Protection Notice
 ```
 
-Without exact media queries iOS picks none of them, so each splash needs its own scoped tag.
+**3. Update `mem://legal/compliance-requirements`**
 
-### PWA caveat (already handled)
-
-This is a **manifest-only** PWA — no service worker, no `vite-plugin-pwa`. Per Lovable PWA guidance that's the safe path: it makes the site installable + splash-capable without the iframe/cache problems service workers cause in the preview. The Lovable preview iframe itself won't show splash screens (those only fire from the iOS home-screen launcher), but published `alamocitydesigns.com` will work correctly when added to home screen.
+Append a note that both TREC notices are now exposed as separate footer links and that EHO + REALTOR® logos are displayed.
 
 ### Files Changed
 
 | File | Change |
 |---|---|
-| `public/site.webmanifest` | `display: browser` → `display: standalone` |
-| `public/splash/*.png` (×16, new) | iPhone + iPad splash screens, portrait + landscape |
-| `index.html` | Add 16 `apple-touch-startup-image` `<link>` tags with media queries |
+| `src/pages/Index.tsx` | Footer: replace single TREC link with two split links + logo row |
+| `src/pages/TRECDisclosures.tsx` | Add `id="iabs"` / `id="cn"` to the two sections; add `scroll-mt-20` for sticky-header offset |
+| `public/images/compliance/eho.png` (new) | AI-generated Equal Housing Opportunity logo, white-on-transparent |
+| `public/images/compliance/realtor-r.png` (new) | AI-generated REALTOR® R mark, gold-on-transparent |
+| `mem://legal/compliance-requirements` | Note the split links + logos |
 
-### Out of Scope
-- Service worker / offline support
-- Splash screens for older iPhones (8/SE 1st gen) — covered by SE 2nd/3rd gen fallback
-- Dark-mode splash variants
+### Out of scope
+
+- MLS / IDX broker reciprocity logos (only required when displaying MLS listings, which the site does not)
+- Fathom Realty broker logo (already covered by text in the footer; can add if user wants a visual mark)
+- Texas REALTORS® member logo (optional, not required — keeping the footer clean)
 
