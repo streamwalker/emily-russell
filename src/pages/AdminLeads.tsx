@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ArrowLeft, Download, Search, ArrowUpDown, Mail, Phone } from "lucide-react";
+import { toast } from "sonner";
 
 interface Lead {
   id: string;
@@ -35,11 +36,54 @@ export default function AdminLeads() {
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) navigate("/portal/dashboard", { replace: true });
     if (!adminLoading && isAdmin) fetchLeads();
   }, [adminLoading, isAdmin, navigate]);
+
+  // Realtime subscription for new leads
+  useEffect(() => {
+    if (adminLoading || !isAdmin) return;
+    const channel = supabase
+      .channel("leads-inserts")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "leads" },
+        (payload) => {
+          const newLead = payload.new as Lead;
+          setLeads((prev) => {
+            if (prev.some((l) => l.id === newLead.id)) return prev;
+            return [newLead, ...prev];
+          });
+          setHighlightedIds((prev) => {
+            const next = new Set(prev);
+            next.add(newLead.id);
+            return next;
+          });
+          setTimeout(() => {
+            setHighlightedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(newLead.id);
+              return next;
+            });
+          }, 3000);
+          toast.success(`New lead from ${newLead.name}`, {
+            description: `${newLead.email}${newLead.timeframe ? ` · ${newLead.timeframe}` : ""} · ${newLead.source}`,
+            duration: 8000,
+            action: {
+              label: "View",
+              onClick: () => setSelectedLead(newLead),
+            },
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [adminLoading, isAdmin]);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -224,7 +268,7 @@ export default function AdminLeads() {
                 {filtered.map((l) => (
                   <TableRow
                     key={l.id}
-                    className="cursor-pointer"
+                    className={`cursor-pointer transition-colors ${highlightedIds.has(l.id) ? "bg-primary/10 animate-pulse" : ""}`}
                     onClick={() => setSelectedLead(l)}
                   >
                     <TableCell className="text-xs whitespace-nowrap">

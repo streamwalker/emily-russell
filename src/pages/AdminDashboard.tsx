@@ -7,7 +7,7 @@ import PropertyEditor from "@/components/admin/PropertyEditor";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X, Upload } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X, Upload, ChevronRight, Calculator, Share2, UserPlus } from "lucide-react";
 import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import ClientDossierView from "@/components/portal/ClientDossierView";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
@@ -43,6 +43,58 @@ interface AnalyticsData {
   };
   clientActivity: ClientInteractionSummary[];
   recentAgreements: { client_name: string; agreement_type: string; signed_at: string; client_email: string | null }[];
+  rentVsBuyFunnel?: { pageViews: number; recomputes: number; shares: number; leads: number };
+}
+
+function RentVsBuyFunnel({ data }: { data?: { pageViews: number; recomputes: number; shares: number; leads: number } }) {
+  const d = data || { pageViews: 0, recomputes: 0, shares: 0, leads: 0 };
+  const steps = [
+    { icon: Eye, label: "Page Views", value: d.pageViews, prev: null as number | null },
+    { icon: Calculator, label: "Calculator Recomputes", value: d.recomputes, prev: d.pageViews },
+    { icon: Share2, label: "Share Successes", value: d.shares, prev: d.recomputes },
+    { icon: UserPlus, label: "Lead Submissions", value: d.leads, prev: d.shares },
+  ];
+  const max = Math.max(d.pageViews, 1);
+  const pct = (n: number, p: number | null) => (p && p > 0 ? Math.round((n / p) * 100) : null);
+
+  return (
+    <div className="bg-white border border-border p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display text-base font-semibold">Rent vs Buy Funnel</h3>
+        <span className="font-body text-[10px] uppercase tracking-[2px] text-muted-foreground">Last 30 days · /rent-vs-buy</span>
+      </div>
+      <div className="flex flex-col md:flex-row gap-2 md:items-stretch">
+        {steps.map((s, i) => {
+          const conv = pct(s.value, s.prev);
+          const widthPct = Math.max(8, Math.round((s.value / max) * 100));
+          return (
+            <div key={s.label} className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex-1 min-w-0 bg-cream border border-border p-3 rounded">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <s.icon className="w-4 h-4 text-primary" />
+                  <span className="font-body text-[10px] tracking-[2px] uppercase text-muted-foreground truncate">{s.label}</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-2xl font-semibold text-foreground">{s.value.toLocaleString()}</span>
+                  {conv !== null && (
+                    <span className={`font-body text-xs ${conv >= 25 ? "text-[hsl(140,30%,40%)]" : conv >= 5 ? "text-primary" : "text-muted-foreground"}`}>
+                      {conv}%
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 h-1.5 bg-border/50 rounded-full overflow-hidden">
+                  <div className="h-full bg-primary/60 rounded-full transition-all" style={{ width: `${widthPct}%` }} />
+                </div>
+              </div>
+              {i < steps.length - 1 && (
+                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 hidden md:block" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 const CHART_COLORS = ["hsl(27, 35%, 59%)", "hsl(27, 50%, 72%)", "hsl(15, 38%, 62%)", "hsl(140, 30%, 55%)", "hsl(220, 30%, 55%)"];
@@ -1224,6 +1276,9 @@ export default function AdminDashboard() {
               <div className="text-center py-12 text-muted-foreground">Loading analytics…</div>
             ) : (
               <div className="space-y-6">
+                {/* Rent vs Buy Funnel */}
+                <RentVsBuyFunnel data={analytics?.rentVsBuyFunnel} />
+
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <KpiCard icon={Eye} label="Visitors (30d)" value={totalVisitors} />
