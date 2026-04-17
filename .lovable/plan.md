@@ -1,43 +1,40 @@
 
 
-## Plan: "Rent vs. Buy" Subpage at `/rent-vs-buy`
+## Plan: Fix Photo + Contact Info + Internal Links on /rent-vs-buy
 
-### Approach
-The uploaded file is a fully self-contained HTML page (2,661 lines) with inline CSS, inline JavaScript calculator logic, and JSON-LD structured data. The cleanest, lowest-risk way to load it as a subpage is to **serve it as a static asset** from the `public/` folder and route to it — preserving its exact styling, scripts, and SEO/AEO schemas without needing to port hundreds of lines of CSS/JS into React.
+### 1. Replace agent photo
+- Copy uploaded `user-uploads://emily-russell.png` to `public/emily-russell.png` so the four existing `<img src="emily-russell.png">` references render the real photo (currently broken — file doesn't exist in `public/`).
 
-### Steps
+### 2. Fix contact info to match the rest of the site
+Current placeholders in `public/rent-vs-buy.html` don't match brand memory. Replace:
 
-1. **Copy the HTML file into `public/`**
-   - Destination: `public/rent-vs-buy.html`
-   - Files placed in `public/` are served as-is at the matching URL path on Lovable hosting.
+| Field | Current | Replace with |
+|------|---------|--------------|
+| Phone (line 40, JSON-LD) | `+1-210-555-0142` | `+1-210-912-0806` |
+| Phone link (line 2112) | `tel:+12105550142` | `tel:+12109120806` |
+| Email (line 41, JSON-LD) | `emily@emilyrussellrealty.com` | `emily@streamwalkers.com` |
+| Email link (line 2113) | `mailto:emily@emilyrussellrealty.com` | `mailto:emily@streamwalkers.com` |
+| JSON-LD `image` (line 43) | `emilyrussellrealty.com/emily-russell.jpg` | `https://www.alamocitydesigns.com/emily-russell.png` |
+| JSON-LD `url` (line 42) | `https://www.emilyrussellrealty.com` | `https://www.alamocitydesigns.com` |
 
-2. **Add a React route that renders the static page**
-   - Create `src/pages/RentVsBuy.tsx` — a thin wrapper that immediately redirects (`window.location.replace("/rent-vs-buy.html")`) so the URL `/rent-vs-buy` loads the static HTML.
-   - Register the route in `src/App.tsx`: `<Route path="/rent-vs-buy" element={<RentVsBuy />} />` placed above the catch-all `*`.
-   - This gives the user the clean URL they asked for (`/rent-vs-buy`) while serving the rich self-contained page.
+Also add TREC license `#791742` and Fathom Realty mention to the JSON-LD `RealEstateAgent` schema (`brand` + `identifier`) for AEO consistency with the rest of the site.
 
-3. **Update canonical URLs inside the copied HTML**
-   - The uploaded file references `https://www.emilyrussellrealty.com/buy-vs-rent-san-antonio-2026` in its canonical / OG / Twitter / JSON-LD tags.
-   - Replace those with `https://www.alamocitydesigns.com/rent-vs-buy` (the project's actual custom domain) so SEO/AEO signals point to the correct live URL.
+### 3. Add internal links back to homepage (SEO juice)
+Add contextual links to two high-value spots:
 
-4. **Add a navigation link on the homepage**
-   - Add "Rent vs. Buy" to the `NAV_ITEMS` in `src/pages/Index.tsx` as an external link (since it lives at a different route, not an in-page anchor) — link target `/rent-vs-buy`.
+- **In the closing FAQ block** (around line 2086, "Who is Emily Russell" answer): add link `<a href="/#faq">See more San Antonio buyer FAQs →</a>` and `<a href="/#newhomes">Browse new construction homes in San Antonio →</a>`.
+- **In the dedicated Emily section** (around line 2102, after the "$180K starter homes to $5M Dominion estates" paragraph): add a small `internal-links` line:
+  > "Explore more: <a href='/#newhomes'>New Construction Homes</a> · <a href='/#faq'>Buyer FAQ</a> · <a href='/#areas'>San Antonio Neighborhoods</a>"
+- **In the fine-print/footer** (line 2121 area): add a discreet "Back to alamocitydesigns.com home" link.
 
-5. **Add the page to `public/sitemap.xml`**
-   - Append a `<url>` entry for `/rent-vs-buy` so search engines discover it.
+These links use root-relative `/#anchor` URLs so they work from `/rent-vs-buy.html` and land on the React homepage at the right scroll position.
 
 ### Files Changed
 
 | File | Action |
 |------|--------|
-| `public/rent-vs-buy.html` | Create (copy of uploaded file with canonical URLs swapped to alamocitydesigns.com) |
-| `src/pages/RentVsBuy.tsx` | Create (redirect wrapper) |
-| `src/App.tsx` | Add `/rent-vs-buy` route + import |
-| `src/pages/Index.tsx` | Add "Rent vs. Buy" nav link pointing to `/rent-vs-buy` |
-| `public/sitemap.xml` | Add sitemap entry |
+| `public/emily-russell.png` | Create (copy from upload) |
+| `public/rent-vs-buy.html` | Update phone, email, JSON-LD URLs + image, add 3 internal-link blocks |
 
-### Why static HTML rather than porting to React
-- The page is 2,661 lines with its own design system, custom CSS, and a stateful vanilla-JS calculator. Porting to React/Tailwind would take many hours and risk breaking the calculator logic or schema markup.
-- Lovable hosting serves `public/` files directly with proper MIME types — JSON-LD, meta tags, and inline scripts all work normally for SEO/AEO.
-- The page remains independently editable and won't be affected by future React/Tailwind refactors.
+No React/route changes needed — image and links are all inside the static HTML.
 
