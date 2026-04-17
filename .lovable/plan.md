@@ -1,39 +1,88 @@
 
 
-## Plan: Favicon + Open Graph Image from Emily's Headshot
+## Plan: Rent vs Buy OG Image + Mobile Home-Screen Icons
 
-Generate two new brand assets from Emily's new headshot using AI image editing (Nano Banana Pro), then wire them into the site.
+Two additive asset-generation tasks. No UI changes, only new image files + metadata wiring.
 
-### Assets to Create
+---
 
-1. **Favicon** (`public/favicon.png`, 512×512 square)
-   - Tight crop on Emily's face, centered
-   - Subtle gold ring/border to match brand palette
-   - Cream background fill so it reads cleanly at 16×16 / 32×32 in browser tabs
-   - Generated via Lovable AI image edit (`google/gemini-3-pro-image-preview`) using the existing `public/emily-russell.png` as input
+### 1. Dedicated Rent vs Buy OG image
 
-2. **Open Graph share image** (`public/og-emily-russell.jpg`, 1200×630)
-   - Emily's headshot on the left third
-   - Right side: "Emily Russell" / "San Antonio REALTOR®" / "alamocitydesigns.com" in Playfair Display + DM Sans on a cream/charcoal split
-   - Subtle gold accent line — matches brand tokens (gold, charcoal, cream)
-   - Generated via the same AI image edit flow
+**Asset**: `public/og-rent-vs-buy.jpg` (1200×630)
 
-### Generation Approach
+**Composition**:
+- Left third: Emily's headshot (using existing `public/emily-russell.png` as input to AI edit)
+- Right two-thirds: "Rent vs Buy" (Playfair Display, large) / "in San Antonio" (Playfair Display, smaller) / "Free Calculator · alamocitydesigns.com" (DM Sans, small)
+- Brand palette: cream background, charcoal text, gold accent line/divider
+- Subtle calculator-themed accent (e.g. gold dollar mark or chart icon) to differentiate from sitewide OG
 
-A one-off Node script (`/tmp/gen-brand-assets.mjs`) calls the Lovable AI Gateway (`LOVABLE_API_KEY` already available) with the existing headshot as input image and explicit composition prompts. Outputs base64 → decoded to PNG/JPG → written to `public/`. After generation: visually QA each asset by viewing it, fix the prompt and regenerate if anything looks off (clipped face, wrong colors, illegible text on OG).
+**Generation**: AI image edit via `google/gemini-3-pro-image-preview` using the ai-gateway skill script, with `public/emily-russell.png` as the input image and a detailed composition prompt. Visual QA after generation, regenerate if face is clipped, text is illegible, or layout is off.
 
-### Wiring Changes
+**Wiring** — update `public/rent-vs-buy.html`:
+- Add `<meta property="og:image" content="https://alamocitydesigns.com/og-rent-vs-buy.jpg">`
+- Add `<meta property="og:image:width" content="1200">` / `og:image:height` / `og:image:alt`
+- Add `<meta name="twitter:image" content="https://alamocitydesigns.com/og-rent-vs-buy.jpg">`
+- Update JSON-LD `image` field to the new URL
+
+(The page currently inherits the sitewide OG; this gives it its own.)
+
+---
+
+### 2. Mobile home-screen icons
+
+**Assets** (all generated from Emily's headshot, square format with cream bg + gold ring matching the existing favicon):
+
+| File | Size | Purpose |
+|---|---|---|
+| `public/apple-touch-icon.png` | 180×180 | iOS Safari "Add to Home Screen" |
+| `public/icon-192.png` | 192×192 | Android home screen (standard density) |
+| `public/icon-512.png` | 512×512 | Android home screen (high density) + PWA splash |
+| `public/site.webmanifest` | — | Tells Android which icons to use |
+
+**Generation**: Same AI edit pipeline as the favicon — tight crop, cream bg, gold ring. Generate one master 512×512 PNG, then downscale via Pillow to 192 and 180 for crisp results (no blurry AI re-renders at smaller sizes).
+
+**Wiring** — update `index.html` `<head>`:
+```html
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#fdfaf3">
+```
+
+**`public/site.webmanifest`** (new, minimal PWA-style manifest):
+```json
+{
+  "name": "Emily Russell Realtor",
+  "short_name": "Emily Russell",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#c9a961",
+  "background_color": "#fdfaf3",
+  "display": "browser"
+}
+```
+
+(`display: browser` keeps it from acting like a full PWA — just provides icons without claiming app-shell behavior.)
+
+---
+
+### Files Changed
 
 | File | Change |
 |---|---|
-| `public/favicon.png` (new) | AI-generated favicon |
-| `public/og-emily-russell.jpg` (new) | AI-generated 1200×630 OG image |
-| `public/favicon.ico` | Delete (browsers auto-request `/favicon.ico` and would override the new PNG) |
-| `index.html` | Replace any existing favicon `<link>` with `<link rel="icon" href="/favicon.png" type="image/png">`; update `og:image` and `twitter:image` meta tags from the current Google Storage URL → `https://alamocitydesigns.com/og-emily-russell.jpg`; update the JSON-LD `RealEstateAgent.image` field to the same URL |
-| `public/rent-vs-buy.html` | Update its `og:image` / `twitter:image` / JSON-LD `image` references the same way |
+| `public/og-rent-vs-buy.jpg` (new) | AI-generated 1200×630 OG image |
+| `public/apple-touch-icon.png` (new) | 180×180 iOS icon |
+| `public/icon-192.png` (new) | 192×192 Android icon |
+| `public/icon-512.png` (new) | 512×512 Android/PWA icon |
+| `public/site.webmanifest` (new) | Web app manifest pointing at the icons |
+| `index.html` | Add apple-touch-icon, icon-192/512, manifest, theme-color tags |
+| `public/rent-vs-buy.html` | Add og:image / twitter:image / dimensions / alt + update JSON-LD `image` to new OG |
 
 ### Out of Scope
-- Apple touch icons / Android manifest icons (can add in a follow-up if desired)
-- Per-page custom OG images (single sitewide OG for now)
-- Touching the homepage hero or any visible UI — only metadata + favicon
+- Touching any visible UI or calculator logic
+- Maskable icon variants (can add later if Android adaptive icons are needed)
+- iOS splash screen images (rare to need; can add later)
 
