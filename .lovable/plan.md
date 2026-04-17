@@ -1,88 +1,86 @@
 
 
-## Plan: Rent vs Buy OG Image + Mobile Home-Screen Icons
+## Plan: iOS Splash Screens + Legal Page OG Images
 
-Two additive asset-generation tasks. No UI changes, only new image files + metadata wiring.
-
----
-
-### 1. Dedicated Rent vs Buy OG image
-
-**Asset**: `public/og-rent-vs-buy.jpg` (1200×630)
-
-**Composition**:
-- Left third: Emily's headshot (using existing `public/emily-russell.png` as input to AI edit)
-- Right two-thirds: "Rent vs Buy" (Playfair Display, large) / "in San Antonio" (Playfair Display, smaller) / "Free Calculator · alamocitydesigns.com" (DM Sans, small)
-- Brand palette: cream background, charcoal text, gold accent line/divider
-- Subtle calculator-themed accent (e.g. gold dollar mark or chart icon) to differentiate from sitewide OG
-
-**Generation**: AI image edit via `google/gemini-3-pro-image-preview` using the ai-gateway skill script, with `public/emily-russell.png` as the input image and a detailed composition prompt. Visual QA after generation, regenerate if face is clipped, text is illegible, or layout is off.
-
-**Wiring** — update `public/rent-vs-buy.html`:
-- Add `<meta property="og:image" content="https://alamocitydesigns.com/og-rent-vs-buy.jpg">`
-- Add `<meta property="og:image:width" content="1200">` / `og:image:height` / `og:image:alt`
-- Add `<meta name="twitter:image" content="https://alamocitydesigns.com/og-rent-vs-buy.jpg">`
-- Update JSON-LD `image` field to the new URL
-
-(The page currently inherits the sitewide OG; this gives it its own.)
+Two additive asset-generation tasks. No UI/logic changes — only new image files and `<head>` metadata wiring.
 
 ---
 
-### 2. Mobile home-screen icons
+### Problem with iOS splash screens in this app
 
-**Assets** (all generated from Emily's headshot, square format with cream bg + gold ring matching the existing favicon):
+iOS only shows splash screens for sites added to the home screen **as standalone PWAs**. Our `site.webmanifest` uses `display: "browser"` (intentional — we don't want PWA app-shell behavior). With `display: browser`, iOS opens the site in Safari from the home-screen icon and **never shows a splash screen** regardless of how many `apple-touch-startup-image` tags we add.
 
-| File | Size | Purpose |
+**Two options** (need user input):
+
+**Option A — Switch to `display: "standalone"`** so splash screens actually fire. Trade-off: site opens in a fullscreen webview instead of Safari (no address bar, no Safari back gesture, share sheet works differently). This is what real PWAs do.
+
+**Option B — Skip splash screens** and just generate the legal page OG images. Keep `display: browser` for normal Safari behavior.
+
+I'll ask before generating ~10 large image files that may not even render.
+
+---
+
+### 2. Legal page OG images (no blockers)
+
+Three dedicated 1200×630 OG images, one per legal page, all featuring brand identity (cream bg, charcoal/gold accents, Playfair + DM Sans) but with page-specific headlines:
+
+| File | Headline | Subtext |
 |---|---|---|
-| `public/apple-touch-icon.png` | 180×180 | iOS Safari "Add to Home Screen" |
-| `public/icon-192.png` | 192×192 | Android home screen (standard density) |
-| `public/icon-512.png` | 512×512 | Android home screen (high density) + PWA splash |
-| `public/site.webmanifest` | — | Tells Android which icons to use |
+| `public/og-trec.jpg` | "TREC Disclosures" | "Texas Real Estate Commission · Emily Russell, REALTOR®" |
+| `public/og-privacy.jpg` | "Privacy Policy" | "Emily Russell · alamocitydesigns.com" |
+| `public/og-terms.jpg` | "Terms of Service" | "Emily Russell · alamocitydesigns.com" |
 
-**Generation**: Same AI edit pipeline as the favicon — tight crop, cream bg, gold ring. Generate one master 512×512 PNG, then downscale via Pillow to 192 and 180 for crisp results (no blurry AI re-renders at smaller sizes).
-
-**Wiring** — update `index.html` `<head>`:
-```html
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#fdfaf3">
-```
-
-**`public/site.webmanifest`** (new, minimal PWA-style manifest):
-```json
-{
-  "name": "Emily Russell Realtor",
-  "short_name": "Emily Russell",
-  "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ],
-  "theme_color": "#c9a961",
-  "background_color": "#fdfaf3",
-  "display": "browser"
-}
-```
-
-(`display: browser` keeps it from acting like a full PWA — just provides icons without claiming app-shell behavior.)
+Composition: Brand mark / Emily's small headshot in a corner, large headline, subtle gold divider. Generated via the ai-gateway skill (`google/gemini-3-pro-image-preview`) using `public/emily-russell.png` as input. Visual QA each one.
 
 ---
 
-### Files Changed
+### Wiring for legal pages
+
+`TRECDisclosures.tsx`, `PrivacyPolicy.tsx`, `TermsOfService.tsx` are React routes — `index.html` `<head>` is static and shared. To give each route its own OG image, install **`react-helmet-async`** (lightweight, standard) and add a `<Helmet>` block per page setting:
+- `<meta property="og:image">`, `og:image:width/height/alt`
+- `<meta name="twitter:image">`
+- `<meta property="og:title">` / `og:description` per page
+- `<link rel="canonical">` per page
+
+Wrap `<App>` in `<HelmetProvider>` in `src/main.tsx`.
+
+(Note: crawlers like LinkedIn/Twitter run JS now, but they prefer static `<head>` tags. For best results we'd need SSR — out of scope. `react-helmet-async` works for Facebook/LinkedIn's modern crawlers and for any AEO/AI scraper using a headless browser, which is the realistic audience.)
+
+---
+
+### iOS splash screens (pending choice above)
+
+If user picks Option A, generate 8 `apple-touch-startup-image` PNGs covering the major iPhone/iPad sizes (portrait + landscape for each), wire them with media-query-scoped `<link>` tags in `index.html`, and flip manifest to `display: standalone`. Generation: one master cream-bg portrait of Emily centered with brand mark, then Pillow-resize/letterbox to each target resolution.
+
+Sizes (portrait, with landscape pairs):
+- iPhone 15 Pro Max: 1290×2796
+- iPhone 15 Pro / 14 Pro: 1179×2556
+- iPhone 14 / 13 / 12: 1170×2532
+- iPhone SE: 750×1334
+- iPad Pro 12.9": 2048×2732
+- iPad Pro 11" / Air: 1668×2388
+- iPad 10.9": 1640×2360
+- iPad mini: 1488×2266
+
+---
+
+### Files Changed (if both options approved)
 
 | File | Change |
 |---|---|
-| `public/og-rent-vs-buy.jpg` (new) | AI-generated 1200×630 OG image |
-| `public/apple-touch-icon.png` (new) | 180×180 iOS icon |
-| `public/icon-192.png` (new) | 192×192 Android icon |
-| `public/icon-512.png` (new) | 512×512 Android/PWA icon |
-| `public/site.webmanifest` (new) | Web app manifest pointing at the icons |
-| `index.html` | Add apple-touch-icon, icon-192/512, manifest, theme-color tags |
-| `public/rent-vs-buy.html` | Add og:image / twitter:image / dimensions / alt + update JSON-LD `image` to new OG |
+| `public/og-trec.jpg` (new) | AI-generated 1200×630 |
+| `public/og-privacy.jpg` (new) | AI-generated 1200×630 |
+| `public/og-terms.jpg` (new) | AI-generated 1200×630 |
+| `public/splash/*.png` (new, ×16) | Splash images, portrait+landscape, only if Option A |
+| `src/pages/TRECDisclosures.tsx` | Add `<Helmet>` block |
+| `src/pages/PrivacyPolicy.tsx` | Add `<Helmet>` block |
+| `src/pages/TermsOfService.tsx` | Add `<Helmet>` block |
+| `src/main.tsx` | Wrap `<App>` in `<HelmetProvider>` |
+| `package.json` | Add `react-helmet-async` |
+| `index.html` | Only if Option A: add `apple-touch-startup-image` link tags |
+| `public/site.webmanifest` | Only if Option A: change `display` to `standalone` |
 
-### Out of Scope
-- Touching any visible UI or calculator logic
-- Maskable icon variants (can add later if Android adaptive icons are needed)
-- iOS splash screen images (rare to need; can add later)
+### Decision needed
+
+Please pick an iOS splash option below before I proceed.
 
