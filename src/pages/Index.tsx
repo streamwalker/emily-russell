@@ -71,7 +71,7 @@ const NEW_HOME_DEALS = [
   },
 ];
 
-const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Reviews","reviews"],["FAQ","faq"],["Blog","blog"],["Contact","contact"]];
+const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Rent vs. Buy","/rent-vs-buy"],["Reviews","reviews"],["FAQ","faq"],["Blog","blog"],["Contact","contact"]];
 const PORTAL_LINK = "/portal";
 
 const AFFILIATE_LINKS = [
@@ -191,7 +191,9 @@ export default function Index() {
           </div>
           <div className="hidden md:flex gap-7 items-center">
             {NAV_ITEMS.map(([l, id]) => (
-              <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
+              id.startsWith("/")
+                ? <a key={id} href={id} className="nav-link">{l}</a>
+                : <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
             ))}
             {/* Affiliate Partner Network Dropdown */}
             <div className="relative" ref={affiliateRef}
@@ -234,7 +236,9 @@ export default function Index() {
         {menuOpen && (
           <div className="flex md:hidden flex-col items-center gap-4 py-5" style={{ background: "rgba(28,28,28,.98)", animation: "fadeDown .3s ease" }}>
             {NAV_ITEMS.map(([l, id]) => (
-              <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
+              id.startsWith("/")
+                ? <a key={id} href={id} className="nav-link">{l}</a>
+                : <a key={id} className="nav-link" onClick={() => handleScrollTo(id)}>{l}</a>
             ))}
             {/* Mobile Affiliate Accordion */}
             <button className="nav-link cursor-pointer bg-transparent border-none flex items-center gap-1"
