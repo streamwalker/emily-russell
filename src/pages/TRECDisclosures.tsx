@@ -34,7 +34,7 @@ const TRECDisclosures = () => (
         </a>.
       </p>
 
-      <section className="mb-16">
+      <section id="iabs" className="mb-16 scroll-mt-20">
         <h2 className="font-display text-2xl mb-2 text-gold-light">Information About Brokerage Services (IABS)</h2>
         <p className="font-body text-xs mb-5" style={{ color: "rgba(255,255,255,.5)" }}>TREC Form IABS 1-0</p>
         <div className="bg-white rounded-lg overflow-hidden">
@@ -42,7 +42,7 @@ const TRECDisclosures = () => (
         </div>
       </section>
 
-      <section className="mb-16">
+      <section id="cn" className="mb-16 scroll-mt-20">
         <h2 className="font-display text-2xl mb-2 text-gold-light">Consumer Protection Notice</h2>
         <p className="font-body text-xs mb-5" style={{ color: "rgba(255,255,255,.5)" }}>TREC No. CN 1-5</p>
         <div className="bg-white rounded-lg overflow-hidden">
