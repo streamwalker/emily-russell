@@ -224,7 +224,7 @@ export default function AdminLeads() {
                 {filtered.map((l) => (
                   <TableRow
                     key={l.id}
-                    className="cursor-pointer"
+                    className={`cursor-pointer transition-colors ${highlightedIds.has(l.id) ? "bg-primary/10 animate-pulse" : ""}`}
                     onClick={() => setSelectedLead(l)}
                   >
                     <TableCell className="text-xs whitespace-nowrap">

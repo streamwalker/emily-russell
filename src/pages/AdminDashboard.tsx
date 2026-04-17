@@ -1276,6 +1276,9 @@ export default function AdminDashboard() {
               <div className="text-center py-12 text-muted-foreground">Loading analytics…</div>
             ) : (
               <div className="space-y-6">
+                {/* Rent vs Buy Funnel */}
+                <RentVsBuyFunnel data={analytics?.rentVsBuyFunnel} />
+
                 {/* KPI Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <KpiCard icon={Eye} label="Visitors (30d)" value={totalVisitors} />
