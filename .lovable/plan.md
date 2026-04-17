@@ -1,54 +1,46 @@
 
 
-## Plan: Sticky CTA + Lead Capture + Share Results on /rent-vs-buy
+## Plan: Fix Tooltip Clipping with Viewport-Level Portal
 
-Three additive enhancements to `public/rent-vs-buy.html`. No calculator logic touched.
+### Problem
+Tooltips in `public/rent-vs-buy.html` get clipped because `.tip-card` uses `position: absolute` and is trapped inside ancestors with `overflow: hidden` / stacking contexts (calculator cards, columns). Screenshot confirms: tooltip cut off mid-word at the panel's right edge.
 
-### 1. Sticky "Talk to Emily" CTA
+Note: filename is `public/rent-vs-buy.html` (not `buy-vs-rent.html`).
 
-Floating pill button, bottom-right, appears after user scrolls past hero (~600px), hides when contact section is in view (IntersectionObserver). Gold background, navy text, phone icon + "Talk to Emily" label. Tap → scrolls to existing `#contact-emily` anchor. Mobile: shrinks to icon-only at <500px to avoid covering inputs.
+### Fix (single file: `public/rent-vs-buy.html`)
 
-```text
-                                    ┌──────────────────┐
-                                    │ ☎ Talk to Emily │  ← fixed bottom-right
-                                    └──────────────────┘
-```
+**1. CSS changes for `.tip-card`**
+- `position: fixed` (escapes every overflow ancestor)
+- `z-index: 9999`
+- `width: min(320px, calc(100vw - 32px))`
+- Remove the old absolute `top/left/transform` rules and the static arrow positioning
+- Add two arrow variants: `.tip-card.arrow-down::after` (card above icon, arrow points down) and `.tip-card.arrow-up::after` (card below icon, arrow points up)
 
-Pure CSS + ~15 lines vanilla JS. No libs.
+**2. JS rewrite — portal + viewport positioning**
+- On open (hover desktop / tap mobile):
+  1. Move the `.tip-card` to `document.body` (portal) so no parent stacking context traps it
+  2. Read icon's `getBoundingClientRect()`
+  3. Decide vertical: if `window.innerHeight - rect.bottom >= 260` → place below (arrow-up); else place above (arrow-down)
+  4. Compute `left = rect.left + rect.width/2 - cardWidth/2`, then clamp to `[8, window.innerWidth - cardWidth - 8]`
+  5. Set `card.style.top` / `card.style.left` (fixed coords)
+  6. Position the arrow horizontally to point at icon center (offset within the card)
+- On close: move the card back to its original parent `.tip` span
+- Reposition on `scroll`/`resize` (throttled via `requestAnimationFrame`) while open
+- Auto-close if user scrolls more than ~80px from open position (prevents drift on long scrolls)
+- Outside-tap closes (existing behavior preserved)
+- Escape key closes
 
-### 2. Lead-Capture Form (below calculator, above FAQ)
+**3. Preserve existing behavior**
+- Hover-to-open on desktop, tap-to-toggle on mobile — unchanged
+- All 31 field tooltips + 3 result-block tooltips + micro-CTA links — unchanged
+- Calculator math, charts, lead form, sticky CTA, share/PDF — untouched
 
-New section `<section id="get-analysis">` with a branded card containing 4 fields:
-- **Name** (required)
-- **Email** (required, validated)
-- **Phone** (required, formatted)
-- **Timeframe** (select: "0–3 months" / "3–6 months" / "6–12 months" / "Just exploring")
-- Optional **Message** textarea
-- Honeypot field for spam protection
-
-Headline: *"Get a personalized rent-vs-buy analysis from Emily — free, no pressure."*
-
-**Submission flow** — reuses the existing `sync-lead` Edge Function already wired to LeadGenius + Relocation Compass (per `mem://integrations/lead-management`). Calls it directly via `fetch` to `https://vkkguobxdilogwhqdtur.supabase.co/functions/v1/sync-lead` with the anon key. Source tagged as `rent_vs_buy_calculator` so Emily can segment these leads. Success → inline thank-you state. Error → friendly retry message.
-
-Client-side validation: name 1–100 chars, email regex + max 255, phone digits-only ≥10, all trimmed.
-
-### 3. "Share My Results" Button
-
-Sits inside the existing results panel. On click, generates a **PNG snapshot** of a hidden styled summary card containing:
-- Header: "My Rent vs. Buy Analysis — San Antonio 2026"
-- User's key inputs (rent, offer price, down payment, rate)
-- Computed outputs (monthly obligation, year-1 equity, total interest, break-even)
-- Footer: "Calculated at alamocitydesigns.com/rent-vs-buy · Emily Russell, REALTOR®"
-
-**Generation method**: `html2canvas` loaded from CDN (single `<script>` tag, ~45kb). On click → render hidden `.share-card` div → trigger PNG download as `rent-vs-buy-san-antonio.png`. Mobile: uses Web Share API if available (`navigator.share`) so users can share directly to iMessage/WhatsApp; falls back to download otherwise.
-
-Bonus: a small "📧 Email these results to me" toggle that, if checked, auto-fills the lead form's message field with the snapshot summary as text.
+### Result
+Tooltips render as floating viewport-level cards, never clipped by calculator panels or the iframe's inner DOM. Auto-flips above/below, clamped horizontally to stay on-screen, arrow always points at the triggering ⓘ icon.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `public/rent-vs-buy.html` | Add sticky CTA (CSS + JS + markup), lead-capture section + submit handler, share-results button + html2canvas CDN + hidden snapshot template |
-
-No React, no new routes, no new Edge Functions — reuses existing `sync-lead`.
+| `public/rent-vs-buy.html` | Rewrite `.tip-card` CSS to `position: fixed` + viewport-clamped width; replace tooltip JS with portal-to-body + `getBoundingClientRect`-based positioning, auto-flip, scroll/resize reposition, scroll-away auto-close |
 
