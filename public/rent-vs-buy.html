@@ -2765,7 +2765,8 @@
       return;
     }
     populateShareCard();
-    ANALYTICS.track('share_results', 'share_button', format);
+    var filename = format === 'pdf' ? 'rent-vs-buy-san-antonio.pdf' : 'rent-vs-buy-san-antonio.png';
+    ANALYTICS.track('share_click', format, filename);
     var card = document.getElementById('share-card');
     html2canvas(card, { backgroundColor: null, scale: 2, useCORS: true }).then(function(canvas){
       if (format === 'pdf') {
@@ -3147,6 +3148,7 @@
   }
 
   function calcBuyer() {
+    if (window.__trackRecompute) window.__trackRecompute();
     const price = +document.getElementById('b-price').value || 0;
     const rate = +document.getElementById('b-rate').value || 0;
     const down = +document.getElementById('b-down').value || 0;
