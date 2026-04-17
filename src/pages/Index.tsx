@@ -568,6 +568,37 @@ export default function Index() {
         </div>
       </section>
 
+      {/* ═══════════ TOOLS & CALCULATORS ═══════════ */}
+      <section id="tools" className="py-[92px] px-10 bg-[hsl(var(--blush))]/30">
+        <div className="max-w-[820px] mx-auto">
+          <FadeIn>
+            <div className="bg-cream rounded-[18px] p-10 md:p-14 text-center card-hover border border-[hsl(var(--gold))]/20">
+              <div className="er-label">Tools & Calculators</div>
+              <h2 className="font-display font-normal text-charcoal mt-4 mb-5" style={{ fontSize: "clamp(26px,4vw,42px)" }}>
+                Should You Rent or Buy in <span className="italic text-gold">San Antonio</span>?
+              </h2>
+              <p className="er-body max-w-[560px] mx-auto mb-7">
+                Use our free 2026 calculator with real San Antonio property tax, insurance, and HOA data
+                to find your break-even point in seconds.
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 max-w-[440px] mx-auto mb-9 text-left text-sm text-charcoal/80">
+                <div>✦ Live mortgage rates</div>
+                <div>✦ Local tax rates</div>
+                <div>✦ Break-even analysis</div>
+                <div>✦ 30-year projections</div>
+              </div>
+              <a
+                href="/rent-vs-buy"
+                onClick={() => trackLinkClick("rent_vs_buy_cta", "homepage_tools_section")}
+                className="btn-er-primary inline-block"
+              >
+                Launch Calculator →
+              </a>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* ═══════════ REVIEWS ═══════════ */}
       <section id="reviews" className="py-[92px] px-10" style={{ background: "linear-gradient(140deg,#2e2722 0%,#1c1c1c 100%)" }}>
         <div className="max-w-[760px] mx-auto text-center">
