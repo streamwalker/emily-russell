@@ -1,29 +1,39 @@
 
 
-## Plan: Replace Emily's Headshot Sitewide
+## Plan: Favicon + Open Graph Image from Emily's Headshot
 
-The new headshot needs to replace **two image files** that together cover every reference on the site:
+Generate two new brand assets from Emily's new headshot using AI image editing (Nano Banana Pro), then wire them into the site.
 
-| File | Used by |
-|---|---|
-| `src/assets/Emily_Russell.png` | `src/pages/Index.tsx` (homepage hero/about section) |
-| `public/emily-russell.png` | `public/rent-vs-buy.html` (3 inline banners + 1 portrait + JSON-LD `image` schema URL `https://www.alamocitydesigns.com/emily-russell.png`) |
+### Assets to Create
 
-### Steps
-1. Copy the uploaded image to `src/assets/Emily_Russell.png` (overwrites existing — Vite will rebundle, all `Index.tsx` references update automatically).
-2. Copy the uploaded image to `public/emily-russell.png` (overwrites existing — all `<img src="emily-russell.png">` tags in `rent-vs-buy.html` and the JSON-LD `image` URL pick it up automatically).
+1. **Favicon** (`public/favicon.png`, 512×512 square)
+   - Tight crop on Emily's face, centered
+   - Subtle gold ring/border to match brand palette
+   - Cream background fill so it reads cleanly at 16×16 / 32×32 in browser tabs
+   - Generated via Lovable AI image edit (`google/gemini-3-pro-image-preview`) using the existing `public/emily-russell.png` as input
 
-### What this updates automatically (no code changes needed)
-- Homepage "Meet Emily" section
-- Rent vs Buy: 3 inline Emily banners + 1 contact-section portrait
-- Schema.org `RealEstateAgent` JSON-LD `image` field (used by Google/Bing/AI search engines)
-- Open Graph and any other consumers of these two paths
+2. **Open Graph share image** (`public/og-emily-russell.jpg`, 1200×630)
+   - Emily's headshot on the left third
+   - Right side: "Emily Russell" / "San Antonio REALTOR®" / "alamocitydesigns.com" in Playfair Display + DM Sans on a cream/charcoal split
+   - Subtle gold accent line — matches brand tokens (gold, charcoal, cream)
+   - Generated via the same AI image edit flow
 
-### Files Changed
+### Generation Approach
+
+A one-off Node script (`/tmp/gen-brand-assets.mjs`) calls the Lovable AI Gateway (`LOVABLE_API_KEY` already available) with the existing headshot as input image and explicit composition prompts. Outputs base64 → decoded to PNG/JPG → written to `public/`. After generation: visually QA each asset by viewing it, fix the prompt and regenerate if anything looks off (clipped face, wrong colors, illegible text on OG).
+
+### Wiring Changes
+
 | File | Change |
 |---|---|
-| `src/assets/Emily_Russell.png` | Replace with uploaded image |
-| `public/emily-russell.png` | Replace with uploaded image |
+| `public/favicon.png` (new) | AI-generated favicon |
+| `public/og-emily-russell.jpg` (new) | AI-generated 1200×630 OG image |
+| `public/favicon.ico` | Delete (browsers auto-request `/favicon.ico` and would override the new PNG) |
+| `index.html` | Replace any existing favicon `<link>` with `<link rel="icon" href="/favicon.png" type="image/png">`; update `og:image` and `twitter:image` meta tags from the current Google Storage URL → `https://alamocitydesigns.com/og-emily-russell.jpg`; update the JSON-LD `RealEstateAgent.image` field to the same URL |
+| `public/rent-vs-buy.html` | Update its `og:image` / `twitter:image` / JSON-LD `image` references the same way |
 
-No code edits, no migrations, no component changes — just two binary file replacements.
+### Out of Scope
+- Apple touch icons / Android manifest icons (can add in a follow-up if desired)
+- Per-page custom OG images (single sitewide OG for now)
+- Touching the homepage hero or any visible UI — only metadata + favicon
 
