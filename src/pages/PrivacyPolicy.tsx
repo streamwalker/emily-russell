@@ -1,8 +1,26 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Privacy Policy | Emily Russell, REALTOR® San Antonio</title>
+        <meta name="description" content="How Emily Russell Realtor collects, uses, and protects your personal information when you use alamocitydesigns.com." />
+        <link rel="canonical" href="https://alamocitydesigns.com/privacy" />
+        <meta property="og:title" content="Privacy Policy | Emily Russell, REALTOR®" />
+        <meta property="og:description" content="How Emily Russell Realtor collects, uses, and protects your personal information." />
+        <meta property="og:url" content="https://alamocitydesigns.com/privacy" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://alamocitydesigns.com/og-privacy.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Privacy Policy — Emily Russell, REALTOR®" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Privacy Policy | Emily Russell, REALTOR®" />
+        <meta name="twitter:description" content="How Emily Russell Realtor collects, uses, and protects your personal information." />
+        <meta name="twitter:image" content="https://alamocitydesigns.com/og-privacy.jpg" />
+      </Helmet>
       <header className="bg-charcoal text-white py-6 px-6">
         <div className="max-w-[900px] mx-auto flex items-center justify-between">
           <Link to="/" className="font-display text-2xl text-white no-underline hover:text-gold-light transition-colors">Emily Russell <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realtor</span></Link>
