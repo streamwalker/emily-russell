@@ -3380,40 +3380,173 @@
     updateTimeline();
   });
 
-  // ==================== TOOLTIPS (tap-to-toggle + flip) ====================
+  // ==================== TOOLTIPS (portal + viewport positioning) ====================
   (function() {
-    function closeAll(except) {
-      document.querySelectorAll('.tooltip.open').forEach(function(t) {
-        if (t !== except) t.classList.remove('open');
+    var activeIcon = null;       // currently-triggering .tip-icon
+    var activeCard = null;       // the .tip-card now portaled to <body>
+    var activeHome = null;       // original parent .tooltip span (to restore)
+    var openScrollY = 0;
+    var rafId = null;
+
+    function getCard(icon) {
+      var tip = icon.closest('.tooltip');
+      return tip ? tip.querySelector('.tip-card') : null;
+    }
+
+    function position() {
+      if (!activeIcon || !activeCard) return;
+      var rect = activeIcon.getBoundingClientRect();
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      // Measure card after it's visible
+      var cardRect = activeCard.getBoundingClientRect();
+      var cardW = cardRect.width;
+      var cardH = cardRect.height;
+      var gap = 10;
+
+      // Vertical: prefer below if room, else above
+      var spaceBelow = vh - rect.bottom;
+      var placeBelow = spaceBelow >= (cardH + gap + 8);
+      var top;
+      if (placeBelow) {
+        top = rect.bottom + gap;
+        activeCard.classList.remove('arrow-down');
+        activeCard.classList.add('arrow-up');
+      } else {
+        top = rect.top - gap - cardH;
+        activeCard.classList.remove('arrow-up');
+        activeCard.classList.add('arrow-down');
+      }
+      // Clamp vertically too (in case both spaces are tight)
+      top = Math.max(8, Math.min(top, vh - cardH - 8));
+
+      // Horizontal: center on icon, clamp to viewport
+      var iconCenterX = rect.left + rect.width / 2;
+      var left = iconCenterX - cardW / 2;
+      left = Math.max(8, Math.min(left, vw - cardW - 8));
+
+      activeCard.style.top = top + 'px';
+      activeCard.style.left = left + 'px';
+
+      // Arrow horizontal offset = icon center relative to card's left edge
+      var arrowLeft = iconCenterX - left;
+      arrowLeft = Math.max(12, Math.min(arrowLeft, cardW - 12));
+      activeCard.style.setProperty('--arrow-left', arrowLeft + 'px');
+      // Override the ::after left via inline style on a child? Use CSS custom property approach:
+      // We can't directly style ::after inline, so set via attribute selector workaround:
+      activeCard.style.setProperty('setArrow', '');
+      // Apply arrow position by toggling a style element approach:
+      applyArrowPosition(arrowLeft);
+    }
+
+    var arrowStyleEl = null;
+    function applyArrowPosition(px) {
+      if (!arrowStyleEl) {
+        arrowStyleEl = document.createElement('style');
+        document.head.appendChild(arrowStyleEl);
+      }
+      arrowStyleEl.textContent =
+        '.tip-card.is-open::after{left:' + px + 'px !important; transform:translateX(-50%) !important;}';
+    }
+
+    function open(icon) {
+      close(); // close any existing
+      var card = getCard(icon);
+      if (!card) return;
+      activeIcon = icon;
+      activeCard = card;
+      activeHome = card.parentNode;
+      // Portal to body
+      document.body.appendChild(card);
+      card.classList.add('is-open');
+      openScrollY = window.scrollY;
+      // Position after layout
+      requestAnimationFrame(position);
+      var tip = icon.closest('.tooltip');
+      if (tip) tip.classList.add('open');
+    }
+
+    function close() {
+      if (!activeCard) return;
+      activeCard.classList.remove('is-open', 'arrow-up', 'arrow-down');
+      activeCard.style.top = '';
+      activeCard.style.left = '';
+      // Restore to original parent
+      if (activeHome) {
+        try { activeHome.appendChild(activeCard); } catch (e) {}
+      }
+      var tip = activeIcon ? activeIcon.closest('.tooltip') : null;
+      if (tip) tip.classList.remove('open');
+      activeIcon = null;
+      activeCard = null;
+      activeHome = null;
+    }
+
+    function schedulePosition() {
+      if (rafId) return;
+      rafId = requestAnimationFrame(function() {
+        rafId = null;
+        position();
       });
     }
+
+    // Tap / click on icon toggles
     document.addEventListener('click', function(e) {
       var icon = e.target.closest('.tip-icon');
       if (icon) {
-        var tip = icon.closest('.tooltip');
-        if (tip) {
-          var wasOpen = tip.classList.contains('open');
-          closeAll(tip);
-          tip.classList.toggle('open', !wasOpen);
-          // flip if too close to top
-          if (!wasOpen) {
-            var card = tip.querySelector('.tip-card');
-            if (card) {
-              var rect = icon.getBoundingClientRect();
-              card.classList.toggle('flip-down', rect.top < 200);
-            }
-          }
-          e.stopPropagation();
+        e.stopPropagation();
+        if (activeIcon === icon) {
+          close();
+        } else {
+          open(icon);
         }
         return;
       }
-      // click inside the tip-card shouldn't close it (so CTA links work)
+      // Click inside the card — keep open (so CTA links work)
       if (e.target.closest('.tip-card')) return;
-      closeAll(null);
+      close();
     });
-    // close on Escape
+
+    // Desktop hover-to-open (matches old behavior)
+    var hoverSupported = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (hoverSupported) {
+      document.addEventListener('mouseover', function(e) {
+        var icon = e.target.closest('.tip-icon');
+        if (icon && activeIcon !== icon) open(icon);
+      });
+      document.addEventListener('mouseout', function(e) {
+        var icon = e.target.closest('.tip-icon');
+        if (!icon) return;
+        // Don't close if moving into the card
+        var related = e.relatedTarget;
+        if (related && (related.closest && related.closest('.tip-card'))) return;
+        // Close after small delay so user can move into card
+        setTimeout(function() {
+          if (activeIcon === icon) {
+            // If pointer is now over card, keep open
+            var el = document.querySelector('.tip-card.is-open:hover');
+            if (!el) close();
+          }
+        }, 120);
+      });
+    }
+
+    // Reposition on scroll/resize; auto-close after big scroll
+    window.addEventListener('scroll', function() {
+      if (!activeCard) return;
+      if (Math.abs(window.scrollY - openScrollY) > 80) {
+        close();
+        return;
+      }
+      schedulePosition();
+    }, { passive: true });
+    window.addEventListener('resize', function() {
+      if (activeCard) schedulePosition();
+    });
+
+    // Escape closes
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeAll(null);
+      if (e.key === 'Escape') close();
     });
   })();
 </script>
