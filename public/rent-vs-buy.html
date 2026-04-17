@@ -1230,6 +1230,75 @@
     .hero-stat-row { gap: 30px; }
     .hero-stat .number { font-size: 32px; }
   }
+
+  /* ===== Expert Tooltip System ===== */
+  .tip-banner {
+    background: linear-gradient(90deg, rgba(201,169,97,0.12), rgba(201,169,97,0.04));
+    border: 1px solid rgba(201,169,97,0.35);
+    color: var(--navy);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin: 0 0 18px 0;
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 500;
+  }
+  .field-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .tooltip { position: relative; display: inline-flex; align-items: center; }
+  .tip-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--gold, #C9A961); color: #fff;
+    font-size: 11px; font-weight: 700; font-family: serif;
+    cursor: help; user-select: none;
+    transition: transform 0.15s ease, background 0.15s ease;
+    line-height: 1;
+  }
+  .tip-icon:hover, .tooltip.open .tip-icon { background: var(--navy, #1a2b4a); transform: scale(1.1); }
+  .tip-card {
+    position: absolute; z-index: 1000;
+    bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+    width: 280px; max-width: 90vw;
+    background: #fff;
+    border: 1.5px solid var(--navy, #1a2b4a);
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    font-size: 12.5px; line-height: 1.5; color: var(--navy, #1a2b4a);
+    text-align: left;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    pointer-events: none;
+    font-weight: 400;
+  }
+  .tip-card::after {
+    content: ''; position: absolute; top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 7px solid transparent; border-top-color: var(--navy, #1a2b4a);
+  }
+  .tooltip:hover .tip-card,
+  .tooltip.open .tip-card,
+  .tip-icon:focus + .tip-card {
+    opacity: 1; visibility: visible; pointer-events: auto;
+  }
+  .tip-card.flip-down { bottom: auto; top: calc(100% + 10px); }
+  .tip-card.flip-down::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--navy, #1a2b4a); }
+  .tip-card b { color: var(--gold, #C9A961); display: inline-block; min-width: 56px; font-weight: 700; }
+  .tip-card .tip-row { margin-bottom: 4px; }
+  .tip-card .tip-row:last-of-type { margin-bottom: 0; }
+  .tip-card .tip-cta {
+    display: block; margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed rgba(26,43,74,0.2);
+    color: var(--gold, #C9A961); font-weight: 600; font-size: 12px;
+    text-decoration: none;
+  }
+  .tip-card .tip-cta:hover { text-decoration: underline; }
+  /* Tooltips on result blocks (light text on dark bg) */
+  .total-display .tooltip .tip-icon { background: rgba(255,255,255,0.85); color: var(--navy, #1a2b4a); }
+  .total-display .tooltip .tip-icon:hover, .total-display .tooltip.open .tip-icon { background: #fff; }
+  @media (max-width: 600px) {
+    .tip-card { width: 240px; font-size: 12px; }
+  }
 </style>
 </head>
 <body>
