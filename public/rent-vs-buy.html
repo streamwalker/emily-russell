@@ -2517,7 +2517,6 @@
           user_agent: navigator.userAgent || null,
           session_id: sid()
         };
-        // Use sendBeacon when available (survives page navigation)
         var url = SUPA_URL + '/rest/v1/analytics_events';
         var body = JSON.stringify(payload);
         var headers = {
@@ -2529,8 +2528,64 @@
         fetch(url, { method: 'POST', headers: headers, body: body, keepalive: true }).catch(function(){});
       } catch(e){ /* silent */ }
     }
-    return { track: track, sid: sid };
+    // Debounced per-field tracking — fires 800ms after last change
+    var fieldTimers = {};
+    function trackField(name, value){
+      try {
+        if (fieldTimers[name]) clearTimeout(fieldTimers[name]);
+        fieldTimers[name] = setTimeout(function(){
+          track('calculator_interact', name, String(value).slice(0, 60));
+        }, 800);
+      } catch(e){ /* silent */ }
+    }
+    function trackCTA(label, href){
+      try { track('cta_click', label, href || null); } catch(e){}
+    }
+    return { track: track, trackField: trackField, trackCTA: trackCTA, sid: sid };
   })();
+
+  // ===== Calculator field interaction tracking =====
+  (function(){
+    var ids = ['b-loantype','b-price','b-rate','b-down','b-down-pct','b-tax','b-insurance','b-hoa','r-rent','r-utilities','r-renters','r-deposit','r-pets','r-app-fee','r-broker-fee','r-rent-growth','b-appreciation','b-years','b-maint','b-closing'];
+    function attach(){
+      ids.forEach(function(id){
+        var el = document.getElementById(id);
+        if (!el || el.dataset.trackBound) return;
+        el.dataset.trackBound = '1';
+        el.addEventListener('change', function(){
+          ANALYTICS.trackField(id, el.value);
+        });
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attach);
+    } else {
+      attach();
+    }
+    // Re-attach after a short delay in case fields render late
+    setTimeout(attach, 1500);
+  })();
+
+  // ===== Recompute sampling — fire on first + every 10th =====
+  var __recomputeCount = 0;
+  window.__trackRecompute = function(){
+    try {
+      __recomputeCount++;
+      if (__recomputeCount === 1 || __recomputeCount % 10 === 0) {
+        var bMonthly = (document.getElementById('b-monthly-total')||{}).textContent || '';
+        ANALYTICS.track('calculator_recompute', 'auto', 'count=' + __recomputeCount + ' buy_monthly=' + bMonthly);
+      }
+    } catch(e){}
+  };
+
+  // ===== Delegated CTA click tracking (tel:/sms:/mailto:) =====
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="sms:"], a[href^="mailto:"]');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    var label = (a.textContent || '').trim().slice(0, 60) || href.split(':')[0];
+    ANALYTICS.trackCTA(label, href);
+  }, true);
 
   // ===== Sticky CTA scroll behavior =====
   (function(){

@@ -104,6 +104,26 @@ Deno.serve(async (req) => {
 
     results.relocate = await postToSupabase(RELOCATE_URL, RELOCATE_KEY, "leads", relocateLeadData);
 
+    // Persist locally to public.leads for the admin dashboard (best-effort)
+    if (LOCAL_SUPA_URL && LOCAL_SUPA_SERVICE_KEY) {
+      const localLead: Record<string, unknown> = {
+        name,
+        email,
+        phone: phone || null,
+        timeframe: intent && intent.includes("Timeframe:") ? intent.split("Timeframe:")[1].trim() : null,
+        message: message || null,
+        source: form_type === "valuation" ? "valuation" : (intent && intent.toLowerCase().includes("rent vs") ? "rent_vs_buy" : "contact"),
+        metadata: {
+          intent: intent || null,
+          address: address || null,
+          form_type: form_type || null,
+        },
+        user_agent: req.headers.get("user-agent") || null,
+        referrer: req.headers.get("referer") || null,
+      };
+      results.local = await postToSupabase(LOCAL_SUPA_URL, LOCAL_SUPA_SERVICE_KEY, "leads", localLead);
+    }
+
     return new Response(
       JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
