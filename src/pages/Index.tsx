@@ -858,16 +858,23 @@ export default function Index() {
             ))}
           </div>
         </div>
-        <div className="border-t border-white/[.07] pt-5 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="font-body text-[11px]">© 2026 Emily Russell Realtor · Fathom Realty · San Antonio, TX</p>
-          <div className="flex gap-5">
-            <Link to="/terms" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Terms</Link>
-            <Link to="/privacy" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Privacy</Link>
-            <Link to="/trec" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>TREC Disclosures</Link>
-            {[["Facebook", "http://facebook.com/EmilyRussellRealtor"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realtor"]].map(([s, url]) => (
-              <a key={s} href={url} target="_blank" rel="noopener noreferrer"
-                className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>{s}</a>
-            ))}
+        <div className="border-t border-white/[.07] pt-5 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-3">
+            <p className="font-body text-[11px]">© 2026 Emily Russell Realtor · Fathom Realty · San Antonio, TX</p>
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+              <Link to="/terms" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Terms</Link>
+              <Link to="/privacy" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Privacy</Link>
+              <Link to="/trec#iabs" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Information About Brokerage Services</Link>
+              <Link to="/trec#cn" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Consumer Protection Notice</Link>
+              {[["Facebook", "http://facebook.com/EmilyRussellRealtor"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realtor"]].map(([s, url]) => (
+                <a key={s} href={url} target="_blank" rel="noopener noreferrer"
+                  className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>{s}</a>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-center md:justify-end items-center gap-4 opacity-70">
+            <img src="/images/compliance/eho.png" alt="Equal Housing Opportunity" loading="lazy" width={40} height={40} className="h-9 w-auto" />
+            <img src="/images/compliance/realtor-r.png" alt="REALTOR® — Member, National Association of REALTORS®" loading="lazy" width={40} height={40} className="h-9 w-auto" />
           </div>
         </div>
       </footer>
