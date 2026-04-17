@@ -2517,7 +2517,6 @@
           user_agent: navigator.userAgent || null,
           session_id: sid()
         };
-        // Use sendBeacon when available (survives page navigation)
         var url = SUPA_URL + '/rest/v1/analytics_events';
         var body = JSON.stringify(payload);
         var headers = {
@@ -2529,8 +2528,64 @@
         fetch(url, { method: 'POST', headers: headers, body: body, keepalive: true }).catch(function(){});
       } catch(e){ /* silent */ }
     }
-    return { track: track, sid: sid };
+    // Debounced per-field tracking — fires 800ms after last change
+    var fieldTimers = {};
+    function trackField(name, value){
+      try {
+        if (fieldTimers[name]) clearTimeout(fieldTimers[name]);
+        fieldTimers[name] = setTimeout(function(){
+          track('calculator_interact', name, String(value).slice(0, 60));
+        }, 800);
+      } catch(e){ /* silent */ }
+    }
+    function trackCTA(label, href){
+      try { track('cta_click', label, href || null); } catch(e){}
+    }
+    return { track: track, trackField: trackField, trackCTA: trackCTA, sid: sid };
   })();
+
+  // ===== Calculator field interaction tracking =====
+  (function(){
+    var ids = ['b-loantype','b-price','b-rate','b-down','b-down-pct','b-tax','b-insurance','b-hoa','r-rent','r-utilities','r-renters','r-deposit','r-pets','r-app-fee','r-broker-fee','r-rent-growth','b-appreciation','b-years','b-maint','b-closing'];
+    function attach(){
+      ids.forEach(function(id){
+        var el = document.getElementById(id);
+        if (!el || el.dataset.trackBound) return;
+        el.dataset.trackBound = '1';
+        el.addEventListener('change', function(){
+          ANALYTICS.trackField(id, el.value);
+        });
+      });
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attach);
+    } else {
+      attach();
+    }
+    // Re-attach after a short delay in case fields render late
+    setTimeout(attach, 1500);
+  })();
+
+  // ===== Recompute sampling — fire on first + every 10th =====
+  var __recomputeCount = 0;
+  window.__trackRecompute = function(){
+    try {
+      __recomputeCount++;
+      if (__recomputeCount === 1 || __recomputeCount % 10 === 0) {
+        var bMonthly = (document.getElementById('b-monthly-total')||{}).textContent || '';
+        ANALYTICS.track('calculator_recompute', 'auto', 'count=' + __recomputeCount + ' buy_monthly=' + bMonthly);
+      }
+    } catch(e){}
+  };
+
+  // ===== Delegated CTA click tracking (tel:/sms:/mailto:) =====
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href^="tel:"], a[href^="sms:"], a[href^="mailto:"]');
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    var label = (a.textContent || '').trim().slice(0, 60) || href.split(':')[0];
+    ANALYTICS.trackCTA(label, href);
+  }, true);
 
   // ===== Sticky CTA scroll behavior =====
   (function(){
@@ -2710,7 +2765,8 @@
       return;
     }
     populateShareCard();
-    ANALYTICS.track('share_results', 'share_button', format);
+    var filename = format === 'pdf' ? 'rent-vs-buy-san-antonio.pdf' : 'rent-vs-buy-san-antonio.png';
+    ANALYTICS.track('share_click', format, filename);
     var card = document.getElementById('share-card');
     html2canvas(card, { backgroundColor: null, scale: 2, useCORS: true }).then(function(canvas){
       if (format === 'pdf') {
@@ -2729,11 +2785,12 @@
         pdf.setTextColor(120,120,120);
         pdf.text('Generated at alamocitydesigns.com/rent-vs-buy · Emily Russell, REALTOR®', pageW/2, pageH - 0.3, { align: 'center' });
         pdf.save('rent-vs-buy-san-antonio.pdf');
+        ANALYTICS.track('share_success', format, filename);
         return;
       }
       // PNG path
       canvas.toBlob(function(blob){
-        if (!blob) return;
+        if (!blob) { ANALYTICS.track('share_error', format, 'blob_null'); return; }
         var file = new File([blob], 'rent-vs-buy-san-antonio.png', { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           navigator.share({
@@ -2748,9 +2805,11 @@
           document.body.appendChild(a); a.click();
           setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 500);
         }
+        ANALYTICS.track('share_success', format, filename);
       }, 'image/png');
     }).catch(function(err){
       console.error('Share failed', err);
+      ANALYTICS.track('share_error', format, String(err).slice(0, 80));
       alert('Could not generate file. Please try again.');
     });
   };
@@ -3092,6 +3151,7 @@
   }
 
   function calcBuyer() {
+    if (window.__trackRecompute) window.__trackRecompute();
     const price = +document.getElementById('b-price').value || 0;
     const rate = +document.getElementById('b-rate').value || 0;
     const down = +document.getElementById('b-down').value || 0;
