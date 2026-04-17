@@ -2750,6 +2750,43 @@
     calcBreak();
     updateTimeline();
   });
+
+  // ==================== TOOLTIPS (tap-to-toggle + flip) ====================
+  (function() {
+    function closeAll(except) {
+      document.querySelectorAll('.tooltip.open').forEach(function(t) {
+        if (t !== except) t.classList.remove('open');
+      });
+    }
+    document.addEventListener('click', function(e) {
+      var icon = e.target.closest('.tip-icon');
+      if (icon) {
+        var tip = icon.closest('.tooltip');
+        if (tip) {
+          var wasOpen = tip.classList.contains('open');
+          closeAll(tip);
+          tip.classList.toggle('open', !wasOpen);
+          // flip if too close to top
+          if (!wasOpen) {
+            var card = tip.querySelector('.tip-card');
+            if (card) {
+              var rect = icon.getBoundingClientRect();
+              card.classList.toggle('flip-down', rect.top < 200);
+            }
+          }
+          e.stopPropagation();
+        }
+        return;
+      }
+      // click inside the tip-card shouldn't close it (so CTA links work)
+      if (e.target.closest('.tip-card')) return;
+      closeAll(null);
+    });
+    // close on Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeAll(null);
+    });
+  })();
 </script>
 
 </body>
