@@ -1,8 +1,26 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Terms of Service | Emily Russell, REALTOR® San Antonio</title>
+        <meta name="description" content="Terms governing use of the Emily Russell Realtor website and services in the Greater San Antonio, Texas area." />
+        <link rel="canonical" href="https://alamocitydesigns.com/terms" />
+        <meta property="og:title" content="Terms of Service | Emily Russell, REALTOR®" />
+        <meta property="og:description" content="Terms governing use of the Emily Russell Realtor website and services." />
+        <meta property="og:url" content="https://alamocitydesigns.com/terms" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://alamocitydesigns.com/og-terms.jpg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Terms of Service — Emily Russell, REALTOR®" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Terms of Service | Emily Russell, REALTOR®" />
+        <meta name="twitter:description" content="Terms governing use of the Emily Russell Realtor website and services." />
+        <meta name="twitter:image" content="https://alamocitydesigns.com/og-terms.jpg" />
+      </Helmet>
       <header className="bg-charcoal text-white py-6 px-6">
         <div className="max-w-[900px] mx-auto flex items-center justify-between">
           <Link to="/" className="font-display text-2xl text-white no-underline hover:text-gold-light transition-colors">Emily Russell <span className="font-body text-[9px] tracking-[3px] uppercase text-gold-light">Realtor</span></Link>

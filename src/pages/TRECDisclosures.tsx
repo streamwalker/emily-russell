@@ -1,7 +1,25 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 const TRECDisclosures = () => (
   <div className="min-h-screen bg-charcoal text-white">
+    <Helmet>
+      <title>TREC Disclosures | Emily Russell, REALTOR® San Antonio</title>
+      <meta name="description" content="Texas Real Estate Commission required disclosures: Information About Brokerage Services (IABS) and Consumer Protection Notice for Emily Russell, Fathom Realty." />
+      <link rel="canonical" href="https://alamocitydesigns.com/trec" />
+      <meta property="og:title" content="TREC Disclosures | Emily Russell, REALTOR®" />
+      <meta property="og:description" content="Texas Real Estate Commission required disclosures for Emily Russell, Fathom Realty — San Antonio." />
+      <meta property="og:url" content="https://alamocitydesigns.com/trec" />
+      <meta property="og:type" content="website" />
+      <meta property="og:image" content="https://alamocitydesigns.com/og-trec.jpg" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="TREC Disclosures — Emily Russell, REALTOR®" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="TREC Disclosures | Emily Russell, REALTOR®" />
+      <meta name="twitter:description" content="Texas Real Estate Commission required disclosures for Emily Russell, Fathom Realty — San Antonio." />
+      <meta name="twitter:image" content="https://alamocitydesigns.com/og-trec.jpg" />
+    </Helmet>
     <div className="max-w-[900px] mx-auto px-6 py-16">
       <Link to="/" className="font-body text-[12px] tracking-[2px] uppercase text-gold-light hover:text-gold transition-colors mb-8 inline-block">
         ← Back to Home
