@@ -1401,6 +1401,59 @@
     text-align: center; font-weight: 700; font-size: 16px; margin-bottom: 18px;
   }
   .share-card-hidden .sc-footer { font-size: 12px; opacity: 0.8; text-align: center; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.15); }
+
+  /* ===== Lead Form Success State + Confetti + Book Button ===== */
+  .lead-success-state { display: none; text-align: center; padding: 20px 10px; }
+  .lead-success-state.visible { display: block; animation: ls-pop 0.5s cubic-bezier(.2,.9,.3,1.4); }
+  @keyframes ls-pop { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .lead-success-state .ls-check {
+    width: 72px; height: 72px; margin: 0 auto 16px;
+    background: #2e7d32; color: #fff; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px; box-shadow: 0 8px 20px rgba(46,125,50,0.3);
+  }
+  .lead-success-state h3 {
+    font-family: 'Playfair Display', serif; color: var(--navy, #1a2b4a);
+    font-size: 1.6rem; margin: 0 0 8px;
+  }
+  .lead-success-state p { color: #555; margin: 0 0 20px; font-size: 15px; }
+  .lead-book-btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: linear-gradient(135deg, var(--gold, #C9A961) 0%, #d4b876 100%);
+    color: var(--navy, #1a2b4a); text-decoration: none;
+    padding: 16px 28px; border-radius: 999px;
+    font-weight: 700; font-size: 16px;
+    box-shadow: 0 8px 24px rgba(201,169,97,0.35);
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .lead-book-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(201,169,97,0.45); }
+  .lead-book-btn .lb-icon { font-size: 20px; }
+  .lead-success-state .ls-secondary { display: block; margin-top: 14px; font-size: 13px; color: #777; }
+  .lead-success-state .ls-secondary a { color: var(--navy, #1a2b4a); font-weight: 600; }
+
+  /* Confetti canvas */
+  .confetti-canvas {
+    position: fixed; inset: 0; pointer-events: none; z-index: 99999;
+  }
+
+  /* Share menu (PNG / PDF choice) */
+  .share-menu {
+    position: absolute; background: #fff; border: 1px solid rgba(26,43,74,0.15);
+    border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+    padding: 6px; min-width: 200px; z-index: 9998;
+    display: none; animation: sm-fade 0.15s ease-out;
+  }
+  .share-menu.visible { display: block; }
+  @keyframes sm-fade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  .share-menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 10px 14px; border: none; background: transparent;
+    text-align: left; font-size: 14px; color: var(--navy, #1a2b4a);
+    cursor: pointer; border-radius: 6px; font-family: inherit;
+  }
+  .share-menu button:hover { background: #faf7f0; }
+  .share-menu .sm-icon { font-size: 16px; }
+  .share-row { position: relative; }
 </style>
 </head>
 <body>
@@ -1923,7 +1976,11 @@
 
             <!-- Share Results Button -->
             <div class="share-row">
-              <button type="button" class="share-btn" onclick="shareResults()">📸 Share My Results</button>
+              <button type="button" class="share-btn" id="share-btn" onclick="openShareMenu(event)">📸 Share My Results ▾</button>
+              <div class="share-menu" id="share-menu" role="menu">
+                <button type="button" onclick="shareResults('png')"><span class="sm-icon">🖼️</span> Save as Image (PNG)</button>
+                <button type="button" onclick="shareResults('pdf')"><span class="sm-icon">📄</span> Save as Printable PDF</button>
+              </div>
             </div>
           </div>
 
@@ -2264,7 +2321,18 @@
       <div id="lead-message" class="lead-message" role="status" aria-live="polite"></div>
       <button type="submit" class="lead-submit" id="lead-submit-btn">Send My Analysis Request →</button>
     </form>
-    <div class="lead-trust">🔒 Your info goes straight to Emily. Never sold, never spammed.</div>
+    <div class="lead-trust" id="lead-trust">🔒 Your info goes straight to Emily. Never sold, never spammed.</div>
+
+    <!-- Success state (shown after submit) -->
+    <div class="lead-success-state" id="lead-success">
+      <div class="ls-check">✓</div>
+      <h3 id="ls-headline">Thanks — Emily's on it!</h3>
+      <p>Your analysis request is in. Want to skip the wait and grab a 15-minute call right now?</p>
+      <a href="mailto:emily@streamwalkers.com?subject=Book%20a%2015-min%20Rent%20vs.%20Buy%20Call&amp;body=Hi%20Emily%2C%0A%0AI%20just%20used%20your%20Rent%20vs.%20Buy%20calculator%20and%20I%27d%20like%20to%20book%20a%2015-minute%20call%20to%20discuss%20my%20numbers.%0A%0AThanks%21" class="lead-book-btn" id="lead-book-btn">
+        <span class="lb-icon">📅</span> Book a 15-min call with Emily
+      </a>
+      <span class="ls-secondary">Prefer to call now? <a href="tel:+12109120806">(210) 912-0806</a></span>
+    </div>
   </div>
 </section>
 
@@ -2372,8 +2440,408 @@
   </div>
 </div>
 
+<!-- Sticky "Talk to Emily" CTA -->
+<a href="#contact-emily" class="sticky-cta" id="sticky-cta" aria-label="Talk to Emily">
+  <span class="sc-icon">☎</span><span class="sc-label">Talk to Emily</span>
+</a>
+
+<!-- Hidden Share Card (rendered to PNG/PDF) -->
+<div class="share-card-hidden" id="share-card" aria-hidden="true">
+  <div class="sc-header">
+    <div class="sc-title">My Rent vs. Buy Analysis</div>
+    <div class="sc-sub">San Antonio, TX · 2026</div>
+  </div>
+  <div class="sc-verdict" id="sc-verdict">Buying saves $0/mo</div>
+  <div class="sc-grid">
+    <div class="sc-block">
+      <h4>Renting</h4>
+      <div class="sc-row"><span>Monthly Total</span><strong id="sc-rent-monthly">$0</strong></div>
+      <div class="sc-row"><span>Move-In Cost</span><strong id="sc-rent-movein">$0</strong></div>
+      <div class="sc-row"><span>1-Year Total</span><strong id="sc-rent-year">$0</strong></div>
+      <div class="sc-row"><span>Equity Built</span><strong>$0</strong></div>
+    </div>
+    <div class="sc-block">
+      <h4>Buying</h4>
+      <div class="sc-row"><span>Monthly Total</span><strong id="sc-buy-monthly">$0</strong></div>
+      <div class="sc-row"><span>Offer Price</span><strong id="sc-buy-price">$0</strong></div>
+      <div class="sc-row"><span>Year-1 Equity</span><strong id="sc-buy-equity">$0</strong></div>
+      <div class="sc-row"><span>Total Interest</span><strong id="sc-buy-interest">$0</strong></div>
+    </div>
+  </div>
+  <div class="sc-block" style="margin-bottom:18px;">
+    <h4>Loan Details</h4>
+    <div class="sc-row"><span>Loan Type</span><strong id="sc-loan-type">—</strong></div>
+    <div class="sc-row"><span>Interest Rate</span><strong id="sc-rate">0%</strong></div>
+    <div class="sc-row"><span>Down Payment</span><strong id="sc-down">$0</strong></div>
+  </div>
+  <div class="sc-footer">
+    Calculated at alamocitydesigns.com/rent-vs-buy<br>
+    Emily Russell, REALTOR® · Fathom Realty · TREC #791742 · (210) 912-0806
+  </div>
+</div>
+
+<!-- html2canvas + jsPDF for share image and PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
 <script>
-  // ==================== STATE ====================
+  // ===== Lightweight analytics tracker =====
+  var ANALYTICS = (function(){
+    var SUPA_URL = 'https://vkkguobxdilogwhqdtur.supabase.co';
+    var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZra2d1b2J4ZGlsb2d3aHFkdHVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODM2NzksImV4cCI6MjA5MDU1OTY3OX0.aS_GOPvcqqTACd3kMpQlOeByWl4UciVJuenis8OxxX0';
+    function sid(){
+      try {
+        var k = 'rvb_session_id';
+        var s = sessionStorage.getItem(k);
+        if (!s) {
+          s = 'rvb_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10);
+          sessionStorage.setItem(k, s);
+        }
+        return s;
+      } catch(e){ return 'rvb_anon'; }
+    }
+    function track(event_type, target, label){
+      try {
+        var payload = {
+          event_type: event_type,
+          target: target || null,
+          label: label || null,
+          page: '/rent-vs-buy',
+          referrer: document.referrer || null,
+          user_agent: navigator.userAgent || null,
+          session_id: sid()
+        };
+        // Use sendBeacon when available (survives page navigation)
+        var url = SUPA_URL + '/rest/v1/analytics_events';
+        var body = JSON.stringify(payload);
+        var headers = {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_KEY,
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Prefer': 'return=minimal'
+        };
+        fetch(url, { method: 'POST', headers: headers, body: body, keepalive: true }).catch(function(){});
+      } catch(e){ /* silent */ }
+    }
+    return { track: track, sid: sid };
+  })();
+
+  // ===== Sticky CTA scroll behavior =====
+  (function(){
+    var cta = document.getElementById('sticky-cta');
+    var contact = document.getElementById('contact-emily');
+    var leadSec = document.getElementById('get-analysis');
+    if (!cta) return;
+    function refresh(){
+      var anyVisible = false;
+      [contact, leadSec].forEach(function(el){
+        if (!el) return;
+        var r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) anyVisible = true;
+      });
+      var show = window.scrollY > 600 && !anyVisible;
+      cta.classList.toggle('visible', show);
+    }
+    window.addEventListener('scroll', refresh, { passive: true });
+    window.addEventListener('resize', refresh);
+    cta.addEventListener('click', function(){
+      ANALYTICS.track('cta_click', 'sticky_talk_to_emily', 'rent_vs_buy');
+    });
+    refresh();
+  })();
+
+  // ===== Tooltip open tracking (delegated) =====
+  document.addEventListener('click', function(e){
+    var icon = e.target.closest && e.target.closest('.tip-icon');
+    if (!icon) return;
+    var tip = icon.closest('.tooltip');
+    if (!tip) return;
+    // Only fire when transitioning to OPEN
+    setTimeout(function(){
+      if (tip.classList.contains('open')) {
+        var label = '';
+        var fl = tip.closest('.field-label, .total-label, .label');
+        if (fl) label = (fl.textContent || '').trim().slice(0, 80);
+        if (!label) {
+          var prev = tip.previousSibling;
+          while (prev && prev.nodeType === 3 && !prev.textContent.trim()) prev = prev.previousSibling;
+          if (prev) label = (prev.textContent || '').trim().slice(0, 80);
+        }
+        ANALYTICS.track('tooltip_open', label || 'unknown', '/rent-vs-buy');
+      }
+    }, 0);
+  }, true);
+
+  // ===== Confetti (canvas, no deps) =====
+  function fireConfetti(){
+    var canvas = document.createElement('canvas');
+    canvas.className = 'confetti-canvas';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    var ctx = canvas.getContext('2d');
+    var colors = ['#C9A961','#1a2b4a','#d4b876','#2e7d32','#fff','#f4ede0'];
+    var pieces = [];
+    var N = 140;
+    for (var i=0; i<N; i++){
+      pieces.push({
+        x: Math.random()*canvas.width,
+        y: -20 - Math.random()*canvas.height*0.4,
+        w: 6 + Math.random()*8,
+        h: 8 + Math.random()*10,
+        vx: (Math.random()-0.5)*4,
+        vy: 2 + Math.random()*4,
+        rot: Math.random()*Math.PI*2,
+        vr: (Math.random()-0.5)*0.25,
+        color: colors[Math.floor(Math.random()*colors.length)]
+      });
+    }
+    var start = performance.now();
+    var duration = 2800;
+    function frame(t){
+      var elapsed = t - start;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      pieces.forEach(function(p){
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.vy += 0.05;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+      });
+      if (elapsed < duration) {
+        requestAnimationFrame(frame);
+      } else {
+        canvas.remove();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ===== Build share-card snapshot text =====
+  function buildResultsSummary(){
+    var rMonthly = (document.getElementById('r-monthly-total')||{}).textContent || '$0';
+    var rMovein  = (document.getElementById('r-movein')||{}).textContent || '$0';
+    var rTotal   = (document.getElementById('r-total')||{}).textContent || '$0';
+    var bMonthly = (document.getElementById('b-monthly-total')||{}).textContent || '$0';
+    var bEquity  = (document.getElementById('b-equity')||{}).textContent || '$0';
+    var bInt     = (document.getElementById('b-interest')||{}).textContent || '$0';
+    var price    = '$' + Number(document.getElementById('b-price').value||0).toLocaleString();
+    var rate     = (document.getElementById('b-rate').value||'0') + '%';
+    var down     = '$' + Number(document.getElementById('b-down').value||0).toLocaleString();
+    var loanType = document.getElementById('b-loantype');
+    var loanLbl  = loanType ? (loanType.options[loanType.selectedIndex]||{}).text : '—';
+    return {
+      rMonthly:rMonthly, rMovein:rMovein, rTotal:rTotal,
+      bMonthly:bMonthly, bEquity:bEquity, bInt:bInt,
+      price:price, rate:rate, down:down, loanLbl:loanLbl
+    };
+  }
+
+  function populateShareCard(){
+    var s = buildResultsSummary();
+    var setT = function(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; };
+    setT('sc-rent-monthly', s.rMonthly);
+    setT('sc-rent-movein',  s.rMovein);
+    setT('sc-rent-year',    s.rTotal);
+    setT('sc-buy-monthly',  s.bMonthly);
+    setT('sc-buy-price',    s.price);
+    setT('sc-buy-equity',   s.bEquity);
+    setT('sc-buy-interest', s.bInt);
+    setT('sc-loan-type',    s.loanLbl);
+    setT('sc-rate',         s.rate);
+    setT('sc-down',         s.down);
+    var rNum = parseFloat(s.rMonthly.replace(/[^0-9.-]/g,''))||0;
+    var bNum = parseFloat(s.bMonthly.replace(/[^0-9.-]/g,''))||0;
+    var diff = rNum - bNum;
+    var verdict = diff > 0
+      ? 'Buying saves ~$' + Math.round(diff).toLocaleString() + '/mo vs renting'
+      : 'Renting is ~$' + Math.round(Math.abs(diff)).toLocaleString() + '/mo cheaper today';
+    setT('sc-verdict', verdict);
+  }
+
+  function summaryAsText(){
+    var s = buildResultsSummary();
+    return [
+      'My Rent vs. Buy Snapshot — San Antonio 2026',
+      '— Renting: ' + s.rMonthly + '/mo · Move-in ' + s.rMovein + ' · Year-1 ' + s.rTotal,
+      '— Buying:  ' + s.bMonthly + '/mo · ' + s.price + ' · ' + s.loanLbl + ' @ ' + s.rate + ' · Down ' + s.down,
+      '— Year-1 equity: ' + s.bEquity + ' · Lifetime interest: ' + s.bInt
+    ].join('\n');
+  }
+
+  // ===== Share menu open/close =====
+  window.openShareMenu = function(e){
+    e.stopPropagation();
+    var menu = document.getElementById('share-menu');
+    if (!menu) return;
+    menu.classList.toggle('visible');
+    if (menu.classList.contains('visible')) {
+      // position below the button
+      var btn = document.getElementById('share-btn');
+      var btnRect = btn.getBoundingClientRect();
+      var parentRect = btn.parentElement.getBoundingClientRect();
+      menu.style.top = (btnRect.bottom - parentRect.top + 6) + 'px';
+      menu.style.left = (btnRect.left - parentRect.left) + 'px';
+    }
+  };
+  document.addEventListener('click', function(e){
+    var menu = document.getElementById('share-menu');
+    if (!menu) return;
+    if (!e.target.closest('#share-menu') && !e.target.closest('#share-btn')) {
+      menu.classList.remove('visible');
+    }
+  });
+
+  // ===== Share Results (PNG or PDF) =====
+  window.shareResults = function(format){
+    format = format || 'png';
+    var menu = document.getElementById('share-menu');
+    if (menu) menu.classList.remove('visible');
+    if (typeof html2canvas === 'undefined') {
+      alert('Share tool is still loading — try again in a moment.');
+      return;
+    }
+    populateShareCard();
+    ANALYTICS.track('share_results', 'share_button', format);
+    var card = document.getElementById('share-card');
+    html2canvas(card, { backgroundColor: null, scale: 2, useCORS: true }).then(function(canvas){
+      if (format === 'pdf') {
+        var jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+        if (!jsPDFCtor) { alert('PDF tool is still loading — try again.'); return; }
+        // Letter size, portrait (8.5 x 11 in)
+        var pdf = new jsPDFCtor({ unit: 'in', format: 'letter', orientation: 'portrait' });
+        var pageW = 8.5, pageH = 11, margin = 0.5;
+        var imgW = pageW - margin*2;
+        var imgH = (canvas.height / canvas.width) * imgW;
+        if (imgH > pageH - margin*2) imgH = pageH - margin*2;
+        var imgData = canvas.toDataURL('image/png');
+        pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
+        // Footer hint
+        pdf.setFontSize(9);
+        pdf.setTextColor(120,120,120);
+        pdf.text('Generated at alamocitydesigns.com/rent-vs-buy · Emily Russell, REALTOR®', pageW/2, pageH - 0.3, { align: 'center' });
+        pdf.save('rent-vs-buy-san-antonio.pdf');
+        return;
+      }
+      // PNG path
+      canvas.toBlob(function(blob){
+        if (!blob) return;
+        var file = new File([blob], 'rent-vs-buy-san-antonio.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+            files: [file],
+            title: 'My Rent vs. Buy Analysis',
+            text: 'Calculated with Emily Russell at alamocitydesigns.com/rent-vs-buy'
+          }).catch(function(){});
+        } else {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = 'rent-vs-buy-san-antonio.png';
+          document.body.appendChild(a); a.click();
+          setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 500);
+        }
+      }, 'image/png');
+    }).catch(function(err){
+      console.error('Share failed', err);
+      alert('Could not generate file. Please try again.');
+    });
+  };
+
+  // ===== Lead Form Submission =====
+  (function(){
+    var SUPA_URL = 'https://vkkguobxdilogwhqdtur.supabase.co';
+    var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZra2d1b2J4ZGlsb2d3aHFkdHVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5ODM2NzksImV4cCI6MjA5MDU1OTY3OX0.aS_GOPvcqqTACd3kMpQlOeByWl4UciVJuenis8OxxX0';
+    var form = document.getElementById('lead-form');
+    if (!form) return;
+    var msg = document.getElementById('lead-message');
+    var btn = document.getElementById('lead-submit-btn');
+    var success = document.getElementById('lead-success');
+    var trust = document.getElementById('lead-trust');
+    var headline = document.getElementById('ls-headline');
+    var bookBtn = document.getElementById('lead-book-btn');
+
+    function showMsg(kind, text){
+      msg.className = 'lead-message ' + kind;
+      msg.textContent = text;
+    }
+
+    if (bookBtn) {
+      bookBtn.addEventListener('click', function(){
+        ANALYTICS.track('cta_click', 'book_15min_call', 'lead_success_state');
+      });
+    }
+
+    form.addEventListener('submit', async function(e){
+      e.preventDefault();
+      if ((document.getElementById('lf-website').value||'').trim() !== '') return;
+
+      var name = document.getElementById('lf-name').value.trim();
+      var email = document.getElementById('lf-email').value.trim();
+      var phone = document.getElementById('lf-phone').value.trim();
+      var timeframe = document.getElementById('lf-timeframe').value;
+      var message = document.getElementById('lf-message').value.trim();
+      var includeResults = document.getElementById('lf-include-results').checked;
+
+      if (name.length < 1 || name.length > 100) return showMsg('error', 'Please enter your name.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 255) return showMsg('error', 'Please enter a valid email.');
+      var digits = phone.replace(/\D/g,'');
+      if (digits.length < 10) return showMsg('error', 'Please enter a valid phone number.');
+      if (!timeframe) return showMsg('error', 'Please select a timeframe.');
+
+      var fullMessage = message;
+      if (includeResults) {
+        fullMessage = (fullMessage ? fullMessage + '\n\n' : '') + summaryAsText();
+      }
+
+      btn.disabled = true; btn.textContent = 'Sending…';
+      msg.className = 'lead-message';
+      ANALYTICS.track('lead_submit_attempt', 'rent_vs_buy_lead_form', timeframe);
+
+      try {
+        var res = await fetch(SUPA_URL + '/functions/v1/sync-lead', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPA_KEY,
+            'Authorization': 'Bearer ' + SUPA_KEY
+          },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            phone: phone,
+            intent: 'Rent vs. Buy Calculator — Timeframe: ' + timeframe,
+            message: fullMessage || null,
+            form_type: 'contact'
+          })
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        // Hide form, show success state
+        form.style.display = 'none';
+        if (trust) trust.style.display = 'none';
+        if (headline) headline.textContent = 'Thanks ' + name.split(' ')[0] + ' — Emily\'s on it!';
+        success.classList.add('visible');
+        fireConfetti();
+        ANALYTICS.track('lead_submit_success', 'rent_vs_buy_lead_form', timeframe);
+        // Scroll into view
+        setTimeout(function(){ success.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+      } catch (err) {
+        console.error('Lead submit error', err);
+        showMsg('error', 'Something went wrong. Please call Emily directly at (210) 912-0806 or try again.');
+        ANALYTICS.track('lead_submit_error', 'rent_vs_buy_lead_form', String(err).slice(0,80));
+        btn.disabled = false; btn.textContent = 'Send My Analysis Request →';
+      }
+    });
+  })();
+
+  // ===== Page-view ping =====
+  window.addEventListener('load', function(){
+    ANALYTICS.track('page_view', 'rent_vs_buy', document.title || '');
+  });
+</script>
+
+<script>
   let petCount = 1;
   let loanTerm = 30;
   let donutChart = null;
