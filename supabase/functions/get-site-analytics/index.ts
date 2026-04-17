@@ -130,6 +130,29 @@ Deno.serve(async (req: Request) => {
       .order("signed_at", { ascending: false })
       .limit(10);
 
+    // Rent vs Buy Funnel — last 30 days, scoped to /rent-vs-buy
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const countEvent = async (eventType: string | string[]) => {
+      let q = supabase
+        .from("analytics_events")
+        .select("id", { count: "exact", head: true })
+        .eq("page", "/rent-vs-buy")
+        .gte("created_at", since);
+      if (Array.isArray(eventType)) q = q.in("event_type", eventType);
+      else q = q.eq("event_type", eventType);
+      const { count } = await q;
+      return count || 0;
+    };
+
+    const [pageViews, recomputes, shares, leadsCount] = await Promise.all([
+      countEvent("page_view"),
+      countEvent("calculator_recompute"),
+      countEvent("share_success"),
+      countEvent(["lead_submit_success", "lead_submitted"]),
+    ]);
+
+    const rentVsBuyFunnel = { pageViews, recomputes, shares, leads: leadsCount };
+
     // Profiles for name resolution
     const { data: profiles } = await supabase
       .from("profiles")
@@ -152,6 +175,7 @@ Deno.serve(async (req: Request) => {
           return { userId, email: profile?.email, name: profile?.full_name, ...stats };
         }),
         recentAgreements: agreements || [],
+        rentVsBuyFunnel,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
