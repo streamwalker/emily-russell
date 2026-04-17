@@ -1,47 +1,54 @@
 
 
-## Plan: Expert-Guided Tooltips on Both Calculators
+## Plan: Sticky CTA + Lead Capture + Share Results on /rent-vs-buy
 
-### Goal
-Add an info-icon (ⓘ) tooltip beside every input label in the Renter and Buyer calculators inside `public/rent-vs-buy.html`. Each tooltip teaches **What / How / Why it matters / What it means** so users finish the calculator as knowledgeable buyers — and reinforce Emily's authority on high-stakes fields.
+Three additive enhancements to `public/rent-vs-buy.html`. No calculator logic touched.
 
-### Approach (purely additive — no calculator logic changes)
+### 1. Sticky "Talk to Emily" CTA
 
-1. **Reusable tooltip pattern** (CSS + tiny vanilla JS — no libs, no React)
-   - Gold ⓘ icon next to each label
-   - White card with navy border, subtle shadow, arrow pointer
-   - Capped ~280px wide, auto-flips above/below to stay on-screen
-   - Hover on desktop, tap-to-toggle on mobile, tap-outside-to-close
-
-2. **Helper banner** at the top of each calculator panel:
-   > 💡 Hover any ⓘ icon for expert guidance on that field
-
-3. **Tooltip coverage** — every input/control:
-
-   **Renter Calculator (15 fields)**
-   Monthly Rent · Monthly Utilities · # of Pets · Pet Rent · Renter's Insurance · Parking · Valet Trash · Pest Control · First Month's Rent · Last Month's Rent · Security Deposit · Admin Fee · Application Fee · Pet Deposit · Non-Refundable Pet Fee
-
-   **Buyer Calculator (16 fields)**
-   Loan Type · Conventional Down Payment · VA Status · VA Disability Rating · Veteran Age · Offer Price · Interest Rate · Down Payment % · Down Payment $ · Annual Tax Rate · Monthly Insurance · Monthly HOA · Monthly Utilities · Loan Term · plus contextual tips on the **Total Monthly Obligation**, **Year-1 Equity Built**, and **Total Interest** result blocks.
-
-4. **Conversion hooks** — high-stakes fields (Loan Type, Down Payment, Interest Rate, Tax Rate, Pet Fees) get a soft micro-CTA at the bottom of the tooltip:
-   > Not sure? Emily can walk you through this in 5 minutes → (links to existing contact anchor)
-
-### Tooltip content style (each one ~3–5 short lines)
+Floating pill button, bottom-right, appears after user scrolls past hero (~600px), hides when contact section is in view (IntersectionObserver). Gold background, navy text, phone icon + "Talk to Emily" label. Tap → scrolls to existing `#contact-emily` anchor. Mobile: shrinks to icon-only at <500px to avoid covering inputs.
 
 ```text
-WHAT: Plain-English definition
-HOW: How to find/estimate the number
-WHY: Financial impact
-MEANS: How it changes the buy-vs-rent picture
-[optional CTA for high-stakes fields]
+                                    ┌──────────────────┐
+                                    │ ☎ Talk to Emily │  ← fixed bottom-right
+                                    └──────────────────┘
 ```
+
+Pure CSS + ~15 lines vanilla JS. No libs.
+
+### 2. Lead-Capture Form (below calculator, above FAQ)
+
+New section `<section id="get-analysis">` with a branded card containing 4 fields:
+- **Name** (required)
+- **Email** (required, validated)
+- **Phone** (required, formatted)
+- **Timeframe** (select: "0–3 months" / "3–6 months" / "6–12 months" / "Just exploring")
+- Optional **Message** textarea
+- Honeypot field for spam protection
+
+Headline: *"Get a personalized rent-vs-buy analysis from Emily — free, no pressure."*
+
+**Submission flow** — reuses the existing `sync-lead` Edge Function already wired to LeadGenius + Relocation Compass (per `mem://integrations/lead-management`). Calls it directly via `fetch` to `https://vkkguobxdilogwhqdtur.supabase.co/functions/v1/sync-lead` with the anon key. Source tagged as `rent_vs_buy_calculator` so Emily can segment these leads. Success → inline thank-you state. Error → friendly retry message.
+
+Client-side validation: name 1–100 chars, email regex + max 255, phone digits-only ≥10, all trimmed.
+
+### 3. "Share My Results" Button
+
+Sits inside the existing results panel. On click, generates a **PNG snapshot** of a hidden styled summary card containing:
+- Header: "My Rent vs. Buy Analysis — San Antonio 2026"
+- User's key inputs (rent, offer price, down payment, rate)
+- Computed outputs (monthly obligation, year-1 equity, total interest, break-even)
+- Footer: "Calculated at alamocitydesigns.com/rent-vs-buy · Emily Russell, REALTOR®"
+
+**Generation method**: `html2canvas` loaded from CDN (single `<script>` tag, ~45kb). On click → render hidden `.share-card` div → trigger PNG download as `rent-vs-buy-san-antonio.png`. Mobile: uses Web Share API if available (`navigator.share`) so users can share directly to iMessage/WhatsApp; falls back to download otherwise.
+
+Bonus: a small "📧 Email these results to me" toggle that, if checked, auto-fills the lead form's message field with the snapshot summary as text.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `public/rent-vs-buy.html` | Add `<style>` rules for `.tooltip` / `.tip-icon` / `.tip-card`; add ⓘ spans + tooltip content next to each of the 31 field labels and 3 result blocks; add tiny `<script>` for tap-to-toggle and outside-click-to-close; add 2 helper banners |
+| `public/rent-vs-buy.html` | Add sticky CTA (CSS + JS + markup), lead-capture section + submit handler, share-results button + html2canvas CDN + hidden snapshot template |
 
-No other files touched. Calculator math, Recharts, JSON-LD schema, OG tags, and overall layout remain untouched.
+No React, no new routes, no new Edge Functions — reuses existing `sync-lead`.
 
