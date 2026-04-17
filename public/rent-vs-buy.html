@@ -1426,11 +1426,13 @@
         </div>
         <div class="calc-panel-body">
 
+          <div class="tip-banner">💡 Hover any <span class="tip-icon" style="cursor:default">i</span> icon for expert guidance on that field.</div>
+
           <div class="calc-group">
             <div class="calc-group-title">Monthly Costs</div>
 
             <div class="field">
-              <div class="field-label"><span>Monthly Rent</span></div>
+              <div class="field-label"><span>Monthly Rent</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Base monthly rent before fees, utilities, or pet costs.</div><div class="tip-row"><b>How:</b> Use your current lease or a quote from a target complex.</div><div class="tip-row"><b>Why:</b> The largest single line item — every $100/mo = $1,200/yr with zero equity.</div><div class="tip-row"><b>Means:</b> Compare against the buyer's P&amp;I to see "rent vs. own" parity.</div></span></span></div>
               <div class="input-wrap">
                 <span class="prefix">$</span>
                 <input type="number" id="r-rent" value="1495" oninput="calcRenter()">
@@ -1439,7 +1441,7 @@
 
             <div class="field">
               <div class="field-label">
-                <span>Monthly Utilities</span>
+                <span>Monthly Utilities</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Electric, water, internet, gas combined for a typical apartment.</div><div class="tip-row"><b>How:</b> Average a San Antonio 1–2BR is ~$175/mo.</div><div class="tip-row"><b>Why:</b> Often forgotten — adds $2,100/yr to true rent cost.</div><div class="tip-row"><b>Means:</b> Homes use more utilities (~$275). Including both makes the comparison apples-to-apples.</div></span></span>
                 <span class="helper-link" onclick="document.getElementById('r-util').value=175;calcRenter();">Use average ($175)</span>
               </div>
               <div class="input-wrap">
@@ -1450,7 +1452,7 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span># of Pets</span></div>
+                <div class="field-label"><span># of Pets</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Number of pets you'll bring to the unit.</div><div class="tip-row"><b>How:</b> Count cats and dogs; most complexes cap at 2.</div><div class="tip-row"><b>Why:</b> Multiplies pet rent, deposits, and non-refundable fees.</div><div class="tip-row"><b>Means:</b> Owning means none of these fees apply — your dog is free.</div></span></span></div>
                 <div class="pet-counter">
                   <button type="button" onclick="adjustPets(-1)">−</button>
                   <div class="pet-count" id="pet-count">1</div>
@@ -1458,7 +1460,7 @@
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Pet Rent / pet / mo</span></div>
+                <div class="field-label"><span>Pet Rent / pet / mo</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Recurring monthly charge per pet, separate from any deposit.</div><div class="tip-row"><b>How:</b> Typical SA range is $15–$30/pet/month.</div><div class="tip-row"><b>Why:</b> $30/pet × 2 pets × 12 mo = $720/yr in pure pet tax.</div><div class="tip-row"><b>Means:</b> Homeowners pay $0 in pet rent — ever.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-petrent" value="30" oninput="calcRenter()">
@@ -1468,14 +1470,14 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span>Renter's Insurance</span></div>
+                <div class="field-label"><span>Renter's Insurance</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Insurance protecting your belongings (not the building).</div><div class="tip-row"><b>How:</b> Most landlords require it; ~$10–$20/mo.</div><div class="tip-row"><b>Why:</b> Covers theft, fire, water damage to your stuff.</div><div class="tip-row"><b>Means:</b> Homeowners pay homeowners insurance instead — already in the buyer side.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-ins" value="15" oninput="calcRenter()">
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Parking / month</span></div>
+                <div class="field-label"><span>Parking / month</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Reserved, covered, or garage parking fee.</div><div class="tip-row"><b>How:</b> $25–$75/mo at most managed SA complexes.</div><div class="tip-row"><b>Why:</b> Hidden cost that can add $900/yr.</div><div class="tip-row"><b>Means:</b> Homes include driveways and garages at no extra cost.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-park" value="40" oninput="calcRenter()">
@@ -1485,14 +1487,14 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span>Valet Trash</span></div>
+                <div class="field-label"><span>Valet Trash</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Door-to-door trash pickup fee, often non-optional.</div><div class="tip-row"><b>How:</b> Typically $20–$30/mo, charged whether you use it or not.</div><div class="tip-row"><b>Why:</b> $300/yr you can't escape in most managed communities.</div><div class="tip-row"><b>Means:</b> Homeowners just pay the city trash bill (already in utilities).</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-trash" value="25" oninput="calcRenter()">
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Pest Control</span></div>
+                <div class="field-label"><span>Pest Control</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Mandatory monthly pest treatment fee.</div><div class="tip-row"><b>How:</b> $5–$10/mo, billed automatically.</div><div class="tip-row"><b>Why:</b> Adds to baseline cost; you don't choose to opt out.</div><div class="tip-row"><b>Means:</b> Homeowners decide if and when to call an exterminator.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-pest" value="8" oninput="calcRenter()">
@@ -1506,14 +1508,14 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span>First Month's Rent</span></div>
+                <div class="field-label"><span>First Month's Rent</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Rent due at lease signing for month 1.</div><div class="tip-row"><b>How:</b> Equals your monthly rent figure above.</div><div class="tip-row"><b>Why:</b> Counts toward your move-in cash, but isn't extra.</div><div class="tip-row"><b>Means:</b> Compare this to a buyer's down payment as the "barrier to entry."</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-first" value="1495" oninput="calcRenter()">
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Last Month's Rent</span></div>
+                <div class="field-label"><span>Last Month's Rent</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Pre-paid final month's rent, held by landlord.</div><div class="tip-row"><b>How:</b> Some landlords require it; many don't. Check your lease.</div><div class="tip-row"><b>Why:</b> Money out the door for 12+ months earning $0 interest.</div><div class="tip-row"><b>Means:</b> Adds to upfront cash you could've used as a down payment.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-last" value="0" oninput="calcRenter()">
@@ -1523,14 +1525,14 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span>Security Deposit</span></div>
+                <div class="field-label"><span>Security Deposit</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Refundable deposit held against damage.</div><div class="tip-row"><b>How:</b> $300–$1,000 depending on credit and complex.</div><div class="tip-row"><b>Why:</b> Refundable in theory; landlords often deduct heavily on move-out.</div><div class="tip-row"><b>Means:</b> Money locked up earning nothing for the entire lease term.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-sec" value="500" oninput="calcRenter()">
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Admin Fee</span></div>
+                <div class="field-label"><span>Admin Fee</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Non-refundable processing fee at lease signing.</div><div class="tip-row"><b>How:</b> Typically $150–$250 in San Antonio.</div><div class="tip-row"><b>Why:</b> Pure profit for the leasing office — gone forever.</div><div class="tip-row"><b>Means:</b> Buyers don't pay this; closing costs build equity instead.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-admin" value="175" oninput="calcRenter()">
@@ -1540,14 +1542,14 @@
 
             <div class="two-col">
               <div class="field">
-                <div class="field-label"><span>Application Fee</span></div>
+                <div class="field-label"><span>Application Fee</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Background and credit check fee, per applicant.</div><div class="tip-row"><b>How:</b> $50–$100 per adult on the lease.</div><div class="tip-row"><b>Why:</b> Non-refundable even if you're denied.</div><div class="tip-row"><b>Means:</b> Buyers pay one credit pull during pre-approval — same idea, but it leads to ownership.</div></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-app" value="75" oninput="calcRenter()">
                 </div>
               </div>
               <div class="field">
-                <div class="field-label"><span>Pet Deposit / pet</span></div>
+                <div class="field-label"><span>Pet Deposit / pet</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> Refundable deposit per pet against damage.</div><div class="tip-row"><b>How:</b> $200–$500 per pet, due at signing.</div><div class="tip-row"><b>Why:</b> Refundable, but rarely returned in full.</div><div class="tip-row"><b>Means:</b> Stacks on top of pet rent and pet fee — pets cost a lot to rent with.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
                 <div class="input-wrap">
                   <span class="prefix">$</span>
                   <input type="number" id="r-petdep" value="300" oninput="calcRenter()">
@@ -1556,7 +1558,7 @@
             </div>
 
             <div class="field">
-              <div class="field-label"><span>Non-Refundable Pet Fee / pet</span></div>
+              <div class="field-label"><span>Non-Refundable Pet Fee / pet</span><span class="tooltip"><span class="tip-icon" tabindex="0">i</span><span class="tip-card"><div class="tip-row"><b>What:</b> One-time pet fee that you'll never see again.</div><div class="tip-row"><b>How:</b> $200–$400 per pet at most SA complexes.</div><div class="tip-row"><b>Why:</b> Pure cost — separate from refundable pet deposit.</div><div class="tip-row"><b>Means:</b> Combined pet costs (rent + deposit + fee) often exceed $1,500/yr per pet.</div><a href="#contact-emily" class="tip-cta">Not sure? Emily can walk you through this in 5 minutes →</a></span></span></div>
               <div class="input-wrap">
                 <span class="prefix">$</span>
                 <input type="number" id="r-petfee" value="300" oninput="calcRenter()">
