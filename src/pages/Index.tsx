@@ -872,9 +872,11 @@ export default function Index() {
               ))}
             </div>
           </div>
-          <div className="flex justify-center md:justify-end items-center gap-4 opacity-70">
+          <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-5 gap-y-3 opacity-70">
             <img src="/images/compliance/eho.png" alt="Equal Housing Opportunity" loading="lazy" width={40} height={40} className="h-9 w-auto" />
             <img src="/images/compliance/realtor-r.png" alt="REALTOR® — Member, National Association of REALTORS®" loading="lazy" width={40} height={40} className="h-9 w-auto" />
+            <img src="/images/compliance/texas-realtors.png" alt="Member, Texas REALTORS®" loading="lazy" width={40} height={40} className="h-9 w-auto" />
+            <img src="/images/compliance/fathom-realty.png" alt="Fathom Realty — Sponsoring Broker" loading="lazy" width={120} height={32} className="h-6 w-auto" />
           </div>
         </div>
       </footer>
