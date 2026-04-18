@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import CookieConsent from "@/components/CookieConsent";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trackPageView, trackLinkClick } from "@/lib/analyticsTracker";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
 import NuBuildLogo from "@/assets/nubuild_logo.png";
@@ -873,10 +874,19 @@ export default function Index() {
             </div>
           </div>
           <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-5 gap-y-3 opacity-70">
-            <img src="/images/compliance/eho.png" alt="Equal Housing Opportunity" loading="lazy" width={40} height={40} className="h-9 w-auto" />
-            <img src="/images/compliance/realtor-r.png" alt="REALTOR® — Member, National Association of REALTORS®" loading="lazy" width={40} height={40} className="h-9 w-auto" />
-            <img src="/images/compliance/texas-realtors.png" alt="Member, Texas REALTORS®" loading="lazy" width={40} height={40} className="h-9 w-auto" />
-            <img src="/images/compliance/fathom-realty.png" alt="Fathom Realty — Sponsoring Broker" loading="lazy" width={120} height={32} className="h-6 w-auto" />
+            {[
+              { src: "/images/compliance/eho.png", alt: "Equal Housing Opportunity", tip: "HUD Equal Housing Opportunity — We comply with federal Fair Housing law.", className: "h-9 w-auto" },
+              { src: "/images/compliance/realtor-r.png", alt: "REALTOR® — Member, National Association of REALTORS®", tip: "Member, National Association of REALTORS® — bound by the REALTOR® Code of Ethics.", className: "h-9 w-auto" },
+              { src: "/images/compliance/texas-realtors.png", alt: "Member, Texas REALTORS®", tip: "Member, Texas REALTORS® — the state's largest professional real estate trade association.", className: "h-9 w-auto" },
+              { src: "/images/compliance/fathom-realty.png", alt: "Fathom Realty — Sponsoring Broker", tip: "Sponsoring Broker — Fathom Realty, LLC.", className: "h-6 w-auto" },
+            ].map((logo) => (
+              <Tooltip key={logo.src}>
+                <TooltipTrigger asChild>
+                  <img src={logo.src} alt={logo.alt} loading="lazy" width={120} height={40} className={`${logo.className} cursor-help transition-opacity duration-300 hover:opacity-100`} />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-xs">{logo.tip}</TooltipContent>
+              </Tooltip>
+            ))}
           </div>
         </div>
       </footer>
