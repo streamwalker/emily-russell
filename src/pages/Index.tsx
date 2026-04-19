@@ -28,8 +28,8 @@ const RECENT_SALES = [
 ];
 
 const NEIGHBORHOODS = [
-  { name: "Alamo Ranch / 78253", desc: "Family-friendly master-planned community with top-rated schools", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80", highlight: "Emily's Top Area" },
-  { name: "Stone Oak / 78258", desc: "Upscale dining, shopping, and highly sought-after school district", img: "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80", highlight: "Hot Market" },
+  { name: "Alamo Ranch / 78253", desc: "Master-planned community zoned to Northside ISD with parks, pools, and walking trails", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80", highlight: "Emily's Top Area" },
+  { name: "Stone Oak / 78258", desc: "Established neighborhood known for dining, shopping, and proximity to major employers", img: "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80", highlight: "Hot Market" },
   { name: "Helotes / Hill Country", desc: "Hill Country charm minutes from the city — acreage and custom homes", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80", highlight: "Growing Fast" },
   { name: "Boerne / Fair Oaks", desc: "Small-town Texas feel with a booming real estate market", img: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=80", highlight: "Hidden Gem" },
 ];
@@ -50,7 +50,7 @@ const NEW_HOME_DEALS = [
     name: "Redbird Ranch",
     price: "$217,000",
     location: "Northwest San Antonio",
-    features: ["Brick, stone & siding exteriors", "Top-rated Northside ISD", "Community pool & parks"],
+    features: ["Brick, stone & siding exteriors", "Zoned to Northside ISD", "Community pool & parks"],
     img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
     tag: "Best Value",
   },
@@ -66,7 +66,7 @@ const NEW_HOME_DEALS = [
     name: "Stillwater Ranch",
     price: "$380,000",
     location: "Northwest San Antonio",
-    features: ["Resort-style pool & splash pad", "Miles of hike & bike trails", "Highly rated schools"],
+    features: ["Resort-style pool & splash pad", "Miles of hike & bike trails", "Zoned to Northside ISD"],
     img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80",
     tag: "Resort Living",
   },
@@ -689,7 +689,7 @@ export default function Index() {
             { q: "How much does it cost to hire a buyer's agent in San Antonio?", a: "Real estate commissions are, of course, negotiable. In most cases involving new construction, the builder pays the buyer's agent commission in the form of a finder's fee — meaning your costs are typically nothing out of pocket. For resale transactions, Emily provides a transparent buyer representation agreement that clearly outlines any fees before you begin your home search." },
             { q: "What are the best neighborhoods in San Antonio for families?", a: (<>San Antonio offers a wide range of established family neighborhoods. Alamo Ranch (78253) is a fast-growing master-planned community zoned to Northside ISD; Stone Oak (78258) is known for its dining, shopping, and proximity to major employers; Helotes blends Hill Country charm with larger lot sizes; and Boerne and Fair Oaks Ranch offer a small-town feel with easy access to San Antonio. Because school quality is a personal priority and ratings change yearly, we recommend buyers independently research current school information at <a href="https://www.niche.com/k12/search/best-schools/m/san-antonio-metro-area/" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">niche.com</a> or <a href="https://www.greatschools.org/" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">GreatSchools.org</a> and confirm attendance zones directly with the relevant school district. Emily can connect you with neighborhoods that match your lifestyle, commute, and amenity preferences.</>) },
             { q: "Should I buy new construction or a resale home in San Antonio?", a: "Both have advantages. New construction offers builder warranties, modern floor plans, and energy efficiency. Resale homes often feature established landscaping, larger lots, and mature neighborhoods. Emily can guide you through builder negotiations for new builds or help find the perfect resale home." },
-            { q: "How do I relocate to San Antonio from out of state?", a: "Emily provides full relocation support including virtual home tours, neighborhood guides, school district information, cost-of-living comparisons, and coordination with moving services. She helps families and professionals transition smoothly from anywhere in the U.S." },
+            { q: "How do I relocate to San Antonio from out of state?", a: "Emily provides full relocation support including virtual home tours, neighborhood guides, third-party school research resources, cost-of-living comparisons, and coordination with moving services. She helps families and professionals transition smoothly from anywhere in the U.S." },
             { q: "What is the average home price in San Antonio in 2026?", a: "The median home price in greater San Antonio ranges from approximately $250,000 to $380,000 depending on the neighborhood. Alamo Ranch starts around $217,000 for new construction, while Stone Oak and gated communities can range from $350,000 to $500,000+. Contact Emily for a current market analysis." },
             { q: "Do I need a REALTOR® to buy a new construction home in Texas?", a: "While not legally required, having a REALTOR® represent you is highly recommended. Builders have sales agents who represent the builder's interests — not yours. Emily negotiates upgrades, reviews contracts, ensures inspections, and helps you understand builder incentives so you get the best deal." },
           ].map((item, i) => (
