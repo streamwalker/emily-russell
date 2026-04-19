@@ -20,6 +20,7 @@ import BuyerRepAgreement from "./pages/BuyerRepAgreement.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import Unsubscribe from "./pages/Unsubscribe.tsx";
 import RentVsBuy from "./pages/RentVsBuy.tsx";
+import FairHousing from "./pages/FairHousing.tsx";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/rent-vs-buy" element={<RentVsBuy />} />
+            <Route path="/fair-housing" element={<FairHousing />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

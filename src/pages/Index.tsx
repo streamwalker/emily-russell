@@ -711,7 +711,8 @@ export default function Index() {
         <p className="max-w-[800px] mx-auto text-xs italic text-muted-foreground text-center leading-relaxed">
           <span className="font-semibold not-italic text-charcoal/70">Fair Housing Notice:</span> Emily Russell is committed to compliance with all federal, state, and local Fair Housing laws and does not make subjective claims about school quality, neighborhood demographics, or community composition. For school ratings and attendance zones, please consult independent third-party resources such as{" "}
           <a href="https://www.niche.com" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">niche.com</a>{" "}or{" "}
-          <a href="https://www.greatschools.org" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">GreatSchools.org</a>{" "}and verify directly with the relevant school district. Equal Housing Opportunity.
+          <a href="https://www.greatschools.org" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">GreatSchools.org</a>{" "}and verify directly with the relevant school district. Equal Housing Opportunity.{" "}
+          <Link to="/fair-housing" className="text-gold underline hover:text-gold-dark not-italic font-medium">Read our full Fair Housing policy →</Link>
         </p>
       </aside>
 
@@ -874,6 +875,7 @@ export default function Index() {
             <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
               <Link to="/terms" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Terms</Link>
               <Link to="/privacy" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Privacy</Link>
+              <Link to="/fair-housing" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Fair Housing</Link>
               <Link to="/trec#iabs" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Information About Brokerage Services</Link>
               <Link to="/trec#cn" className="font-body text-[10px] tracking-[1.5px] uppercase no-underline transition-colors duration-300 hover:text-gold-light" style={{ color: "rgba(255,255,255,.45)" }}>Consumer Protection Notice</Link>
               {[["Facebook", "http://facebook.com/EmilyRussellRealtor"], ["Zillow", "https://www.zillow.com/profile/Emily%20Russell%20Realtor"]].map(([s, url]) => (
