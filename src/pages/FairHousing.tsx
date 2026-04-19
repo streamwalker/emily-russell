@@ -29,6 +29,104 @@ export default function FairHousing() {
           content="Emily Russell's commitment to the federal Fair Housing Act and HUD anti-discrimination requirements."
         />
         <meta name="twitter:image" content="https://alamocitydesigns.com/og-fair-housing.jpg" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebPage",
+                "@id": "https://alamocitydesigns.com/fair-housing#webpage",
+                "url": "https://alamocitydesigns.com/fair-housing",
+                "name": "Fair Housing Policy | Emily Russell, REALTOR® San Antonio",
+                "description":
+                  "Emily Russell's Fair Housing policy and commitment to compliance with the federal Fair Housing Act and HUD anti-discrimination requirements in San Antonio, Texas.",
+                "inLanguage": "en-US",
+                "isPartOf": {
+                  "@type": "WebSite",
+                  "@id": "https://alamocitydesigns.com/#website",
+                  "url": "https://alamocitydesigns.com",
+                  "name": "Emily Russell, REALTOR® — Alamo City Designs",
+                },
+                "about": {
+                  "@type": "Thing",
+                  "name": "Fair Housing Act compliance and equal housing opportunity in residential real estate",
+                },
+                "primaryImageOfPage": {
+                  "@type": "ImageObject",
+                  "url": "https://alamocitydesigns.com/og-fair-housing.jpg",
+                  "width": 1200,
+                  "height": 640,
+                },
+                "datePublished": "2026-04-01",
+                "dateModified": "2026-04-19",
+                "breadcrumb": { "@id": "https://alamocitydesigns.com/fair-housing#breadcrumb" },
+                "mainEntity": { "@id": "https://alamocitydesigns.com/fair-housing#policy" },
+                "publisher": { "@id": "https://alamocitydesigns.com/#realestateagent" },
+              },
+              {
+                "@type": "BreadcrumbList",
+                "@id": "https://alamocitydesigns.com/fair-housing#breadcrumb",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "https://alamocitydesigns.com/",
+                  },
+                  {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "Fair Housing Policy",
+                    "item": "https://alamocitydesigns.com/fair-housing",
+                  },
+                ],
+              },
+              {
+                "@type": "RealEstateAgent",
+                "@id": "https://alamocitydesigns.com/#realestateagent",
+                "name": "Emily Russell, REALTOR®",
+                "url": "https://alamocitydesigns.com",
+                "telephone": "+1-210-912-0806",
+                "email": "emily@streamwalkers.com",
+                "areaServed": [
+                  { "@type": "City", "name": "San Antonio" },
+                  { "@type": "Place", "name": "Alamo Ranch" },
+                  { "@type": "Place", "name": "Stone Oak" },
+                  { "@type": "Place", "name": "Helotes" },
+                  { "@type": "Place", "name": "Boerne" },
+                ],
+                "memberOf": { "@type": "Organization", "name": "Fathom Realty" },
+                "identifier": "TREC #791742",
+                "knowsAbout": [
+                  "Fair Housing Act",
+                  "HUD Equal Housing Opportunity",
+                  "Texas Real Estate Commission compliance",
+                ],
+              },
+              {
+                "@type": "Article",
+                "@id": "https://alamocitydesigns.com/fair-housing#policy",
+                "headline": "Fair Housing Policy — Equal Housing Opportunity Commitment",
+                "description":
+                  "Statement of compliance with the federal Fair Housing Act, Texas Fair Housing Act, anti-steering practices, protected class enumeration, and HUD complaint resources.",
+                "datePublished": "2026-04-01",
+                "dateModified": "2026-04-19",
+                "author": { "@id": "https://alamocitydesigns.com/#realestateagent" },
+                "publisher": { "@id": "https://alamocitydesigns.com/#realestateagent" },
+                "image": "https://alamocitydesigns.com/og-fair-housing.jpg",
+                "mainEntityOfPage": "https://alamocitydesigns.com/fair-housing",
+                "about": [
+                  { "@type": "Thing", "name": "Fair Housing Act" },
+                  { "@type": "Thing", "name": "Equal Housing Opportunity" },
+                  { "@type": "Thing", "name": "Anti-discrimination in housing" },
+                  { "@type": "Thing", "name": "HUD complaint process" },
+                ],
+                "keywords":
+                  "Fair Housing Act, Equal Housing Opportunity, HUD, anti-steering, protected classes, Texas REALTOR compliance, San Antonio real estate",
+              },
+            ],
+          })}
+        </script>
       </Helmet>
 
       <header className="bg-charcoal text-white py-6 px-6">
