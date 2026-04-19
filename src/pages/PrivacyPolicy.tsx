@@ -120,6 +120,8 @@ export default function PrivacyPolicy() {
         </div>
       </main>
 
+      <FairHousingNotice />
+
       <footer className="bg-charcoal text-center py-6 px-6" style={{ color: "rgba(255,255,255,.45)" }}>
         <p className="font-body text-[11px]">© 2026 Emily Russell Realtor · <Link to="/terms" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Terms of Service</Link> · <Link to="/" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Home</Link></p>
       </footer>

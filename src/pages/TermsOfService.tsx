@@ -101,6 +101,8 @@ export default function TermsOfService() {
         </div>
       </main>
 
+      <FairHousingNotice />
+
       <footer className="bg-charcoal text-center py-6 px-6" style={{ color: "rgba(255,255,255,.45)" }}>
         <p className="font-body text-[11px]">© 2026 Emily Russell Realtor · <Link to="/privacy" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Privacy Policy</Link> · <Link to="/" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Home</Link></p>
       </footer>
