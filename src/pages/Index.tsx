@@ -706,6 +706,15 @@ export default function Index() {
         </div>
       </section>
 
+      {/* ═══════════ FAIR HOUSING DISCLAIMER ═══════════ */}
+      <aside aria-label="Fair Housing Notice" className="bg-warm py-6 px-10 border-t border-charcoal/10">
+        <p className="max-w-[800px] mx-auto text-xs italic text-muted-foreground text-center leading-relaxed">
+          <span className="font-semibold not-italic text-charcoal/70">Fair Housing Notice:</span> Emily Russell is committed to compliance with all federal, state, and local Fair Housing laws and does not make subjective claims about school quality, neighborhood demographics, or community composition. For school ratings and attendance zones, please consult independent third-party resources such as{" "}
+          <a href="https://www.niche.com" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">niche.com</a>{" "}or{" "}
+          <a href="https://www.greatschools.org" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">GreatSchools.org</a>{" "}and verify directly with the relevant school district. Equal Housing Opportunity.
+        </p>
+      </aside>
+
       <section className="py-[72px] px-10 text-center" style={{
         background: `linear-gradient(rgba(28,28,28,.82),rgba(28,28,28,.82)),url('https://images.unsplash.com/photo-1531218150217-54595bc2b934?w=1400&q=80') center/cover`,
       }}>
