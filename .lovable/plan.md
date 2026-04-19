@@ -1,34 +1,56 @@
 
 
-## Plan: Add Fair Housing Disclaimer Below FAQ
+## Plan: Site-Wide Fair Housing Notice in Footer
 
 ### What
 
-Add a small, italic, muted disclaimer block immediately below the FAQ section on the homepage that reinforces Fair Housing compliance and clarifies the limits of what Emily will opine on.
+Create a small, reusable `FairHousingNotice` component and place it in the footer/bottom area of every page so the disclaimer appears site-wide, not just under the homepage FAQ.
+
+### Component
+
+`src/components/FairHousingNotice.tsx` — a centered, italic, muted block:
+- Compact one-line-ish copy (shorter than the FAQ version since it appears everywhere)
+- Links to `/fair-housing` (full policy), `niche.com`, and `GreatSchools.org`
+- `text-xs italic text-muted-foreground`
+- Accepts an optional `variant` prop: `"light"` (for cream/white backgrounds — used on legal pages) and `"dark"` (for the charcoal homepage footer)
 
 ### Copy
 
-> *Fair Housing Notice: Emily Russell is committed to compliance with all federal, state, and local Fair Housing laws and does not make subjective claims about school quality, neighborhood demographics, or community composition. For school ratings and attendance zones, please consult independent third-party resources such as [niche.com](https://www.niche.com) or [GreatSchools.org](https://www.greatschools.org) and verify directly with the relevant school district. Equal Housing Opportunity.*
+> *Fair Housing Notice: Equal Housing Opportunity. Emily Russell does not make subjective claims about school quality or community demographics. Verify school information at [niche.com](…) or [GreatSchools.org](…). [Read full policy →](/fair-housing)*
 
-### Where
+### Where to insert
 
-`src/pages/Index.tsx` — directly after the closing tag of the FAQ section's container, before the next section begins. The block will be a centered, max-width paragraph with:
-- Small text size (`text-xs`)
-- Muted foreground color (`text-muted-foreground`)
-- Italic style
-- Modest vertical padding (`py-6`)
-- Cream/neutral background to visually separate it from the FAQ cards without competing for attention
-- Inline `<a>` links to niche.com and GreatSchools.org with `target="_blank"` and `rel="noopener noreferrer"`
+| File | Placement | Variant |
+|---|---|---|
+| `src/pages/Index.tsx` | Inside the existing dark `<footer>`, just above the bottom legal links row (line ~870) | `dark` |
+| `src/pages/TermsOfService.tsx` | Bottom of main content, before closing wrapper | `light` |
+| `src/pages/PrivacyPolicy.tsx` | Bottom of main content, before closing wrapper | `light` |
+| `src/pages/TRECDisclosures.tsx` | Bottom of main content, inside the dark wrapper | `dark` |
+| `src/pages/FairHousing.tsx` | **Skip** — the page IS the policy; redundant |
+| `src/pages/RentVsBuy.tsx` | Inside its existing footer, before final disclaimer | `light` |
+| `src/pages/Unsubscribe.tsx` | Bottom of main content | `light` |
+| `src/pages/NotFound.tsx` | Bottom of page | `light` |
+| `src/pages/PortalDashboard.tsx`, `ClientPortal.tsx`, `ClientLogin.tsx`, `ResetPassword.tsx`, `ChangeEmail.tsx`, `BuyerRepAgreement.tsx`, `AdminDashboard.tsx`, `AdminLeads.tsx` | **Skip** — authenticated/portal pages aren't public marketing surfaces; clients have already signed compliance docs |
+
+For the homepage, the existing FAQ-section disclaimer (with the longer copy + full link) **stays** — the new footer notice is a compact reinforcement, not a replacement.
 
 ### Files Changed
 
 | File | Change |
 |---|---|
-| `src/pages/Index.tsx` | Insert a new `<div>` block with the Fair Housing disclaimer copy immediately after the FAQ section |
+| `src/components/FairHousingNotice.tsx` | **New** — reusable component with `light`/`dark` variants |
+| `src/pages/Index.tsx` | Add `<FairHousingNotice variant="dark" />` inside the footer |
+| `src/pages/TermsOfService.tsx` | Add `<FairHousingNotice />` at bottom of main |
+| `src/pages/PrivacyPolicy.tsx` | Add `<FairHousingNotice />` at bottom of main |
+| `src/pages/TRECDisclosures.tsx` | Add `<FairHousingNotice variant="dark" />` near bottom |
+| `src/pages/RentVsBuy.tsx` | Add `<FairHousingNotice />` near footer |
+| `src/pages/Unsubscribe.tsx` | Add `<FairHousingNotice />` at bottom |
+| `src/pages/NotFound.tsx` | Add `<FairHousingNotice />` at bottom |
 
 ### Out of scope
 
-- Adding the disclaimer to other pages (rent-vs-buy already has school-research links; legal pages have their own compliance copy)
-- Modifying the existing footer Equal Housing Opportunity logo/badge (already present from earlier compliance work)
-- Adding a separate route for a full Fair Housing policy page
+- Adding the notice to authenticated portal/admin pages
+- Removing the existing larger FAQ-section disclaimer on the homepage
+- Modifying the existing EHO logo badges already in the homepage footer
+- Touching the `public/rent-vs-buy.html` static page (that's a standalone HTML file with its own embedded compliance section already updated)
 
