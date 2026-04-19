@@ -1,42 +1,65 @@
 
 
-## Plan: Rewrite Schools FAQ Answer for TREC/Fair Housing Compliance
+## Plan: Site-Wide Fair Housing Copy Audit & Cleanup
 
-### Why this matters
+### Audit findings
 
-Steering buyers based on school quality is a Fair Housing risk (schools correlate with protected class demographics) and TREC discourages agents from making subjective claims about school quality. The compliant pattern is: **describe the neighborhood, then point buyers to a neutral third-party source to evaluate schools themselves.**
+I scanned all visible site copy for language that violates Fair Housing best practices (steering, school-quality claims, demographic implications). Here's what I found:
 
-### New copy
+#### 🔴 High priority — direct school-quality claims
 
-Replace the current answer with neighborhood descriptions that omit any qualitative school claims and direct buyers to Niche.com for independent verification:
+| Location | Current copy | Issue |
+|---|---|---|
+| `src/pages/Index.tsx:31` (Neighborhoods card — Alamo Ranch) | "Family-friendly master-planned community with **top-rated schools**" | Subjective school rating + "family-friendly" implies familial-status preference |
+| `src/pages/Index.tsx:32` (Neighborhoods card — Stone Oak) | "Upscale dining, shopping, and **highly sought-after school district**" | Subjective school claim + "upscale" implies socioeconomic steering |
+| `src/pages/Index.tsx:53` (New Home Deal — Redbird Ranch) | Feature bullet: "**Top-rated Northside ISD**" | Subjective school rating |
+| `src/pages/Index.tsx:69` (New Home Deal — Stillwater Ranch) | Feature bullet: "**Highly rated schools**" | Subjective school rating |
+| `public/rent-vs-buy.html:2262-2263` ("Community & School Choice" pro-item) | "Northside ISD, Comal ISD, and others **rank among the region's best**" | Subjective school-district ranking claim |
 
-> "San Antonio offers a wide range of established family neighborhoods. Alamo Ranch (78253) is a fast-growing master-planned community zoned to Northside ISD; Stone Oak (78258) is known for its dining, shopping, and proximity to major employers; Helotes blends Hill Country charm with larger lot sizes; and Boerne and Fair Oaks Ranch offer a small-town feel with easy access to San Antonio. Because school quality is a personal priority and ratings change yearly, we recommend buyers independently research current school information at [niche.com](https://www.niche.com/k12/search/best-schools/m/san-antonio-metro-area/) or [GreatSchools.org](https://www.greatschools.org/) and confirm attendance zones directly with the relevant school district. Emily can connect you with neighborhoods that match your lifestyle, commute, and amenity preferences."
+#### 🟡 Medium priority — FAQ schema reference to "school district information"
 
-Key compliance moves:
-- Removes "top-rated" claim about NISD
-- Removes "excellent schools" claim about Stone Oak
-- Adds neutral third-party reference (Niche + GreatSchools as backup)
-- Adds attendance-zone disclaimer (zones change, district is source of truth)
-- Reframes Emily's role around lifestyle/commute/amenities, not schools
+| Location | Current copy | Issue |
+|---|---|---|
+| `src/pages/Index.tsx:692` and `index.html:188` (Relocation FAQ) | "Emily provides full relocation support including virtual home tours, neighborhood guides, **school district information**, cost-of-living comparisons…" | Implies Emily provides subjective school info; safer to say she points to third-party resources |
 
-### Where it appears
+#### 🟢 Low priority / acceptable as-is
 
-The answer lives in **two synchronized locations** — both must be updated together so the visible UI matches the FAQPage JSON-LD schema (required for Google rich-result validity).
+- "Families relocating to Texas" (About section, line 407) — describing service offering, not steering
+- "Real families with their perfect fit" (Recent Sales, line 437) — testimonial framing, not steering
+- "Family neighborhoods" (FAQ schools answer) — already balanced with the Niche/GreatSchools disclaimer we just added
+- Hero copy ("Perfect Home in San Antonio") — generic, no protected-class language
+- Blog teaser titles — neutral (zip codes, buyer tips, relocation logistics)
+- "Upscale dining, shopping" — only flagging when paired with school claims; "upscale" describing amenities alone is fine but we'll soften since it's in the same Stone Oak card
+
+### Proposed rewrites
+
+**Neighborhoods (`src/pages/Index.tsx:31-32`):**
+- Alamo Ranch: `"Master-planned community zoned to Northside ISD with parks, pools, and walking trails"` (factual zoning, no quality claim)
+- Stone Oak: `"Established neighborhood known for dining, shopping, and proximity to major employers"` (drop "upscale" + "sought-after school district")
+
+**New Home Deals (`src/pages/Index.tsx:53, 69`):**
+- Redbird Ranch: replace `"Top-rated Northside ISD"` → `"Zoned to Northside ISD"`
+- Stillwater Ranch: replace `"Highly rated schools"` → `"Zoned to Northside ISD"` (Stillwater is in NISD)
+
+**Rent-vs-Buy (`public/rent-vs-buy.html:2262-2263`):**
+- Heading: keep `"Community & School Choice"`
+- Body: `"Homeownership lets you choose your neighborhood and school attendance zone. Buyers should independently verify current school information at niche.com or GreatSchools.org and confirm zoning with the relevant school district."`
+
+**Relocation FAQ (`src/pages/Index.tsx:692` + `index.html:188`):**
+- Replace `"school district information"` → `"third-party school research resources"` (mirror in JSON-LD)
 
 ### Files Changed
 
 | File | Change |
 |---|---|
-| `src/pages/Index.tsx` (FAQ array, ~line 690+) | Replace answer text for "What are the best neighborhoods in San Antonio for families?" |
-| `index.html` (FAQPage JSON-LD, ~line 170+) | Mirror the same answer text, with the markdown link converted to plain text + URL since JSON-LD doesn't render markdown |
-
-### JSON-LD note
-
-The visible UI can render the Niche.com link as a clickable anchor (via markdown-to-JSX or a manual `<a>`). The JSON-LD version will inline the URL as plain text (e.g., "research current school information at niche.com (https://www.niche.com/...)") since structured-data answers should be plain strings.
+| `src/pages/Index.tsx` | Rewrite 2 neighborhood descriptions, 2 new-home-deal feature bullets, 1 FAQ answer |
+| `public/rent-vs-buy.html` | Rewrite "Community & School Choice" body copy |
+| `index.html` | Mirror the FAQ change in the FAQPage JSON-LD schema |
 
 ### Out of scope
 
-- Changing the question itself
-- Editing other FAQ entries
-- Adding a separate "schools" section to the site
+- Adding a separate Fair Housing disclaimer block (can be a follow-up)
+- Touching testimonial text (REVIEWS) — those are verified client quotes and shouldn't be edited
+- Blog post titles — already neutral
+- Hero copy — already neutral
 
