@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import FairHousingNotice from "@/components/FairHousingNotice";
 
 type Status = "loading" | "valid" | "already" | "invalid" | "confirming" | "done" | "error";
 
@@ -37,7 +38,8 @@ const Unsubscribe = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-card border border-border p-8 text-center space-y-6">
         <h1 className="font-display text-2xl text-foreground">Email Preferences</h1>
 
@@ -70,6 +72,8 @@ const Unsubscribe = () => {
           <p className="text-destructive">Something went wrong. Please try again later.</p>
         )}
       </div>
+      </div>
+      <FairHousingNotice />
     </div>
   );
 };

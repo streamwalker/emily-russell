@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import FairHousingNotice from "@/components/FairHousingNotice";
 
 export default function TermsOfService() {
   return (
@@ -99,6 +100,8 @@ export default function TermsOfService() {
           </section>
         </div>
       </main>
+
+      <FairHousingNotice />
 
       <footer className="bg-charcoal text-center py-6 px-6" style={{ color: "rgba(255,255,255,.45)" }}>
         <p className="font-body text-[11px]">© 2026 Emily Russell Realtor · <Link to="/privacy" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Privacy Policy</Link> · <Link to="/" className="hover:text-gold-light transition-colors" style={{ color: "inherit" }}>Home</Link></p>

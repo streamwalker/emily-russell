@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import FairHousingNotice from "@/components/FairHousingNotice";
 
 const TRECDisclosures = () => (
   <div className="min-h-screen bg-charcoal text-white">
@@ -59,6 +60,7 @@ const TRECDisclosures = () => (
         </p>
       </div>
     </div>
+    <FairHousingNotice variant="dark" />
   </div>
 );
 

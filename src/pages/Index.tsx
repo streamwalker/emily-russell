@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import CookieConsent from "@/components/CookieConsent";
+import FairHousingNotice from "@/components/FairHousingNotice";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trackPageView, trackLinkClick } from "@/lib/analyticsTracker";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
@@ -900,6 +901,7 @@ export default function Index() {
             ))}
           </div>
         </div>
+        <FairHousingNotice variant="dark" />
       </footer>
 
       <CookieConsent />
