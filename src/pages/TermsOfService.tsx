@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import FairHousingNotice from "@/components/FairHousingNotice";
 
 export default function TermsOfService() {
   return (
