@@ -87,6 +87,36 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
   const [loanTerm, setLoanTerm] = useState(30);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextSaveRef = useRef(false);
+
+  const handleReset = async () => {
+    if (!propertyId || !userId) return;
+    // Suppress the next auto-save tick triggered by setting state below
+    skipNextSaveRef.current = true;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    const { error } = await supabase
+      .from("saved_estimates")
+      .delete()
+      .eq("user_id", userId)
+      .eq("property_id", propertyId);
+
+    setOfferPrice(price);
+    setDownPct(20);
+    setRate(6.5);
+    setTaxRate(2.2);
+    setInsurance(150);
+    setHoa(hoaFee);
+    setLoanTerm(30);
+    setSaveStatus("idle");
+
+    if (error) {
+      toast.error("Couldn't reset estimate. Please try again.");
+      skipNextSaveRef.current = false;
+    } else {
+      toast.success("Payment estimator reset to defaults");
+    }
+  };
 
   useEffect(() => {
     if (!propertyId || !userId || loaded) return;
