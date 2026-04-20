@@ -507,6 +507,15 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
               ) : (
                 <span className="opacity-70">Auto-saved</span>
               )}
+              {active.last_saved_by_admin && saveStatus !== "saving" && (
+                <span
+                  className="inline-flex items-center text-muted-foreground/80 italic"
+                  title="Emily pre-filled these numbers for you. Edit any value to make it yours."
+                >
+                  <span className="mx-1 text-muted-foreground/40">·</span>
+                  Set by Emily
+                </span>
+              )}
             </div>
           </div>
         )}
