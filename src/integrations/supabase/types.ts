@@ -385,7 +385,9 @@ export type Database = {
           hoa: number
           id: string
           insurance: number
+          is_pinned: boolean
           loan_term: number
+          name: string
           offer_price: number
           property_id: string
           rate: number
@@ -399,7 +401,9 @@ export type Database = {
           hoa?: number
           id?: string
           insurance?: number
+          is_pinned?: boolean
           loan_term?: number
+          name?: string
           offer_price: number
           property_id: string
           rate?: number
@@ -413,7 +417,9 @@ export type Database = {
           hoa?: number
           id?: string
           insurance?: number
+          is_pinned?: boolean
           loan_term?: number
+          name?: string
           offer_price?: number
           property_id?: string
           rate?: number
