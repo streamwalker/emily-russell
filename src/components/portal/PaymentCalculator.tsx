@@ -444,18 +444,18 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
                   </AlertDialogContent>
                 </AlertDialog>
                 <span className="text-muted-foreground/50">·</span>
-            {propertyId && userId && (
-              <div
-                className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted-foreground"
-                aria-live="polite"
-              >
-                {saveStatus === "saving" ? (
-                  <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
-                ) : saveStatus === "saved" ? (
-                  <><Check className="h-3 w-3 text-primary" /> <span className="text-primary font-semibold">Saved</span></>
-                ) : (
-                  <span className="opacity-70">Auto-saved</span>
-                )}
+                <div
+                  className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted-foreground"
+                  aria-live="polite"
+                >
+                  {saveStatus === "saving" ? (
+                    <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
+                  ) : saveStatus === "saved" ? (
+                    <><Check className="h-3 w-3 text-primary" /> <span className="text-primary font-semibold">Saved</span></>
+                  ) : (
+                    <span className="opacity-70">Auto-saved</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
