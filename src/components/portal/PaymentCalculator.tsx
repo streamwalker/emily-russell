@@ -511,7 +511,6 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
           scenarios={scenarios}
           initialLeftId={activeId}
           initialRightId={scenarios.find(s => s.id !== activeId)?.id}
-          onScenarioChange={updateScenario}
         />
       )}
     </div>
