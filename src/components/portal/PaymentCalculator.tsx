@@ -374,13 +374,18 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
               Advanced Calculator on EquiForge <ExternalLink className="h-3 w-3" />
             </a>
             {propertyId && userId && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 text-[11px] font-semibold font-body text-primary hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer disabled:opacity-50"
+              <div
+                className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted-foreground"
+                aria-live="polite"
               >
-                {saved ? (<><Check className="h-3 w-3" /> Saved ✓</>) : (<><Save className="h-3 w-3" /> {saving ? "Saving…" : "Save Estimate"}</>)}
-              </button>
+                {saveStatus === "saving" ? (
+                  <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
+                ) : saveStatus === "saved" ? (
+                  <><Check className="h-3 w-3 text-primary" /> <span className="text-primary font-semibold">Saved</span></>
+                ) : (
+                  <span className="opacity-70">Auto-saved</span>
+                )}
+              </div>
             )}
           </div>
         </div>
