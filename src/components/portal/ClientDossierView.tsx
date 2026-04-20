@@ -184,7 +184,7 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userI
       <button onClick={() => setOpen(!open)} className="text-[11px] font-semibold font-body cursor-pointer bg-transparent border-none p-0 transition-colors hover:opacity-80" style={{ color: accentColor }}>
         {open ? "▾ Hide Payment Estimator" : "▸ Estimate Monthly Payment"}
       </button>
-      {open && <PaymentCalculator price={price} hoaFee={hoaFee} propertyId={propertyId} userId={readOnly ? undefined : userId} />}
+      {open && <PaymentCalculator price={price} hoaFee={hoaFee} propertyId={propertyId} userId={userId} />}
     </div>
   );
 }

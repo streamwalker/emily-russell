@@ -385,6 +385,7 @@ export type Database = {
           hoa: number
           id: string
           insurance: number
+          loan_term: number
           offer_price: number
           property_id: string
           rate: number
@@ -398,6 +399,7 @@ export type Database = {
           hoa?: number
           id?: string
           insurance?: number
+          loan_term?: number
           offer_price: number
           property_id: string
           rate?: number
@@ -411,6 +413,7 @@ export type Database = {
           hoa?: number
           id?: string
           insurance?: number
+          loan_term?: number
           offer_price?: number
           property_id?: string
           rate?: number

@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { ExternalLink, Save, Check } from "lucide-react";
+import { ExternalLink, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   PieChart,
@@ -70,10 +70,11 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
   const [taxRate, setTaxRate] = useState(2.2);
   const [insurance, setInsurance] = useState(150);
   const [hoa, setHoa] = useState(hoaFee);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [loaded, setLoaded] = useState(false);
   const [loanTerm, setLoanTerm] = useState(30);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!propertyId || !userId || loaded) return;
@@ -91,23 +92,45 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
         setTaxRate(Number(data.tax_rate));
         setInsurance(Number(data.insurance));
         setHoa(Number(data.hoa));
+        if ((data as any).loan_term != null) setLoanTerm(Number((data as any).loan_term));
       }
       setLoaded(true);
     };
     load();
   }, [propertyId, userId, loaded]);
 
-  const handleSave = async () => {
-    if (!propertyId || !userId) return;
-    setSaving(true);
-    await supabase.from("saved_estimates").upsert(
-      { user_id: userId, property_id: propertyId, offer_price: offerPrice, down_pct: downPct, rate, tax_rate: taxRate, insurance, hoa },
-      { onConflict: "user_id,property_id" }
-    );
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  // Debounced auto-save
+  useEffect(() => {
+    if (!propertyId || !userId || !loaded) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setSaveStatus("saving");
+    debounceRef.current = setTimeout(async () => {
+      const { error } = await supabase.from("saved_estimates").upsert(
+        {
+          user_id: userId,
+          property_id: propertyId,
+          offer_price: offerPrice,
+          down_pct: downPct,
+          rate,
+          tax_rate: taxRate,
+          insurance,
+          hoa,
+          loan_term: loanTerm,
+        } as any,
+        { onConflict: "user_id,property_id" }
+      );
+      if (!error) {
+        setSaveStatus("saved");
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 1800);
+      } else {
+        setSaveStatus("idle");
+      }
+    }, 600);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [offerPrice, downPct, rate, taxRate, insurance, hoa, loanTerm, propertyId, userId, loaded]);
 
   const downAmt = Math.round(offerPrice * downPct / 100);
   const loanAmount = offerPrice - downAmt;
@@ -351,13 +374,18 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
               Advanced Calculator on EquiForge <ExternalLink className="h-3 w-3" />
             </a>
             {propertyId && userId && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-1.5 text-[11px] font-semibold font-body text-primary hover:opacity-80 transition-opacity bg-transparent border-none cursor-pointer disabled:opacity-50"
+              <div
+                className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted-foreground"
+                aria-live="polite"
               >
-                {saved ? (<><Check className="h-3 w-3" /> Saved ✓</>) : (<><Save className="h-3 w-3" /> {saving ? "Saving…" : "Save Estimate"}</>)}
-              </button>
+                {saveStatus === "saving" ? (
+                  <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
+                ) : saveStatus === "saved" ? (
+                  <><Check className="h-3 w-3 text-primary" /> <span className="text-primary font-semibold">Saved</span></>
+                ) : (
+                  <span className="opacity-70">Auto-saved</span>
+                )}
+              </div>
             )}
           </div>
         </div>
