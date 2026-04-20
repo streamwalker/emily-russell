@@ -3,6 +3,18 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { ExternalLink, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   PieChart,
   Pie,
@@ -75,6 +87,36 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
   const [loanTerm, setLoanTerm] = useState(30);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextSaveRef = useRef(false);
+
+  const handleReset = async () => {
+    if (!propertyId || !userId) return;
+    // Suppress the next auto-save tick triggered by setting state below
+    skipNextSaveRef.current = true;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    const { error } = await supabase
+      .from("saved_estimates")
+      .delete()
+      .eq("user_id", userId)
+      .eq("property_id", propertyId);
+
+    setOfferPrice(price);
+    setDownPct(20);
+    setRate(6.5);
+    setTaxRate(2.2);
+    setInsurance(150);
+    setHoa(hoaFee);
+    setLoanTerm(30);
+    setSaveStatus("idle");
+
+    if (error) {
+      toast.error("Couldn't reset estimate. Please try again.");
+      skipNextSaveRef.current = false;
+    } else {
+      toast.success("Payment estimator reset to defaults");
+    }
+  };
 
   useEffect(() => {
     if (!propertyId || !userId || loaded) return;
@@ -102,6 +144,10 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
   // Debounced auto-save
   useEffect(() => {
     if (!propertyId || !userId || !loaded) return;
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSaveStatus("saving");
     debounceRef.current = setTimeout(async () => {
@@ -374,17 +420,42 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
               Advanced Calculator on EquiForge <ExternalLink className="h-3 w-3" />
             </a>
             {propertyId && userId && (
-              <div
-                className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted-foreground"
-                aria-live="polite"
-              >
-                {saveStatus === "saving" ? (
-                  <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
-                ) : saveStatus === "saved" ? (
-                  <><Check className="h-3 w-3 text-primary" /> <span className="text-primary font-semibold">Saved</span></>
-                ) : (
-                  <span className="opacity-70">Auto-saved</span>
-                )}
+              <div className="flex items-center gap-3">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-[11px] font-body text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
+                    >
+                      Reset to defaults
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset payment estimator?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will clear your saved values for this property and revert all inputs to the system defaults. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <span className="text-muted-foreground/50">·</span>
+                <div
+                  className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted-foreground"
+                  aria-live="polite"
+                >
+                  {saveStatus === "saving" ? (
+                    <><Loader2 className="h-3 w-3 animate-spin" /> Saving…</>
+                  ) : saveStatus === "saved" ? (
+                    <><Check className="h-3 w-3 text-primary" /> <span className="text-primary font-semibold">Saved</span></>
+                  ) : (
+                    <span className="opacity-70">Auto-saved</span>
+                  )}
+                </div>
               </div>
             )}
           </div>
