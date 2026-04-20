@@ -420,6 +420,31 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
               Advanced Calculator on EquiForge <ExternalLink className="h-3 w-3" />
             </a>
             {propertyId && userId && (
+              <div className="flex items-center gap-3">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-[11px] font-body text-muted-foreground hover:text-foreground underline-offset-2 hover:underline transition-colors"
+                    >
+                      Reset to defaults
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reset payment estimator?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will clear your saved values for this property and revert all inputs to the system defaults. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <span className="text-muted-foreground/50">·</span>
+            {propertyId && userId && (
               <div
                 className="inline-flex items-center gap-1.5 text-[11px] font-body text-muted-foreground"
                 aria-live="polite"
