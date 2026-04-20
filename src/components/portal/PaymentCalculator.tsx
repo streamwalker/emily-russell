@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import {
   ScenarioInputs, SavedScenario, defaultInputs,
 } from "@/lib/paymentCalc";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 import ScenarioEditor from "./ScenarioEditor";
 import ScenarioCompareDialog from "./ScenarioCompareDialog";
 
@@ -32,6 +33,7 @@ function rowToScenario(row: any): SavedScenario {
     id: row.id,
     name: row.name ?? "Default",
     is_pinned: !!row.is_pinned,
+    last_saved_by_admin: !!row.last_saved_by_admin,
     offerPrice: Number(row.offer_price),
     downPct: Number(row.down_pct),
     rate: Number(row.rate),
@@ -42,13 +44,14 @@ function rowToScenario(row: any): SavedScenario {
   };
 }
 
-function scenarioToRow(s: SavedScenario, userId: string, propertyId: string) {
+function scenarioToRow(s: SavedScenario, userId: string, propertyId: string, isAdmin: boolean) {
   return {
     id: s.id,
     user_id: userId,
     property_id: propertyId,
     name: s.name,
     is_pinned: s.is_pinned,
+    last_saved_by_admin: isAdmin,
     offer_price: s.offerPrice,
     down_pct: s.downPct,
     rate: s.rate,
