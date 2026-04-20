@@ -144,6 +144,10 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
   // Debounced auto-save
   useEffect(() => {
     if (!propertyId || !userId || !loaded) return;
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSaveStatus("saving");
     debounceRef.current = setTimeout(async () => {
