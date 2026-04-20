@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { ExternalLink, Save, Check } from "lucide-react";
+import { ExternalLink, Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   PieChart,
