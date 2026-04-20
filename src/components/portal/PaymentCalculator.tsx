@@ -9,9 +9,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -433,28 +430,14 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
             );
           })}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-[11px] font-body text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
-              >
-                <Plus className="h-2.5 w-2.5" /> New scenario
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="font-body">
-              <DropdownMenuItem onClick={() => createScenario("blank")} className="text-xs">
-                Blank · system defaults
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => createScenario("duplicate")}
-                disabled={!active}
-                className="text-xs"
-              >
-                Duplicate "{active?.name ?? "current"}"
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button
+            type="button"
+            onClick={() => createScenario(active ? "duplicate" : "blank")}
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-[11px] font-body text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+            title={active ? `Duplicate "${active.name}"` : "New scenario"}
+          >
+            <Plus className="h-2.5 w-2.5" /> New scenario
+          </button>
         </div>
       )}
 
@@ -528,7 +511,6 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
           scenarios={scenarios}
           initialLeftId={activeId}
           initialRightId={scenarios.find(s => s.id !== activeId)?.id}
-          onScenarioChange={updateScenario}
         />
       )}
     </div>
