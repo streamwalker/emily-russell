@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import {
   ScenarioInputs, SavedScenario, defaultInputs,
 } from "@/lib/paymentCalc";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 import ScenarioEditor from "./ScenarioEditor";
 import ScenarioCompareDialog from "./ScenarioCompareDialog";
 
@@ -32,6 +33,7 @@ function rowToScenario(row: any): SavedScenario {
     id: row.id,
     name: row.name ?? "Default",
     is_pinned: !!row.is_pinned,
+    last_saved_by_admin: !!row.last_saved_by_admin,
     offerPrice: Number(row.offer_price),
     downPct: Number(row.down_pct),
     rate: Number(row.rate),
@@ -42,13 +44,14 @@ function rowToScenario(row: any): SavedScenario {
   };
 }
 
-function scenarioToRow(s: SavedScenario, userId: string, propertyId: string) {
+function scenarioToRow(s: SavedScenario, userId: string, propertyId: string, isAdmin: boolean) {
   return {
     id: s.id,
     user_id: userId,
     property_id: propertyId,
     name: s.name,
     is_pinned: s.is_pinned,
+    last_saved_by_admin: isAdmin,
     offer_price: s.offerPrice,
     down_pct: s.downPct,
     rate: s.rate,
@@ -61,6 +64,7 @@ function scenarioToRow(s: SavedScenario, userId: string, propertyId: string) {
 
 export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userId }: PaymentCalculatorProps) {
   const persistenceOn = !!(propertyId && userId);
+  const { isAdmin } = useAdminCheck();
 
   // Local-only fallback when no userId/propertyId (e.g., anon preview)
   const [localInputs, setLocalInputs] = useState<ScenarioInputs>(() => defaultInputs(price, hoaFee));
@@ -107,6 +111,7 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
             property_id: propertyId!,
             name: seed.name,
             is_pinned: seed.is_pinned,
+            last_saved_by_admin: isAdmin,
             offer_price: seed.offerPrice,
             down_pct: seed.downPct,
             rate: seed.rate,
@@ -142,7 +147,7 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
     setSaveStatus("saving");
     const rows = scenarios
       .filter(s => ids.includes(s.id))
-      .map(s => scenarioToRow(s, userId!, propertyId!));
+      .map(s => scenarioToRow(s, userId!, propertyId!, isAdmin));
     if (rows.length === 0) return;
     const { error } = await supabase
       .from("saved_estimates")
@@ -151,11 +156,13 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
       setSaveStatus("idle");
       toast.error("Couldn't save scenario");
     } else {
+      // Reflect the new authorship locally so the badge updates immediately
+      setScenarios(prev => prev.map(s => ids.includes(s.id) ? { ...s, last_saved_by_admin: isAdmin } : s));
       setSaveStatus("saved");
       if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
       savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 1800);
     }
-  }, [persistenceOn, scenarios, userId, propertyId]);
+  }, [persistenceOn, scenarios, userId, propertyId, isAdmin]);
 
   const queueSave = useCallback((id: string) => {
     if (!persistenceOn) return;
@@ -196,6 +203,7 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
         property_id: propertyId!,
         name: candidate,
         is_pinned: false,
+        last_saved_by_admin: isAdmin,
         offer_price: baseInputs.offerPrice,
         down_pct: baseInputs.downPct,
         rate: baseInputs.rate,
@@ -498,6 +506,15 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
                 <><Check className="h-3 w-3 text-primary" /> <span className="text-primary font-semibold">Saved</span></>
               ) : (
                 <span className="opacity-70">Auto-saved</span>
+              )}
+              {active.last_saved_by_admin && saveStatus !== "saving" && (
+                <span
+                  className="inline-flex items-center text-muted-foreground/80 italic"
+                  title="Emily pre-filled these numbers for you. Edit any value to make it yours."
+                >
+                  <span className="mx-1 text-muted-foreground/40">·</span>
+                  Set by Emily
+                </span>
               )}
             </div>
           </div>

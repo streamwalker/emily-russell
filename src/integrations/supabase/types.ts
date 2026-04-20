@@ -386,6 +386,7 @@ export type Database = {
           id: string
           insurance: number
           is_pinned: boolean
+          last_saved_by_admin: boolean
           loan_term: number
           name: string
           offer_price: number
@@ -402,6 +403,7 @@ export type Database = {
           id?: string
           insurance?: number
           is_pinned?: boolean
+          last_saved_by_admin?: boolean
           loan_term?: number
           name?: string
           offer_price: number
@@ -418,6 +420,7 @@ export type Database = {
           id?: string
           insurance?: number
           is_pinned?: boolean
+          last_saved_by_admin?: boolean
           loan_term?: number
           name?: string
           offer_price?: number

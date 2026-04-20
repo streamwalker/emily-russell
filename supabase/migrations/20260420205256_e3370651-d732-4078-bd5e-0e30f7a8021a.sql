@@ -1,0 +1,1 @@
+ALTER TABLE public.saved_estimates ADD COLUMN IF NOT EXISTS last_saved_by_admin BOOLEAN NOT NULL DEFAULT false;

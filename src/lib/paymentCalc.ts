@@ -24,6 +24,7 @@ export interface SavedScenario extends ScenarioInputs {
   id: string;
   name: string;
   is_pinned: boolean;
+  last_saved_by_admin: boolean;
 }
 
 export function defaultInputs(price: number, hoaFee: number): ScenarioInputs {
