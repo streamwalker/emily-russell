@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
-import { Trophy } from "lucide-react";
+import { Trophy, Download } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { SavedScenario, ScenarioInputs, computeBreakdown, generateAmortization } from "@/lib/paymentCalc";
 import ScenarioEditor from "./ScenarioEditor";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
