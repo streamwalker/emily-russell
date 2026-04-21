@@ -52,7 +52,7 @@ const NEW_HOME_DEALS = [
     price: "$217,000",
     location: "Northwest San Antonio",
     features: ["Brick, stone & siding exteriors", "Zoned to Northside ISD", "Community pool & parks"],
-    img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80",
+    img: "/communities/redbird-ranch.jpg",
     tag: "Best Value",
   },
   {
@@ -60,7 +60,7 @@ const NEW_HOME_DEALS = [
     price: "$349,990",
     location: "Gated Master-Planned Community",
     features: ["Coventry Homes builder", "Resort-style amenities", "Hill Country views"],
-    img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80",
+    img: "/communities/ladera.jpg",
     tag: "Gated Community",
   },
   {
