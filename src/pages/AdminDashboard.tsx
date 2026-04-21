@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 import ExpenseEditor from "@/components/admin/ExpenseEditor";
 import PropertyEditor from "@/components/admin/PropertyEditor";
+import ClientCredentialsDialog from "@/components/admin/ClientCredentialsDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -167,6 +168,9 @@ export default function AdminDashboard() {
 
   // Client preview
   const [previewDossier, setPreviewDossier] = useState<DossierRow | null>(null);
+
+  // Credentials editor
+  const [credentialsTarget, setCredentialsTarget] = useState<{ userId: string; email: string; name: string | null } | null>(null);
 
   // Comment detail dialog
   const [commentDialogUserId, setCommentDialogUserId] = useState<string | null>(null);
@@ -1018,6 +1022,17 @@ export default function AdminDashboard() {
                               </button>
                               <button onClick={() => startEdit(d)} className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-border text-charcoal px-3 py-1.5 hover:border-primary transition-colors">
                                 Edit
+                              </button>
+                              <button
+                                onClick={() => setCredentialsTarget({
+                                  userId: d.user_id,
+                                  email: getClientEmail(d.user_id),
+                                  name: getClientName(d.user_id) || null,
+                                })}
+                                className="font-body text-[10px] uppercase tracking-[2px] cursor-pointer bg-transparent border border-primary/50 text-primary px-3 py-1.5 hover:border-primary hover:bg-primary/5 transition-colors"
+                                title="Change client email or password"
+                              >
+                                🔑 Credentials
                               </button>
                               <button
                                 onClick={() => {
