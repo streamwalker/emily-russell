@@ -214,6 +214,12 @@
 }
 
 @layer utilities {
+  .pdf-export-mode .grid-cols-1 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .pdf-export-mode {
+    background: #ffffff !important;
+  }
   .text-cream { color: hsl(var(--cream)); }
   .text-gold { color: hsl(var(--gold)); }
   .text-gold-light { color: hsl(var(--gold-light)); }
