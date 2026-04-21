@@ -1,71 +1,75 @@
 
 
-## Plan: Visually-Faithful PDF Export for Compare Payment Scenarios
+## Plan: Rebuild PDF Export with a Dedicated Print Snapshot
 
-Replace the current text-only `autoTable` PDF with a rendered-image export that mirrors the on-screen Compare modal exactly — donut charts, principal-vs-interest bar charts, all input fields, monthly payment summary cards, total cost row, and the baseline delta strip.
+The current export captures the live interactive modal with `html2canvas`, which produces broken output: form inputs render empty, Recharts `ResponsiveContainer` SVGs collapse / overlap, and content gets sliced mid-section across two pages.
+
+Replace the live-DOM capture with a **dedicated offscreen "print view" component** that mirrors the on-screen layout but uses static, fixed-dimension elements designed to render perfectly in `html2canvas` and fit on a single landscape page.
 
 ### Approach
 
-Use `html2canvas` to snapshot the live compare-modal DOM and embed it into a `jsPDF` document. This guarantees pixel-perfect parity with what the user sees (charts, fonts, colors, spacing) without rebuilding any chart logic in PDF primitives.
+1. **Build a new component** `ScenarioComparePrintView` (in the same file) that renders the 3-column comparison using:
+   - **Plain `<div>` text** instead of `<Input>`, `<Slider>`, `<Select>` — so values always show.
+   - **Recharts with explicit fixed `width` + `height`** (no `ResponsiveContainer`) — so SVGs render at known pixel sizes and never collapse.
+   - **Fixed pixel widths per column** (~470px each, ~1500px total) so layout is deterministic.
+   - Same visual styling as the modal: monthly breakdown donut, principal-vs-interest bar chart, total interest, all input field labels with their current values, est. monthly payment card, total cost footer, winner ring/badge, and the 4-row delta strip below.
+   - A header row inside the snapshot itself: "Payment Scenario Comparison" + generated timestamp.
 
-### Changes
+2. **Render the print view offscreen during export**:
+   - Mount it via a portal-like approach: append a hidden `<div>` (positioned `fixed; left: -10000px; top: 0; width: 1500px; background: white;`) to `document.body`, render the print view into it with `ReactDOM.createRoot`, await fonts + a frame, snapshot with `html2canvas`, then unmount and remove the container.
 
-**1. `package.json`** — add `html2canvas` (jspdf and jspdf-autotable already present; autotable will be removed from the export path but kept installed in case other places use it).
+3. **Single-page PDF generation**:
+   - Letter landscape = 792 × 612 pt usable ≈ 712 × 532 pt with 40pt margins.
+   - The print view is designed at ~1500 × ~1100 px which scales to fit `712pt` width → resulting height ≈ 522pt, fitting on one page.
+   - Compute `imgHeightPt = (canvas.height / canvas.width) * usableWidth`. If it exceeds page height (it shouldn't, but as safety), scale down to fit height instead. **No slicing.**
+   - `doc.addImage(dataUrl, "PNG", margin, margin, drawW, drawH)` once → save.
 
-**2. `src/components/portal/ScenarioCompareDialog.tsx`**
+4. **Remove the slicing logic and the in-modal `exportRef`** entirely — the modal DOM is no longer captured.
 
-- Wrap the entire scrollable comparison content (the 3-column editor grid + delta strip) in a `ref`-tagged container, e.g. `exportRef`. The header/Export button stays outside this ref so it isn't captured.
-- Rewrite `handleExportPdf`:
-  1. Show a "Preparing PDF…" toast.
-  2. Temporarily add a class to `exportRef.current` that:
-     - Forces light background (`bg-white`) so charts render cleanly.
-     - Expands width to a fixed export width (e.g. `1500px`) so layout matches desktop, even if user is on a smaller viewport.
-     - Forces the 3-column grid (overrides `lg:grid-cols-3` for mobile users exporting).
-  3. Call `html2canvas(exportRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 1500 })` to get a high-DPI canvas.
-  4. Create a landscape Letter `jsPDF`. Compute scale so the canvas width fits page width minus 40pt margins.
-  5. If the resulting image height exceeds page height, slice the canvas vertically into page-sized chunks and add each as a new PDF page (standard html2canvas → multi-page jsPDF pattern). Each slice drawn via `doc.addImage(sliceDataUrl, "PNG", 40, 40, imgWidth, sliceHeight)`.
-  6. Add a small header on page 1 only: "Payment Scenario Comparison" + generated timestamp, drawn in jsPDF text above the image (image starts ~70pt down on page 1, ~40pt on subsequent pages).
-  7. Save as `scenario-comparison-YYYY-MM-DD.pdf`.
-  8. Remove the temporary export class in a `finally` block. Toast success/error.
-- Drop the `autoTable` import and the manual rows/headers arrays from `handleExportPdf`. Keep `Download` icon and button UI exactly as-is.
+5. **Drop the `.pdf-export-mode` style overrides** added previously (no longer needed) — clean up `src/index.css` block.
 
-**3. CSS — inline via the temporary export class**
+### Print-view layout (fixed, ~1500px wide)
 
-Defined inside the component (toggled by adding/removing classes on `exportRef.current` before/after capture), e.g.:
-- `.pdf-export-mode { width: 1500px !important; background: #ffffff !important; }`
-- `.pdf-export-mode .lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }`
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  Payment Scenario Comparison        Generated 4/21/2026, 12:42 AM   │
+├──────────────────┬──────────────────┬──────────────────────────────┤
+│ SCENARIO A       │ SCENARIO B  🏆   │ SCENARIO C                   │
+│ 6.88% DPA        │ 4.5% FHA         │ VA 100% · pinned             │
+│ ┌──────────────┐ │ ┌──────────────┐ │ ┌──────────────┐             │
+│ │  donut $2409 │ │ │  donut $1889 │ │ │  donut $1533 │             │
+│ │  legend      │ │ │  legend      │ │ │  legend      │             │
+│ └──────────────┘ │ └──────────────┘ │ └──────────────┘             │
+│ ┌──────────────┐ │ ┌──────────────┐ │ ┌──────────────┐             │
+│ │  bar chart   │ │ │  bar chart   │ │ │  bar chart   │             │
+│ │  Total int.. │ │ │  Total int.. │ │ │  Total int.. │             │
+│ └──────────────┘ │ └──────────────┘ │ └──────────────┘             │
+│ Inputs (label/value text grid, 2 cols)                             │
+│ Offer Price  264,950   Interest Rate  6.88%                        │
+│ Down Pmt %   0         Down Pmt $     0                            │
+│ Tax Rate     2.34%     Insurance      $100                         │
+│ HOA          $51       Loan Term      30 yr                        │
+│ ┌──────────────┐ │ ┌──────────────┐ │ ┌──────────────┐             │
+│ │ Est. Monthly │ │ │ Est. Monthly │ │ │ Est. Monthly │             │
+│ │ $2,409  P&I  │ │ │ $1,889  P&I  │ │ │ $1,533  P&I  │             │
+│ └──────────────┘ │ └──────────────┘ │ └──────────────┘             │
+│ Total cost: $626,910 │ $448,705 (gold) │ $497,553                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ Comparison · Scenario A is baseline · lower is better              │
+│ Monthly │ P&I │ Down Pmt │ Total Interest  (4 rows × 3 cells)      │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-These can live in `src/index.css` under a small `@layer utilities` block, or be applied as inline style overrides in JS. Inline JS overrides are simpler — set `el.style.width = "1500px"` etc., snapshot, then revert.
-
-### What the exported PDF will contain (matching screenshots 1 & 2)
-
-Page 1+ (continuous capture, paginated automatically):
-- Three SCENARIO A / B / C columns, each with:
-  - Scenario name dropdown label (rendered as the visible selected name)
-  - Monthly Payment Breakdown donut chart with center $/month label and legend
-  - Principal vs Interest bar chart with term toggle (whatever is currently selected) and "Total Interest Over N Years"
-  - All input fields (Offer Price, Interest Rate slider+number, Down Payment % and $, Tax Rate, Insurance, HOA, Loan Term)
-  - Est. Monthly Payment summary card (P&I, Taxes, Ins, HOA)
-  - Total cost of loan footer (winner highlighted in primary color, exactly as on screen)
-- "Lower total cost" trophy badge on the winning column (rendered from the live DOM)
-- Comparison · Scenario A is baseline · lower is better — the 4 delta rows (Monthly payment, P&I, Down payment, Total interest), each as 3 cards with `vs A: ±$…` in red/primary just like on screen.
-
-### Technical notes
-
-- `html2canvas` works with Recharts (SVG) — Recharts renders inline SVG which html2canvas rasterizes correctly. Donut + bar chart will appear identical.
-- Custom fonts (Playfair Display, DM Sans): html2canvas captures computed styles, so as long as the fonts are loaded in the page (they are, since the modal is open), they'll render in the snapshot. We'll add `await document.fonts.ready` before capture as a safety net.
-- Sliders, inputs, and selects render as their visible state — the dropdown shows the currently-selected scenario name (not an open menu).
-- Scale 2 keeps charts crisp; landscape Letter @ 40pt margins gives ~752pt usable width, well-sized for a 1500px source canvas.
-- Multi-page slicing uses the standard pattern: render once to a tall canvas, then for each page create a temporary canvas of page-height, `drawImage` the slice, `toDataURL`, `doc.addImage`, `doc.addPage`.
-
-### Out of scope
-
-- A separate "summary table" page (the current text table is being fully replaced, per request)
-- Embedding property photo / address header (existing export doesn't have it either)
-- Email-the-PDF flow
+Designed to fit on **one** landscape Letter page. If a future scenario set produces taller content, the second page falls back gracefully (single image scaled down or split at the delta-strip boundary — but with current layout this won't trigger).
 
 ### Files touched
 
-- `package.json` (+ lockfile) — add `html2canvas`
-- `src/components/portal/ScenarioCompareDialog.tsx` — add `exportRef`, rewrite `handleExportPdf`, drop `autoTable` import
+- `src/components/portal/ScenarioCompareDialog.tsx` — add `ScenarioComparePrintView` component, rewrite `handleExportPdf` to mount/snapshot/unmount it, remove `exportRef` and slicing logic.
+- `src/index.css` — remove the now-unused `.pdf-export-mode` overrides if present.
+
+### Out of scope
+
+- Property address/photo header
+- Email-the-PDF
+- Multi-page support beyond the safety fallback (single page is the target)
 
