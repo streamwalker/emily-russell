@@ -238,13 +238,16 @@ export default function ScenarioCompareDialog({
               variant="outline"
               size="sm"
               onClick={handleExportPdf}
+              disabled={isExporting}
               className="font-body text-xs gap-1.5 shrink-0 mr-6"
             >
               <Download className="h-3.5 w-3.5" />
-              Export PDF
+              {isExporting ? "Exporting…" : "Export PDF"}
             </Button>
           </div>
         </DialogHeader>
+
+        <div ref={exportRef}>
 
 
         {/* Editors side-by-side (stack below lg) */}
