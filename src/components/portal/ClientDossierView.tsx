@@ -177,14 +177,14 @@ function TabScrollContainer({ children }: { children: React.ReactNode }) {
 }
 
 /* ── Payment Calculator Toggle ── */
-function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userId, readOnly }: { price: number; hoaFee?: number; accentColor: string; propertyId?: string; userId?: string; readOnly?: boolean }) {
+function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userId, readOnly, propertyAddress, propertyCity, propertyCommunity }: { price: number; hoaFee?: number; accentColor: string; propertyId?: string; userId?: string; readOnly?: boolean; propertyAddress?: string; propertyCity?: string; propertyCommunity?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
       <button onClick={() => setOpen(!open)} className="text-[11px] font-semibold font-body cursor-pointer bg-transparent border-none p-0 transition-colors hover:opacity-80" style={{ color: accentColor }}>
         {open ? "▾ Hide Payment Estimator" : "▸ Estimate Monthly Payment"}
       </button>
-      {open && <PaymentCalculator price={price} hoaFee={hoaFee} propertyId={propertyId} userId={userId} />}
+      {open && <PaymentCalculator price={price} hoaFee={hoaFee} propertyId={propertyId} userId={userId} propertyAddress={propertyAddress} propertyCity={propertyCity} propertyCommunity={propertyCommunity} />}
     </div>
   );
 }
@@ -521,7 +521,7 @@ function PropertyRow({
           )}
 
           {prop.price && (
-            <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} />
+            <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} propertyAddress={prop.address} propertyCity={prop.city} propertyCommunity={prop.community} />
           )}
         </div>
       )}
