@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
 import { Trophy, Download } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { SavedScenario, ScenarioInputs, computeBreakdown, generateAmortization } from "@/lib/paymentCalc";
 import ScenarioEditor from "./ScenarioEditor";
+import ScenarioComparePrintView from "./ScenarioComparePrintView";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { toast } from "sonner";
@@ -74,7 +76,6 @@ export default function ScenarioCompareDialog({
   const [leftId, setLeftId] = useState(initialLeftId ?? firstId);
   const [rightId, setRightId] = useState(initialRightId ?? secondId);
   const [extraId, setExtraId] = useState(initialThirdId ?? thirdId);
-  const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -101,123 +102,80 @@ export default function ScenarioCompareDialog({
     { key: "C", label: "Scenario C", id: extraId, setId: setExtraId, scenario: extra },
   ];
 
-  const breakdowns = slots.map(s => computeBreakdown(s.scenario));
-  const totalInterests = slots.map((s, i) =>
-    generateAmortization(breakdowns[i].loanAmount, s.scenario.rate, s.scenario.loanTerm)
+  const orderedScenarios = slots.map(s => s.scenario);
+  const breakdowns = orderedScenarios.map(computeBreakdown);
+  const totalInterests = orderedScenarios.map((s, i) =>
+    generateAmortization(breakdowns[i].loanAmount, s.rate, s.loanTerm)
       .reduce((sum, d) => sum + d.interest, 0)
   );
-  const totalCosts = slots.map((_, i) => breakdowns[i].downAmt + breakdowns[i].loanAmount + totalInterests[i]);
+  const totalCosts = orderedScenarios.map((_, i) => breakdowns[i].downAmt + breakdowns[i].loanAmount + totalInterests[i]);
 
-  // Winner = lowest total cost. Tie if all within $1.
   const minCost = Math.min(...totalCosts);
   const maxCost = Math.max(...totalCosts);
   const tied = maxCost - minCost < 1;
   const winnerIndex = tied ? -1 : totalCosts.indexOf(minCost);
 
   const handleExportPdf = async () => {
-    const node = exportRef.current;
-    if (!node) return;
-
     const toastId = toast.loading("Preparing PDF…");
     setIsExporting(true);
 
-    // Snapshot original inline styles so we can restore exactly
-    const originalCssText = node.style.cssText;
-    const originalClass = node.className;
+    // Mount print view offscreen
+    const container = document.createElement("div");
+    container.style.cssText =
+      "position:fixed;left:-10000px;top:0;width:1500px;background:#ffffff;z-index:-1;";
+    document.body.appendChild(container);
+    const root = createRoot(container);
 
     try {
-      // Force desktop layout + light bg for clean capture
-      node.style.width = "1500px";
-      node.style.maxWidth = "1500px";
-      node.style.background = "#ffffff";
-      node.classList.add("pdf-export-mode");
+      root.render(
+        <ScenarioComparePrintView
+          scenarios={orderedScenarios}
+          winnerIndex={winnerIndex}
+          totalCosts={totalCosts}
+          totalInterests={totalInterests}
+        />
+      );
 
-      // Wait for fonts + a frame so layout settles
+      // Wait for fonts and render to settle
       if ((document as any).fonts?.ready) {
         await (document as any).fonts.ready;
       }
       await new Promise((r) => requestAnimationFrame(() => r(null)));
-      await new Promise((r) => setTimeout(r, 80));
+      await new Promise((r) => setTimeout(r, 250));
 
-      const canvas = await html2canvas(node, {
+      const canvas = await html2canvas(container, {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
         windowWidth: 1500,
-        scrollX: 0,
-        scrollY: -window.scrollY,
+        width: 1500,
       });
 
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 40;
+      const margin = 24;
       const usableWidth = pageWidth - margin * 2;
+      const usableHeight = pageHeight - margin * 2;
 
-      // Header on page 1
-      const headerHeight = 36;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text("Payment Scenario Comparison", margin, margin + 4);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(120);
-      doc.text(`Generated ${new Date().toLocaleString()}`, margin, margin + 20);
-      doc.setTextColor(0);
-
-      const imgWidthPx = canvas.width;
-      const imgHeightPx = canvas.height;
-      const pxPerPt = imgWidthPx / usableWidth;
-
-      const firstPageUsableHeightPt = pageHeight - margin - (margin + headerHeight);
-      const restPageUsableHeightPt = pageHeight - margin * 2;
-
-      const firstSliceHeightPx = Math.floor(firstPageUsableHeightPt * pxPerPt);
-      const restSliceHeightPx = Math.floor(restPageUsableHeightPt * pxPerPt);
-
-      let renderedPx = 0;
-      let pageIndex = 0;
-
-      while (renderedPx < imgHeightPx) {
-        const isFirst = pageIndex === 0;
-        const sliceHeightPx = Math.min(
-          isFirst ? firstSliceHeightPx : restSliceHeightPx,
-          imgHeightPx - renderedPx
-        );
-
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = imgWidthPx;
-        sliceCanvas.height = sliceHeightPx;
-        const ctx = sliceCanvas.getContext("2d");
-        if (!ctx) break;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, imgWidthPx, sliceHeightPx);
-        ctx.drawImage(
-          canvas,
-          0, renderedPx, imgWidthPx, sliceHeightPx,
-          0, 0, imgWidthPx, sliceHeightPx
-        );
-
-        const imgData = sliceCanvas.toDataURL("image/png");
-        const drawWidthPt = usableWidth;
-        const drawHeightPt = sliceHeightPx / pxPerPt;
-        const yPt = isFirst ? margin + headerHeight : margin;
-
-        if (!isFirst) doc.addPage();
-        doc.addImage(imgData, "PNG", margin, yPt, drawWidthPt, drawHeightPt);
-
-        renderedPx += sliceHeightPx;
-        pageIndex += 1;
+      let drawW = usableWidth;
+      let drawH = (canvas.height / canvas.width) * usableWidth;
+      if (drawH > usableHeight) {
+        drawH = usableHeight;
+        drawW = (canvas.width / canvas.height) * usableHeight;
       }
+      const xPt = margin + (usableWidth - drawW) / 2;
+      const yPt = margin + (usableHeight - drawH) / 2;
 
+      doc.addImage(canvas.toDataURL("image/png"), "PNG", xPt, yPt, drawW, drawH);
       doc.save(`scenario-comparison-${new Date().toISOString().slice(0, 10)}.pdf`);
       toast.success("Comparison PDF downloaded", { id: toastId });
     } catch (err) {
       console.error("PDF export failed", err);
       toast.error("Could not export PDF", { id: toastId });
     } finally {
-      node.style.cssText = originalCssText;
-      node.className = originalClass;
+      try { root.unmount(); } catch {}
+      try { document.body.removeChild(container); } catch {}
       setIsExporting(false);
     }
   };
@@ -246,9 +204,6 @@ export default function ScenarioCompareDialog({
             </Button>
           </div>
         </DialogHeader>
-
-        <div ref={exportRef}>
-
 
         {/* Editors side-by-side (stack below lg) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-2">
@@ -313,7 +268,6 @@ export default function ScenarioCompareDialog({
             <DeltaRow label="Down payment" values={breakdowns.map(b => b.downAmt)} baseIndex={0} />
             <DeltaRow label="Total interest" values={totalInterests} baseIndex={0} />
           </div>
-        </div>
         </div>
       </DialogContent>
     </Dialog>
