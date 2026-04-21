@@ -3,7 +3,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SavedScenario, computeBreakdown, generateAmortization } from "@/lib/paymentCalc";
+import { SavedScenario, ScenarioInputs, computeBreakdown, generateAmortization } from "@/lib/paymentCalc";
+import ScenarioEditor from "./ScenarioEditor";
 
 interface Props {
   open: boolean;
@@ -11,52 +12,33 @@ interface Props {
   scenarios: SavedScenario[];
   initialLeftId?: string;
   initialRightId?: string;
+  onScenarioChange: (id: string, next: ScenarioInputs) => void;
 }
 
-type DeltaDirection = "lower-better" | "neutral";
-
 const fmtCurrency = (v: number) => `$${Math.round(v).toLocaleString()}`;
-const fmtPct = (v: number) => `${v.toFixed(2)}%`;
-const fmtYears = (v: number) => `${v} yr`;
 
-function StatRow({
-  label, a, b, format = fmtCurrency, direction = "lower-better",
-}: {
-  label: string;
-  a: number;
-  b: number;
-  format?: (v: number) => string;
-  direction?: DeltaDirection;
-}) {
+function DeltaStat({ label, a, b }: { label: string; a: number; b: number }) {
   const diff = b - a;
-  const isZero = Math.abs(diff) < 0.005;
-  // For lower-better: negative diff (B < A) means B is better → green on B side
-  const better = direction === "lower-better" && diff < 0;
-  const worse = direction === "lower-better" && diff > 0;
+  const isZero = Math.abs(diff) < 0.5;
+  const better = diff < 0;
+  const cls = isZero ? "text-muted-foreground" : better ? "text-primary" : "text-destructive";
   const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
-  const deltaClass = isZero
-    ? "text-muted-foreground"
-    : direction === "neutral"
-      ? "text-muted-foreground"
-      : better
-        ? "text-primary"
-        : "text-destructive";
-  const deltaText = isZero ? "—" : `${sign}${format(Math.abs(diff))}`;
-
+  const text = isZero ? "—" : `${sign}${fmtCurrency(Math.abs(diff))}`;
   return (
-    <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center gap-3 py-1.5 border-b border-border/50 last:border-0">
-      <div className="text-[11px] font-body text-muted-foreground">{label}</div>
-      <div className="text-xs font-body font-semibold text-foreground tabular-nums text-right">{format(a)}</div>
-      <div className="text-xs font-body font-semibold text-foreground tabular-nums text-right">{format(b)}</div>
-      <div className={`text-[10px] font-body tabular-nums text-right ${deltaClass}`}>
-        {deltaText}
+    <div className="flex flex-col items-center justify-center px-3 py-2 rounded border border-border bg-card">
+      <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground font-body font-semibold mb-1">
+        {label}
+      </div>
+      <div className={`text-sm font-display font-bold tabular-nums ${cls}`}>{text}</div>
+      <div className="text-[9px] font-body text-muted-foreground tabular-nums mt-0.5">
+        {fmtCurrency(a)} → {fmtCurrency(b)}
       </div>
     </div>
   );
 }
 
 export default function ScenarioCompareDialog({
-  open, onOpenChange, scenarios, initialLeftId, initialRightId,
+  open, onOpenChange, scenarios, initialLeftId, initialRightId, onScenarioChange,
 }: Props) {
   const firstId = scenarios[0]?.id ?? "";
   const secondId = scenarios[1]?.id ?? scenarios[0]?.id ?? "";
@@ -80,71 +62,70 @@ export default function ScenarioCompareDialog({
   const rAmort = generateAmortization(rb.loanAmount, right.rate, right.loanTerm);
   const lTotalInterest = lAmort.reduce((s, d) => s + d.interest, 0);
   const rTotalInterest = rAmort.reduce((s, d) => s + d.interest, 0);
-  const lTotalCost = lb.pi * left.loanTerm * 12;
-  const rTotalCost = rb.pi * right.loanTerm * 12;
-  const lMonthlyInsurance = left.insurance;
-  const rMonthlyInsurance = right.insurance;
-  const lMonthlyHoa = left.hoa;
-  const rMonthlyHoa = right.hoa;
+
+  const pickers: Array<{
+    label: string;
+    id: string;
+    setId: (v: string) => void;
+    scenario: SavedScenario;
+  }> = [
+    { label: "Scenario A", id: leftId, setId: setLeftId, scenario: left },
+    { label: "Scenario B", id: rightId, setId: setRightId, scenario: right },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[720px] w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[1200px] w-[96vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Compare Payment Scenarios</DialogTitle>
           <DialogDescription className="font-body text-xs">
-            Side-by-side numbers for two saved scenarios.
+            Edit either side — changes autosave to your scenario.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scenario pickers */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          {([{ label: "Scenario A", id: leftId, setId: setLeftId },
-             { label: "Scenario B", id: rightId, setId: setRightId }] as const).map(({ label, id, setId }) => (
-            <div key={label} className="flex flex-col gap-1">
-              <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground font-body font-semibold">
-                {label}
+        {/* Editors side-by-side (stack below lg) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+          {pickers.map(({ label, id, setId, scenario }) => (
+            <div key={label} className="rounded border border-border bg-muted/30 p-3 space-y-3">
+              <div className="flex flex-col gap-1">
+                <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground font-body font-semibold">
+                  {label}
+                </div>
+                <Select value={id} onValueChange={setId}>
+                  <SelectTrigger className="h-8 text-xs font-body">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scenarios.map(s => (
+                      <SelectItem key={s.id} value={s.id} className="text-xs font-body">
+                        {s.name}{s.is_pinned ? " · pinned" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={id} onValueChange={setId}>
-                <SelectTrigger className="h-8 text-xs font-body">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {scenarios.map(s => (
-                    <SelectItem key={s.id} value={s.id} className="text-xs font-body">
-                      {s.name}{s.is_pinned ? " · pinned" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ScenarioEditor
+                key={scenario.id}
+                inputs={scenario}
+                onChange={(next) => onScenarioChange(scenario.id, next)}
+                compact
+              />
             </div>
           ))}
         </div>
 
-        {/* Numbers table */}
-        <div className="rounded border border-border bg-muted/30 p-3">
-          <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center gap-3 pb-2 mb-1 border-b border-border">
-            <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground font-body font-semibold">Metric</div>
-            <div className="text-[10px] font-body font-semibold text-foreground text-right truncate">{left.name}</div>
-            <div className="text-[10px] font-body font-semibold text-foreground text-right truncate">{right.name}</div>
-            <div className="text-[10px] font-body font-semibold text-muted-foreground text-right">Δ (B − A)</div>
+        {/* Delta strip */}
+        <div className="mt-4">
+          <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground font-body font-semibold mb-2">
+            Delta (B − A) · lower is better
           </div>
-          <StatRow label="Monthly payment (PITI + HOA)" a={lb.monthly} b={rb.monthly} />
-          <StatRow label="Principal & Interest" a={lb.pi} b={rb.pi} />
-          <StatRow label="Monthly taxes" a={lb.monthlyTaxes} b={rb.monthlyTaxes} />
-          <StatRow label="Monthly insurance" a={lMonthlyInsurance} b={rMonthlyInsurance} />
-          <StatRow label="Monthly HOA" a={lMonthlyHoa} b={rMonthlyHoa} />
-          <StatRow label="Down payment" a={lb.downAmt} b={rb.downAmt} />
-          <StatRow label="Loan amount" a={lb.loanAmount} b={rb.loanAmount} />
-          <StatRow label="Interest rate" a={left.rate} b={right.rate} format={fmtPct} direction="neutral" />
-          <StatRow label="Loan term" a={left.loanTerm} b={right.loanTerm} format={fmtYears} direction="neutral" />
-          <StatRow label="Total interest (life of loan)" a={lTotalInterest} b={rTotalInterest} />
-          <StatRow label="Total cost of loan (P&I × term)" a={lTotalCost} b={rTotalCost} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <DeltaStat label="Monthly payment" a={lb.monthly} b={rb.monthly} />
+            <DeltaStat label="Principal & Interest" a={lb.pi} b={rb.pi} />
+            <DeltaStat label="Down payment" a={lb.downAmt} b={rb.downAmt} />
+            <DeltaStat label="Total interest" a={lTotalInterest} b={rTotalInterest} />
+          </div>
         </div>
-
-        <p className="text-[10px] font-body text-muted-foreground italic mt-2 text-center">
-          To edit values, close this and switch to a scenario tab.
-        </p>
       </DialogContent>
     </Dialog>
   );
