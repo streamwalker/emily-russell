@@ -74,6 +74,8 @@ export default function ScenarioCompareDialog({
   const [leftId, setLeftId] = useState(initialLeftId ?? firstId);
   const [rightId, setRightId] = useState(initialRightId ?? secondId);
   const [extraId, setExtraId] = useState(initialThirdId ?? thirdId);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (!scenarios.find(s => s.id === leftId)) setLeftId(scenarios[0]?.id ?? "");
