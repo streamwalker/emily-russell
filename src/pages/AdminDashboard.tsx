@@ -1623,6 +1623,19 @@ export default function AdminDashboard() {
           )}
         </DialogContent>
       </Dialog>
+
+      {credentialsTarget && (
+        <ClientCredentialsDialog
+          open={!!credentialsTarget}
+          onOpenChange={(o) => { if (!o) setCredentialsTarget(null); }}
+          userId={credentialsTarget.userId}
+          currentEmail={credentialsTarget.email}
+          clientName={credentialsTarget.name}
+          onUpdated={({ email }) => {
+            setProfiles(prev => prev.map(p => p.user_id === credentialsTarget.userId ? { ...p, email } : p));
+          }}
+        />
+      )}
     </div>
   );
 }
