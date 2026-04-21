@@ -23,6 +23,9 @@ interface PaymentCalculatorProps {
   hoaFee?: number;
   propertyId?: string;
   userId?: string;
+  propertyAddress?: string;
+  propertyCity?: string;
+  propertyCommunity?: string;
 }
 
 function rowToScenario(row: any): SavedScenario {
@@ -59,7 +62,7 @@ function scenarioToRow(s: SavedScenario, userId: string, propertyId: string, isA
   };
 }
 
-export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userId }: PaymentCalculatorProps) {
+export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userId, propertyAddress, propertyCity, propertyCommunity }: PaymentCalculatorProps) {
   const persistenceOn = !!(propertyId && userId);
   const { isAdmin } = useAdminCheck();
 
@@ -515,6 +518,9 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
             initialRightId={others[0]?.id}
             initialThirdId={others[1]?.id ?? others[0]?.id ?? activeId}
             onScenarioChange={updateInputs}
+            propertyAddress={propertyAddress}
+            propertyCity={propertyCity}
+            propertyCommunity={propertyCommunity}
           />
         );
       })()}

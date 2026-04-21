@@ -11,6 +11,10 @@ interface Props {
   winnerIndex: number;        // -1 if tied
   totalCosts: number[];
   totalInterests: number[];
+  propertyAddress?: string;
+  propertyCity?: string;
+  propertyCommunity?: string;
+  mapDataUrl?: string;
 }
 
 const fmt = (v: number) => `$${Math.round(v).toLocaleString()}`;
@@ -214,9 +218,14 @@ function DeltaRowPrint({ label, values }: { label: string; values: number[] }) {
 
 export default function ScenarioComparePrintView({
   scenarios, winnerIndex, totalCosts, totalInterests,
+  propertyAddress, propertyCity, propertyCommunity, mapDataUrl,
 }: Props) {
   const breakdowns = scenarios.map(computeBreakdown);
   const labels = ["Scenario A", "Scenario B", "Scenario C"];
+  const hasPropertyContext = !!propertyAddress;
+  const subtitleParts = [propertyCity, propertyCommunity].filter(Boolean);
+  const streetNumberMatch = propertyAddress?.match(/^\s*(\d+)/);
+  const streetNumber = streetNumberMatch?.[1] ?? "";
   return (
     <div
       style={{
@@ -228,12 +237,56 @@ export default function ScenarioComparePrintView({
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid hsl(var(--border))" }}>
-        <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Playfair Display', serif" }}>
-          Payment Scenario Comparison
-        </div>
-        <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
-          Generated {new Date().toLocaleString()}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid hsl(var(--border))", gap: 16 }}>
+        {hasPropertyContext ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+            {mapDataUrl ? (
+              <img
+                src={mapDataUrl}
+                alt=""
+                style={{ width: 120, height: 80, objectFit: "cover", borderRadius: 4, border: "1px solid hsl(var(--border))", flexShrink: 0 }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 120, height: 80, borderRadius: 4,
+                  border: "1px solid hsl(var(--border))",
+                  background: "hsl(var(--muted))",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 24, fontWeight: 700,
+                  color: "hsl(var(--muted-foreground))",
+                }}
+              >
+                {streetNumber || "—"}
+              </div>
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Playfair Display', serif", color: "hsl(var(--foreground))", lineHeight: 1.2 }}>
+                {propertyAddress}
+              </div>
+              {subtitleParts.length > 0 && (
+                <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))", marginTop: 2 }}>
+                  {subtitleParts.join(" · ")}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Playfair Display', serif" }}>
+            Payment Scenario Comparison
+          </div>
+        )}
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          {hasPropertyContext && (
+            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Playfair Display', serif", lineHeight: 1.2 }}>
+              Payment Scenario Comparison
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))", marginTop: hasPropertyContext ? 4 : 0 }}>
+            Generated {new Date().toLocaleString()}
+          </div>
         </div>
       </div>
 
