@@ -190,7 +190,9 @@ function DeltaCellPrint({ base, value, isBase }: { base: number; value: number; 
   const better = diff < 0;
   const color = isZero ? "hsl(var(--muted-foreground))" : better ? "hsl(var(--primary))" : "hsl(var(--destructive))";
   const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
-  const text = isZero ? "—" : `${sign}${fmt(Math.abs(diff))}`;
+  const pct = base === 0 ? null : Math.round((diff / base) * 100);
+  const pctText = isZero ? "" : pct === null ? " (—)" : ` (${sign}${Math.abs(pct)}%)`;
+  const text = isZero ? "—" : `${sign}${fmt(Math.abs(diff))}${pctText}`;
   return <div style={{ fontSize: 10, fontWeight: 600, color, marginTop: 2 }}>vs A: {text}</div>;
 }
 
