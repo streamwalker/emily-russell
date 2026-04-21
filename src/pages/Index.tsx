@@ -637,7 +637,7 @@ export default function Index() {
             ))}
           </div>
           <div className="mt-9">
-            <a href="https://www.zillow.com/profile/Emily%20Russell%20Realtor" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.zillow.com/profile/Emily-Russell-Realty" target="_blank" rel="noopener noreferrer"
               className="font-body text-[11px] tracking-[2px] uppercase text-gold-light no-underline">
               See All Reviews on Zillow →
             </a>
