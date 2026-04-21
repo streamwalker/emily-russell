@@ -21,11 +21,11 @@ async function syncLead(data: Record<string, string>) {
 
 /* ── Data ── */
 const RECENT_SALES = [
-  { addr: "242 Wild Duck", city: "San Antonio, TX 78253", beds: 4, baths: 2, sqft: "1,901", date: "Nov 2024", role: "Buyer", img: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80" },
-  { addr: "17010 Eaton Terrace", city: "San Antonio, TX 78247", beds: 4, baths: 3, sqft: "2,300", date: "Feb 2024", role: "Buyer", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" },
-  { addr: "7703 Chancery Gate", city: "San Antonio, TX 78253", beds: 3, baths: 2, sqft: "1,129", date: "Nov 2023", role: "Buyer", img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80" },
-  { addr: "7627 Parish Pl", city: "San Antonio, TX 78253", beds: 3, baths: 2.5, sqft: "1,189", date: "Nov 2023", role: "Buyer", img: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=600&q=80" },
-  { addr: "4210 Amos Pollard", city: "San Antonio, TX 78253", beds: 4, baths: 4, sqft: "3,684", date: "Sep 2023", role: "Buyer", img: "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=600&q=80" },
+  { addr: "242 Wild Duck", city: "San Antonio, TX 78253", beds: 4, baths: 2, sqft: "1,901", date: "Nov 2024", role: "Buyer", img: "/sales/242-wild-duck.jpg" },
+  { addr: "17010 Eaton Terrace", city: "San Antonio, TX 78247", beds: 4, baths: 3, sqft: "2,300", date: "Feb 2024", role: "Buyer", img: "/sales/17010-eaton-terrace.jpg" },
+  { addr: "7703 Chancery Gate", city: "San Antonio, TX 78253", beds: 3, baths: 2, sqft: "1,129", date: "Nov 2023", role: "Buyer", img: "/sales/7703-chancery-gate.jpg" },
+  { addr: "7627 Parish Pl", city: "San Antonio, TX 78253", beds: 3, baths: 2.5, sqft: "1,189", date: "Nov 2023", role: "Buyer", img: "/sales/7627-parish-pl.jpg" },
+  { addr: "4210 Amos Pollard", city: "San Antonio, TX 78253", beds: 4, baths: 4, sqft: "3,684", date: "Sep 2023", role: "Buyer", img: "/sales/4210-amos-pollard.jpg" },
 ];
 
 const NEIGHBORHOODS = [
