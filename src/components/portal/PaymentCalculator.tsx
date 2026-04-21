@@ -504,16 +504,20 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
         )}
       </div>
 
-      {persistenceOn && scenarios.length >= 2 && (
-        <ScenarioCompareDialog
-          open={compareOpen}
-          onOpenChange={setCompareOpen}
-          scenarios={scenarios}
-          initialLeftId={activeId}
-          initialRightId={scenarios.find(s => s.id !== activeId)?.id}
-          onScenarioChange={updateInputs}
-        />
-      )}
+      {persistenceOn && scenarios.length >= 2 && (() => {
+        const others = scenarios.filter(s => s.id !== activeId);
+        return (
+          <ScenarioCompareDialog
+            open={compareOpen}
+            onOpenChange={setCompareOpen}
+            scenarios={scenarios}
+            initialLeftId={activeId}
+            initialRightId={others[0]?.id}
+            initialThirdId={others[1]?.id ?? others[0]?.id ?? activeId}
+            onScenarioChange={updateInputs}
+          />
+        );
+      })()}
     </div>
   );
 }
