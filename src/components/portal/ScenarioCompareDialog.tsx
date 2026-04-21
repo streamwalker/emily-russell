@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trophy, Download } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SavedScenario, ScenarioInputs, computeBreakdown, generateAmortization } from "@/lib/paymentCalc";
 import ScenarioEditor from "./ScenarioEditor";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 import { toast } from "sonner";
 
 interface Props {
@@ -74,6 +74,8 @@ export default function ScenarioCompareDialog({
   const [leftId, setLeftId] = useState(initialLeftId ?? firstId);
   const [rightId, setRightId] = useState(initialRightId ?? secondId);
   const [extraId, setExtraId] = useState(initialThirdId ?? thirdId);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (!scenarios.find(s => s.id === leftId)) setLeftId(scenarios[0]?.id ?? "");
@@ -112,72 +114,111 @@ export default function ScenarioCompareDialog({
   const tied = maxCost - minCost < 1;
   const winnerIndex = tied ? -1 : totalCosts.indexOf(minCost);
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
+    const node = exportRef.current;
+    if (!node) return;
+
+    const toastId = toast.loading("Preparing PDF…");
+    setIsExporting(true);
+
+    // Snapshot original inline styles so we can restore exactly
+    const originalCssText = node.style.cssText;
+    const originalClass = node.className;
+
     try {
+      // Force desktop layout + light bg for clean capture
+      node.style.width = "1500px";
+      node.style.maxWidth = "1500px";
+      node.style.background = "#ffffff";
+      node.classList.add("pdf-export-mode");
+
+      // Wait for fonts + a frame so layout settles
+      if ((document as any).fonts?.ready) {
+        await (document as any).fonts.ready;
+      }
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      await new Promise((r) => setTimeout(r, 80));
+
+      const canvas = await html2canvas(node, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        windowWidth: 1500,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+      });
+
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
       const pageWidth = doc.internal.pageSize.getWidth();
-      const now = new Date().toLocaleString();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 40;
+      const usableWidth = pageWidth - margin * 2;
 
+      // Header on page 1
+      const headerHeight = 36;
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text("Payment Scenario Comparison", 40, 50);
+      doc.setFontSize(14);
+      doc.text("Payment Scenario Comparison", margin, margin + 4);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(120);
-      doc.text(`Generated ${now}`, 40, 66);
+      doc.text(`Generated ${new Date().toLocaleString()}`, margin, margin + 20);
       doc.setTextColor(0);
 
-      const headers = ["Metric", ...slots.map((s, i) => {
-        const tag = i === winnerIndex ? "  ★ Lower total cost" : "";
-        return `${s.label}: ${s.scenario.name}${tag}`;
-      })];
+      const imgWidthPx = canvas.width;
+      const imgHeightPx = canvas.height;
+      const pxPerPt = imgWidthPx / usableWidth;
 
-      const fmt = (v: number) => fmtCurrency(v);
-      const pct = (v: number) => `${v}%`;
+      const firstPageUsableHeightPt = pageHeight - margin - (margin + headerHeight);
+      const restPageUsableHeightPt = pageHeight - margin * 2;
 
-      const rows: (string | number)[][] = [
-        ["Offer price", ...slots.map(s => fmt(s.scenario.offerPrice))],
-        ["Down payment %", ...slots.map(s => pct(s.scenario.downPct))],
-        ["Down payment $", ...breakdowns.map(b => fmt(b.downAmt))],
-        ["Loan amount", ...breakdowns.map(b => fmt(b.loanAmount))],
-        ["Interest rate", ...slots.map(s => pct(s.scenario.rate))],
-        ["Loan term (years)", ...slots.map(s => String(s.scenario.loanTerm))],
-        ["Property tax rate", ...slots.map(s => pct(s.scenario.taxRate))],
-        ["Monthly taxes", ...breakdowns.map(b => fmt(b.monthlyTaxes))],
-        ["Monthly insurance", ...slots.map(s => fmt(s.scenario.insurance))],
-        ["Monthly HOA", ...slots.map(s => fmt(s.scenario.hoa))],
-        ["Principal & Interest", ...breakdowns.map(b => fmt(b.pi))],
-        ["Monthly payment (PITI+HOA)", ...breakdowns.map(b => fmt(b.monthly))],
-        ["Total interest paid", ...totalInterests.map(fmt)],
-        ["Total cost of loan", ...totalCosts.map(fmt)],
-      ];
+      const firstSliceHeightPx = Math.floor(firstPageUsableHeightPt * pxPerPt);
+      const restSliceHeightPx = Math.floor(restPageUsableHeightPt * pxPerPt);
 
-      autoTable(doc, {
-        startY: 84,
-        head: [headers],
-        body: rows,
-        styles: { font: "helvetica", fontSize: 9, cellPadding: 6, halign: "right" },
-        headStyles: { fillColor: [40, 40, 40], textColor: 255, halign: "center", fontStyle: "bold" },
-        columnStyles: { 0: { halign: "left", fontStyle: "bold", fillColor: [245, 245, 245] } },
-        didParseCell: (data) => {
-          if (data.section === "body" && data.column.index >= 1) {
-            const colSlot = data.column.index - 1;
-            if (colSlot === winnerIndex && data.row.index === rows.length - 1) {
-              data.cell.styles.fillColor = [232, 244, 232];
-              data.cell.styles.textColor = [20, 90, 40];
-              data.cell.styles.fontStyle = "bold";
-            }
-          }
-        },
-        margin: { left: 40, right: 40 },
-        tableWidth: pageWidth - 80,
-      });
+      let renderedPx = 0;
+      let pageIndex = 0;
 
-      doc.save(`scenario-comparison-${new Date().toISOString().slice(0,10)}.pdf`);
-      toast.success("Comparison PDF downloaded");
+      while (renderedPx < imgHeightPx) {
+        const isFirst = pageIndex === 0;
+        const sliceHeightPx = Math.min(
+          isFirst ? firstSliceHeightPx : restSliceHeightPx,
+          imgHeightPx - renderedPx
+        );
+
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = imgWidthPx;
+        sliceCanvas.height = sliceHeightPx;
+        const ctx = sliceCanvas.getContext("2d");
+        if (!ctx) break;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, imgWidthPx, sliceHeightPx);
+        ctx.drawImage(
+          canvas,
+          0, renderedPx, imgWidthPx, sliceHeightPx,
+          0, 0, imgWidthPx, sliceHeightPx
+        );
+
+        const imgData = sliceCanvas.toDataURL("image/png");
+        const drawWidthPt = usableWidth;
+        const drawHeightPt = sliceHeightPx / pxPerPt;
+        const yPt = isFirst ? margin + headerHeight : margin;
+
+        if (!isFirst) doc.addPage();
+        doc.addImage(imgData, "PNG", margin, yPt, drawWidthPt, drawHeightPt);
+
+        renderedPx += sliceHeightPx;
+        pageIndex += 1;
+      }
+
+      doc.save(`scenario-comparison-${new Date().toISOString().slice(0, 10)}.pdf`);
+      toast.success("Comparison PDF downloaded", { id: toastId });
     } catch (err) {
       console.error("PDF export failed", err);
-      toast.error("Could not export PDF");
+      toast.error("Could not export PDF", { id: toastId });
+    } finally {
+      node.style.cssText = originalCssText;
+      node.className = originalClass;
+      setIsExporting(false);
     }
   };
 
@@ -197,13 +238,16 @@ export default function ScenarioCompareDialog({
               variant="outline"
               size="sm"
               onClick={handleExportPdf}
+              disabled={isExporting}
               className="font-body text-xs gap-1.5 shrink-0 mr-6"
             >
               <Download className="h-3.5 w-3.5" />
-              Export PDF
+              {isExporting ? "Exporting…" : "Export PDF"}
             </Button>
           </div>
         </DialogHeader>
+
+        <div ref={exportRef}>
 
 
         {/* Editors side-by-side (stack below lg) */}
@@ -269,6 +313,7 @@ export default function ScenarioCompareDialog({
             <DeltaRow label="Down payment" values={breakdowns.map(b => b.downAmt)} baseIndex={0} />
             <DeltaRow label="Total interest" values={totalInterests} baseIndex={0} />
           </div>
+        </div>
         </div>
       </DialogContent>
     </Dialog>
