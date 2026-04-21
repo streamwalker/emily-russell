@@ -314,6 +314,7 @@ export default function ScenarioCompareDialog({
             <DeltaRow label="Total interest" values={totalInterests} baseIndex={0} />
           </div>
         </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
