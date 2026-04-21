@@ -1,57 +1,71 @@
 
 
-## Plan: Full-Width Editable Compare Modal + Blank New Scenarios
+## Plan: Visually-Faithful PDF Export for Compare Payment Scenarios
 
-### What changes
+Replace the current text-only `autoTable` PDF with a rendered-image export that mirrors the on-screen Compare modal exactly — donut charts, principal-vs-interest bar charts, all input fields, monthly payment summary cards, total cost row, and the baseline delta strip.
 
-**1. Compare mode → full-width side-by-side editable modal**
+### Approach
 
-Replace the compact read-only A vs B table with a wide modal containing two fully editable `ScenarioEditor` panels side-by-side, plus a slim delta strip below summarizing key differences.
+Use `html2canvas` to snapshot the live compare-modal DOM and embed it into a `jsPDF` document. This guarantees pixel-perfect parity with what the user sees (charts, fonts, colors, spacing) without rebuilding any chart logic in PDF primitives.
 
-Layout:
-```text
-┌──────────────────────────────────────────────────────────────┐
-│  Compare Payment Scenarios                              [X]  │
-├──────────────────────────────────────────────────────────────┤
-│  [ Scenario A ▼ ]              [ Scenario B ▼ ]              │
-├───────────────────────────────┬──────────────────────────────┤
-│                               │                              │
-│   <ScenarioEditor A />        │   <ScenarioEditor B />       │
-│   (full inputs + pie chart)   │   (full inputs + pie chart)  │
-│                               │                              │
-├───────────────────────────────┴──────────────────────────────┤
-│  Delta strip: Monthly Δ · P&I Δ · Down Δ · Total Interest Δ  │
-└──────────────────────────────────────────────────────────────┘
-```
+### Changes
 
-- Modal width: `max-w-[1200px] w-[96vw]`, `max-h-[92vh]` with internal scroll.
-- Two scenario pickers at the top (Select dropdowns) — switching either picker re-mounts that side's editor with the chosen scenario.
-- Both editors are fully interactive: edits autosave through the same `onScenarioChange` path used in the main calculator (debounced save to `saved_estimates`).
-- A compact delta strip at the bottom shows live deltas (B − A) for: Monthly payment, P&I, Down payment, Total interest. Color-coded lower-is-better.
-- Footer note removed (editing is now in-modal).
+**1. `package.json`** — add `html2canvas` (jspdf and jspdf-autotable already present; autotable will be removed from the export path but kept installed in case other places use it).
 
-**2. "+ New scenario" → always create a blank scenario from system defaults**
+**2. `src/components/portal/ScenarioCompareDialog.tsx`**
 
-Replace the duplicate-only button with a single button that calls `createScenario("blank")`. Blank uses `defaultInputs(property.price, property.hoa)` from `paymentCalc.ts`. Tooltip: *"New scenario from defaults"*.
+- Wrap the entire scrollable comparison content (the 3-column editor grid + delta strip) in a `ref`-tagged container, e.g. `exportRef`. The header/Export button stays outside this ref so it isn't captured.
+- Rewrite `handleExportPdf`:
+  1. Show a "Preparing PDF…" toast.
+  2. Temporarily add a class to `exportRef.current` that:
+     - Forces light background (`bg-white`) so charts render cleanly.
+     - Expands width to a fixed export width (e.g. `1500px`) so layout matches desktop, even if user is on a smaller viewport.
+     - Forces the 3-column grid (overrides `lg:grid-cols-3` for mobile users exporting).
+  3. Call `html2canvas(exportRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 1500 })` to get a high-DPI canvas.
+  4. Create a landscape Letter `jsPDF`. Compute scale so the canvas width fits page width minus 40pt margins.
+  5. If the resulting image height exceeds page height, slice the canvas vertically into page-sized chunks and add each as a new PDF page (standard html2canvas → multi-page jsPDF pattern). Each slice drawn via `doc.addImage(sliceDataUrl, "PNG", 40, 40, imgWidth, sliceHeight)`.
+  6. Add a small header on page 1 only: "Payment Scenario Comparison" + generated timestamp, drawn in jsPDF text above the image (image starts ~70pt down on page 1, ~40pt on subsequent pages).
+  7. Save as `scenario-comparison-YYYY-MM-DD.pdf`.
+  8. Remove the temporary export class in a `finally` block. Toast success/error.
+- Drop the `autoTable` import and the manual rows/headers arrays from `handleExportPdf`. Keep `Download` icon and button UI exactly as-is.
 
-### Files changed
+**3. CSS — inline via the temporary export class**
 
-| File | Change |
-|---|---|
-| `src/components/portal/ScenarioCompareDialog.tsx` | Rewrite again: drop the read-only stat table; render two side-by-side `<ScenarioEditor>` panels with their own picker. Re-add `onScenarioChange` prop so edits persist. Add a slim delta strip below the editors. Width → `max-w-[1200px]`. Responsive: stack vertically below `lg`. |
-| `src/components/portal/PaymentCalculator.tsx` | Change "+ New scenario" button to call `createScenario("blank")`. Update tooltip text. Pass `onScenarioChange` to `<ScenarioCompareDialog>` (re-wire the existing autosave handler). |
+Defined inside the component (toggled by adding/removing classes on `exportRef.current` before/after capture), e.g.:
+- `.pdf-export-mode { width: 1500px !important; background: #ffffff !important; }`
+- `.pdf-export-mode .lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }`
 
-### Technical details
+These can live in `src/index.css` under a small `@layer utilities` block, or be applied as inline style overrides in JS. Inline JS overrides are simpler — set `el.style.width = "1500px"` etc., snapshot, then revert.
 
-- `ScenarioEditor` already accepts `onChange` and is the same component used in the main view — no edits needed to it.
-- Autosave path: changes inside the modal flow through the existing `updateScenario` → debounced Supabase upsert in `PaymentCalculator`. Both panels write back to the same scenarios array, so the parent state stays consistent and the main view reflects edits immediately on close.
-- Delta strip uses `computeBreakdown()` + `generateAmortization()` already in `paymentCalc.ts`.
-- Responsive: at `< lg` the two editors stack vertically (each full width), pickers stack too. Delta strip becomes a 2×2 grid on mobile.
+### What the exported PDF will contain (matching screenshots 1 & 2)
+
+Page 1+ (continuous capture, paginated automatically):
+- Three SCENARIO A / B / C columns, each with:
+  - Scenario name dropdown label (rendered as the visible selected name)
+  - Monthly Payment Breakdown donut chart with center $/month label and legend
+  - Principal vs Interest bar chart with term toggle (whatever is currently selected) and "Total Interest Over N Years"
+  - All input fields (Offer Price, Interest Rate slider+number, Down Payment % and $, Tax Rate, Insurance, HOA, Loan Term)
+  - Est. Monthly Payment summary card (P&I, Taxes, Ins, HOA)
+  - Total cost of loan footer (winner highlighted in primary color, exactly as on screen)
+- "Lower total cost" trophy badge on the winning column (rendered from the live DOM)
+- Comparison · Scenario A is baseline · lower is better — the 4 delta rows (Monthly payment, P&I, Down payment, Total interest), each as 3 cards with `vs A: ±$…` in red/primary just like on screen.
+
+### Technical notes
+
+- `html2canvas` works with Recharts (SVG) — Recharts renders inline SVG which html2canvas rasterizes correctly. Donut + bar chart will appear identical.
+- Custom fonts (Playfair Display, DM Sans): html2canvas captures computed styles, so as long as the fonts are loaded in the page (they are, since the modal is open), they'll render in the snapshot. We'll add `await document.fonts.ready` before capture as a safety net.
+- Sliders, inputs, and selects render as their visible state — the dropdown shows the currently-selected scenario name (not an open menu).
+- Scale 2 keeps charts crisp; landscape Letter @ 40pt margins gives ~752pt usable width, well-sized for a 1500px source canvas.
+- Multi-page slicing uses the standard pattern: render once to a tall canvas, then for each page create a temporary canvas of page-height, `drawImage` the slice, `toDataURL`, `doc.addImage`, `doc.addPage`.
 
 ### Out of scope
 
-- Comparing more than 2 scenarios
-- Exporting the comparison
-- Locking one side as a "baseline" reference
-- Per-field reset inside the modal
+- A separate "summary table" page (the current text table is being fully replaced, per request)
+- Embedding property photo / address header (existing export doesn't have it either)
+- Email-the-PDF flow
+
+### Files touched
+
+- `package.json` (+ lockfile) — add `html2canvas`
+- `src/components/portal/ScenarioCompareDialog.tsx` — add `exportRef`, rewrite `handleExportPdf`, drop `autoTable` import
 
