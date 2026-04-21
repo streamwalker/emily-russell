@@ -40,7 +40,9 @@ function DeltaCell({ base, value, isBase }: { base: number; value: number; isBas
   const better = diff < 0;
   const cls = isZero ? "text-muted-foreground" : better ? "text-primary" : "text-destructive";
   const sign = diff > 0 ? "+" : diff < 0 ? "−" : "";
-  const text = isZero ? "—" : `${sign}${fmtCurrency(Math.abs(diff))}`;
+  const pct = base === 0 ? null : Math.round((diff / base) * 100);
+  const pctText = isZero ? "" : pct === null ? " (—)" : ` (${sign}${Math.abs(pct)}%)`;
+  const text = isZero ? "—" : `${sign}${fmtCurrency(Math.abs(diff))}${pctText}`;
   return (
     <div className={`text-[10px] font-body font-semibold tabular-nums mt-0.5 ${cls}`}>
       vs A: {text}
