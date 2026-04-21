@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
-import { Trophy } from "lucide-react";
+import { Trophy, Download } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { SavedScenario, ScenarioInputs, computeBreakdown, generateAmortization } from "@/lib/paymentCalc";
 import ScenarioEditor from "./ScenarioEditor";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -108,15 +112,99 @@ export default function ScenarioCompareDialog({
   const tied = maxCost - minCost < 1;
   const winnerIndex = tied ? -1 : totalCosts.indexOf(minCost);
 
+  const handleExportPdf = () => {
+    try {
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const now = new Date().toLocaleString();
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Payment Scenario Comparison", 40, 50);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(`Generated ${now}`, 40, 66);
+      doc.setTextColor(0);
+
+      const headers = ["Metric", ...slots.map((s, i) => {
+        const tag = i === winnerIndex ? "  ★ Lower total cost" : "";
+        return `${s.label}: ${s.scenario.name}${tag}`;
+      })];
+
+      const fmt = (v: number) => fmtCurrency(v);
+      const pct = (v: number) => `${v}%`;
+
+      const rows: (string | number)[][] = [
+        ["Offer price", ...slots.map(s => fmt(s.scenario.offerPrice))],
+        ["Down payment %", ...slots.map(s => pct(s.scenario.downPct))],
+        ["Down payment $", ...breakdowns.map(b => fmt(b.downAmt))],
+        ["Loan amount", ...breakdowns.map(b => fmt(b.loanAmount))],
+        ["Interest rate", ...slots.map(s => pct(s.scenario.rate))],
+        ["Loan term (years)", ...slots.map(s => String(s.scenario.loanTerm))],
+        ["Property tax rate", ...slots.map(s => pct(s.scenario.taxRate))],
+        ["Monthly taxes", ...breakdowns.map(b => fmt(b.monthlyTaxes))],
+        ["Monthly insurance", ...slots.map(s => fmt(s.scenario.insurance))],
+        ["Monthly HOA", ...slots.map(s => fmt(s.scenario.hoa))],
+        ["Principal & Interest", ...breakdowns.map(b => fmt(b.pi))],
+        ["Monthly payment (PITI+HOA)", ...breakdowns.map(b => fmt(b.monthly))],
+        ["Total interest paid", ...totalInterests.map(fmt)],
+        ["Total cost of loan", ...totalCosts.map(fmt)],
+      ];
+
+      autoTable(doc, {
+        startY: 84,
+        head: [headers],
+        body: rows,
+        styles: { font: "helvetica", fontSize: 9, cellPadding: 6, halign: "right" },
+        headStyles: { fillColor: [40, 40, 40], textColor: 255, halign: "center", fontStyle: "bold" },
+        columnStyles: { 0: { halign: "left", fontStyle: "bold", fillColor: [245, 245, 245] } },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.column.index >= 1) {
+            const colSlot = data.column.index - 1;
+            if (colSlot === winnerIndex && data.row.index === rows.length - 1) {
+              data.cell.styles.fillColor = [232, 244, 232];
+              data.cell.styles.textColor = [20, 90, 40];
+              data.cell.styles.fontStyle = "bold";
+            }
+          }
+        },
+        margin: { left: 40, right: 40 },
+        tableWidth: pageWidth - 80,
+      });
+
+      doc.save(`scenario-comparison-${new Date().toISOString().slice(0,10)}.pdf`);
+      toast.success("Comparison PDF downloaded");
+    } catch (err) {
+      console.error("PDF export failed", err);
+      toast.error("Could not export PDF");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[1500px] w-[97vw] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display">Compare Payment Scenarios</DialogTitle>
-          <DialogDescription className="font-body text-xs">
-            Edit any column — changes autosave. Compare up to three scenarios side-by-side.
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <DialogTitle className="font-display">Compare Payment Scenarios</DialogTitle>
+              <DialogDescription className="font-body text-xs">
+                Edit any column — changes autosave. Compare up to three scenarios side-by-side.
+              </DialogDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleExportPdf}
+              className="font-body text-xs gap-1.5 shrink-0 mr-6"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export PDF
+            </Button>
+          </div>
         </DialogHeader>
+
 
         {/* Editors side-by-side (stack below lg) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-2">
