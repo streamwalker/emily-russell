@@ -432,9 +432,9 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
 
           <button
             type="button"
-            onClick={() => createScenario(active ? "duplicate" : "blank")}
+            onClick={() => createScenario("blank")}
             className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-[11px] font-body text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
-            title={active ? `Duplicate "${active.name}"` : "New scenario"}
+            title="New scenario from defaults"
           >
             <Plus className="h-2.5 w-2.5" /> New scenario
           </button>
@@ -511,6 +511,7 @@ export default function PaymentCalculator({ price, hoaFee = 0, propertyId, userI
           scenarios={scenarios}
           initialLeftId={activeId}
           initialRightId={scenarios.find(s => s.id !== activeId)?.id}
+          onScenarioChange={updateInputs}
         />
       )}
     </div>
