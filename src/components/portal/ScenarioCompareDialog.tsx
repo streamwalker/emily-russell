@@ -12,6 +12,7 @@ import ScenarioComparePrintView from "./ScenarioComparePrintView";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -21,6 +22,9 @@ interface Props {
   initialRightId?: string;
   initialThirdId?: string;
   onScenarioChange: (id: string, next: ScenarioInputs) => void;
+  propertyAddress?: string;
+  propertyCity?: string;
+  propertyCommunity?: string;
 }
 
 const fmtCurrency = (v: number) => `$${Math.round(v).toLocaleString()}`;
@@ -70,6 +74,7 @@ function DeltaRow({
 
 export default function ScenarioCompareDialog({
   open, onOpenChange, scenarios, initialLeftId, initialRightId, initialThirdId, onScenarioChange,
+  propertyAddress, propertyCity, propertyCommunity,
 }: Props) {
   const firstId = scenarios[0]?.id ?? "";
   const secondId = scenarios[1]?.id ?? firstId;
@@ -121,6 +126,19 @@ export default function ScenarioCompareDialog({
     const toastId = toast.loading("Preparing PDF…");
     setIsExporting(true);
 
+    // Fetch map thumbnail (non-fatal if it fails)
+    let mapDataUrl: string | undefined;
+    if (propertyAddress) {
+      try {
+        const { data, error } = await supabase.functions.invoke("get-map-thumbnail", {
+          body: { address: propertyAddress, city: propertyCity },
+        });
+        if (!error && data?.dataUrl) mapDataUrl = data.dataUrl;
+      } catch (e) {
+        console.warn("Map thumbnail fetch failed", e);
+      }
+    }
+
     // Mount print view offscreen
     const container = document.createElement("div");
     container.style.cssText =
@@ -135,6 +153,10 @@ export default function ScenarioCompareDialog({
           winnerIndex={winnerIndex}
           totalCosts={totalCosts}
           totalInterests={totalInterests}
+          propertyAddress={propertyAddress}
+          propertyCity={propertyCity}
+          propertyCommunity={propertyCommunity}
+          mapDataUrl={mapDataUrl}
         />
       );
 
