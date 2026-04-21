@@ -1,45 +1,52 @@
 
 
-## Plan: Authentic Builder Photos for Ladera & Redbird Ranch Cards
+## Plan: Authentic Listing Photos for 5 Recent Sales
 
-Replace the generic Unsplash stock photos in the "New Home Communities" section of `src/pages/Index.tsx` with real exterior shots pulled from the official builder pages for these two communities.
+Replace the generic Unsplash stock photos in the **Recent Sales** section (`RECENT_SALES` array, `src/pages/Index.tsx` lines 23–29) with real exterior shots from past Zillow listings, sourced via the Wayback Machine when needed.
 
-### Sources confirmed
+### Properties to update
 
-| Community | Builder | Page | Image |
-|---|---|---|---|
-| **Redbird Ranch** | D.R. Horton | `drhorton.com/.../redbird-ranch` | Front exterior of model home (`exterior1_web.jpg`) |
-| **Ladera** | Coventry Homes | `coventryhomes.com/.../ladera-communities` | Hero gallery shot of the Bryan model at 15011 Early Dawn |
+| # | Address | ZIP |
+|---|---|---|
+| 1 | 242 Wild Duck | 78253 |
+| 2 | 17010 Eaton Terrace | 78247 |
+| 3 | 7703 Chancery Gate | 78253 |
+| 4 | 7627 Parish Pl | 78253 |
+| 5 | 4210 Amos Pollard | 78253 |
 
-Both are first-image exterior hero shots, matching the visual style of the third card (Stillwater Ranch) — front-facing single home, daylight, landscaped.
+### Sourcing approach
+
+For each address, in this order until a usable front-exterior photo is found:
+
+1. **Search Zillow directly** for the active/off-market listing page (`zillow.com/homedetails/...`) using a web search.
+2. **If Zillow is blocked or delisted**, query the **Wayback Machine** CDX API (`web.archive.org/cdx/search/cdx?url=zillow.com/homedetails/<slug>*`) to find archived snapshots, then pull the hero image from the most recent successful capture.
+3. **Fallback**: Realtor.com or Redfin archive snapshot for the same address.
+
+I'll prioritize the **first/hero exterior** photo on each listing — same visual style as the rest of the cards.
 
 ### What changes
 
-In `src/pages/Index.tsx`, the `NEW_HOME_DEALS` array (lines 49–74), update only the `img` field for the first two entries:
+- **Download** all 5 photos locally to `public/sales/` to avoid hotlinking issues (Zillow and Wayback both block cross-origin `<img>` requests). Filenames:
+  - `public/sales/242-wild-duck.jpg`
+  - `public/sales/17010-eaton-terrace.jpg`
+  - `public/sales/7703-chancery-gate.jpg`
+  - `public/sales/7627-parish-pl.jpg`
+  - `public/sales/4210-amos-pollard.jpg`
+- **Update** `src/pages/Index.tsx` — swap the `img` field on each of the 5 entries in `RECENT_SALES` to the local `/sales/...` path. No layout, copy, or styling changes.
 
-```ts
-// Redbird Ranch (line 55)
-img: "https://www.drhorton.com/-/media/drhorton/productcatalog/425-san-antonio/42815-redbird-mccombs/428150000-redbird-mccombs-45s/exterior1_web.jpg?as=1&w=1280&rev=712591dfc657452e89febecbff8c5f7d&hash=F519211BD427CBC84C6CE03578A5336F"
+### Risk + fallback
 
-// Ladera (line 63)
-img: "https://media.coventryhomes.com/434/2025/3/11/1_SAN_Ladera50_Bryan_15011_Early_Dawn.jpg?width=1600&height=1067&fit=bounds&ois=c126e08"
-```
-
-No other code changes — the existing `<img>` tag, aspect ratio, and card styling stay the same.
-
-### Hotlinking risk + fallback
-
-Builder CDNs sometimes block cross-origin hotlinking via `Referer` checks, and URLs occasionally change when sites redeploy. If either image fails to load in the live preview after the change, the safe fallback is to **download both images, commit them under `public/communities/redbird-ranch.jpg` and `public/communities/ladera.jpg`, and reference the local paths**. I'll do this automatically in the implementation step if the hotlinks don't render — no additional approval needed.
+If a property has no archived Zillow listing AND no Realtor/Redfin snapshot with a usable image, I'll fall back to a **Google Street View Static API thumbnail** (the project already has `GOOGLE_MAPS_STATIC_API_KEY` configured for the existing map-thumbnail edge function). I'll note in chat which addresses, if any, fell back to Street View so you can replace them later with a better photo.
 
 ### Out of scope
 
-- Stillwater Ranch (already looks fine, not requested)
 - Adding a photo carousel or multiple images per card
-- Any layout, copy, or styling changes
-- Adding image-credit captions
+- Replacing the New Home Communities photos (already done)
+- Any layout or copy changes to the Recent Sales section
+- Adding "Photo: Zillow" credit captions
 
 ### Files touched
 
-- `src/pages/Index.tsx` — two single-line `img` URL swaps in `NEW_HOME_DEALS`
-- *(if hotlinks fail)* `public/communities/redbird-ranch.jpg`, `public/communities/ladera.jpg`
+- `public/sales/*.jpg` (5 new image files)
+- `src/pages/Index.tsx` — five single-line `img` URL swaps in `RECENT_SALES`
 
