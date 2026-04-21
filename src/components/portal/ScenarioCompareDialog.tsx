@@ -3,6 +3,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trophy } from "lucide-react";
 import { SavedScenario, ScenarioInputs, computeBreakdown, generateAmortization } from "@/lib/paymentCalc";
 import ScenarioEditor from "./ScenarioEditor";
 
@@ -62,15 +63,21 @@ export default function ScenarioCompareDialog({
   const rAmort = generateAmortization(rb.loanAmount, right.rate, right.loanTerm);
   const lTotalInterest = lAmort.reduce((s, d) => s + d.interest, 0);
   const rTotalInterest = rAmort.reduce((s, d) => s + d.interest, 0);
+  const lTotalCost = lb.downAmt + lb.loanAmount + lTotalInterest;
+  const rTotalCost = rb.downAmt + rb.loanAmount + rTotalInterest;
+  const tiedCost = Math.abs(lTotalCost - rTotalCost) < 1;
+  const winnerSide: "A" | "B" | null = tiedCost ? null : lTotalCost < rTotalCost ? "A" : "B";
 
   const pickers: Array<{
     label: string;
+    side: "A" | "B";
     id: string;
     setId: (v: string) => void;
     scenario: SavedScenario;
+    totalCost: number;
   }> = [
-    { label: "Scenario A", id: leftId, setId: setLeftId, scenario: left },
-    { label: "Scenario B", id: rightId, setId: setRightId, scenario: right },
+    { label: "Scenario A", side: "A", id: leftId, setId: setLeftId, scenario: left, totalCost: lTotalCost },
+    { label: "Scenario B", side: "B", id: rightId, setId: setRightId, scenario: right, totalCost: rTotalCost },
   ];
 
   return (
@@ -85,33 +92,57 @@ export default function ScenarioCompareDialog({
 
         {/* Editors side-by-side (stack below lg) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-          {pickers.map(({ label, id, setId, scenario }) => (
-            <div key={label} className="rounded border border-border bg-muted/30 p-3 space-y-3">
-              <div className="flex flex-col gap-1">
-                <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground font-body font-semibold">
-                  {label}
+          {pickers.map(({ label, side, id, setId, scenario, totalCost }) => {
+            const isWinner = winnerSide === side;
+            return (
+              <div
+                key={label}
+                className={`rounded border bg-muted/30 p-3 space-y-3 transition-colors ${
+                  isWinner ? "border-primary ring-1 ring-primary/30" : "border-border"
+                }`}
+              >
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[9px] uppercase tracking-[2px] text-muted-foreground font-body font-semibold">
+                      {label}
+                    </div>
+                    {isWinner && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary border border-primary/30 px-2 py-0.5 text-[9px] font-body font-semibold uppercase tracking-[1.5px]"
+                        title={`Total cost of loan: $${Math.round(totalCost).toLocaleString()}`}
+                      >
+                        <Trophy className="h-2.5 w-2.5" /> Lower total cost
+                      </span>
+                    )}
+                  </div>
+                  <Select value={id} onValueChange={setId}>
+                    <SelectTrigger className="h-8 text-xs font-body">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {scenarios.map(s => (
+                        <SelectItem key={s.id} value={s.id} className="text-xs font-body">
+                          {s.name}{s.is_pinned ? " · pinned" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={id} onValueChange={setId}>
-                  <SelectTrigger className="h-8 text-xs font-body">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scenarios.map(s => (
-                      <SelectItem key={s.id} value={s.id} className="text-xs font-body">
-                        {s.name}{s.is_pinned ? " · pinned" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ScenarioEditor
+                  key={scenario.id}
+                  inputs={scenario}
+                  onChange={(next) => onScenarioChange(scenario.id, next)}
+                  compact
+                />
+                <div className="text-[10px] font-body text-muted-foreground text-center pt-1 border-t border-border/50">
+                  Total cost of loan:{" "}
+                  <span className={`font-semibold tabular-nums ${isWinner ? "text-primary" : "text-foreground"}`}>
+                    ${Math.round(totalCost).toLocaleString()}
+                  </span>
+                </div>
               </div>
-              <ScenarioEditor
-                key={scenario.id}
-                inputs={scenario}
-                onChange={(next) => onScenarioChange(scenario.id, next)}
-                compact
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Delta strip */}
