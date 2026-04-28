@@ -8,36 +8,54 @@ import {
   Container,
   Head,
   Heading,
+  Hr,
   Html,
+  Link,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
 interface RecoveryEmailProps {
   siteName: string
+  siteUrl?: string
   confirmationUrl: string
 }
 
 export const RecoveryEmail = ({
-  siteName,
+  siteUrl = 'https://alamocitydesigns.com',
   confirmationUrl,
 }: RecoveryEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Reset your password for {siteName}</Preview>
+    <Preview>Reset your password</Preview>
     <Body style={main}>
       <Container style={container}>
+        <Section style={header}>
+          <Text style={brandMark}>EMILY RUSSELL</Text>
+          <Text style={brandTagline}>REALTOR® · San Antonio, TX</Text>
+        </Section>
+        <Hr style={hr} />
         <Heading style={h1}>Reset your password</Heading>
         <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
+          We received a request to reset the password on your client portal account.
+          Click the button below to choose a new one.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Reset Password
-        </Button>
+        <Section style={buttonWrap}>
+          <Button style={button} href={confirmationUrl}>
+            Reset Password
+          </Button>
+        </Section>
+        <Text style={text}>
+          This link will expire shortly for your security.
+        </Text>
+        <Hr style={hr} />
         <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
+          If you didn't request a password reset, you can safely ignore this email — your password will not be changed.
+        </Text>
+        <Text style={footer}>
+          Emily Russell, REALTOR® · TREC #791742 · Fathom Realty<br />
+          <Link href={siteUrl} style={footerLink}>alamocitydesigns.com</Link> · (210) 912-0806
         </Text>
       </Container>
     </Body>
@@ -46,26 +64,56 @@ export const RecoveryEmail = ({
 
 export default RecoveryEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
+const main = {
+  backgroundColor: '#ffffff',
+  fontFamily: "'DM Sans', Helvetica, Arial, sans-serif",
+}
+const container = { padding: '32px 28px', maxWidth: '560px' }
+const header = { textAlign: 'center' as const, padding: '8px 0 16px' }
+const brandMark = {
+  fontFamily: "'Playfair Display', Georgia, serif",
+  fontSize: '28px',
+  fontWeight: 600 as const,
+  letterSpacing: '4px',
+  color: 'hsl(0, 0%, 11%)',
+  margin: '0',
+}
+const brandTagline = {
+  fontSize: '11px',
+  letterSpacing: '2px',
+  color: 'hsl(27, 32%, 50%)',
+  margin: '6px 0 0',
+}
+const hr = { borderTop: '1px solid hsl(30, 14%, 85%)', margin: '20px 0' }
 const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
+  fontFamily: "'Playfair Display', Georgia, serif",
+  fontSize: '24px',
+  fontWeight: 500 as const,
+  color: 'hsl(0, 0%, 11%)',
+  margin: '12px 0 18px',
 }
 const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
+  fontSize: '15px',
+  color: 'hsl(0, 0%, 33%)',
+  lineHeight: '1.6',
+  margin: '0 0 18px',
 }
+const buttonWrap = { textAlign: 'center' as const, margin: '8px 0 28px' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: 'hsl(27, 35%, 59%)',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
+  letterSpacing: '1px',
+  textTransform: 'uppercase' as const,
+  borderRadius: '0px',
+  padding: '14px 32px',
   textDecoration: 'none',
+  fontWeight: 500 as const,
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const footer = {
+  fontSize: '12px',
+  color: 'hsl(0, 0%, 33%)',
+  lineHeight: '1.5',
+  margin: '12px 0 0',
+}
+const footerLink = { color: 'hsl(27, 32%, 50%)', textDecoration: 'underline' }

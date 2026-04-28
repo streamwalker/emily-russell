@@ -8,9 +8,11 @@ import {
   Container,
   Head,
   Heading,
+  Hr,
   Html,
   Link,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -21,30 +23,38 @@ interface InviteEmailProps {
 }
 
 export const InviteEmail = ({
-  siteName,
   siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>You've been invited to join {siteName}</Preview>
+    <Preview>You're invited to your private client portal</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
+        <Section style={header}>
+          <Text style={brandMark}>EMILY RUSSELL</Text>
+          <Text style={brandTagline}>REALTOR® · San Antonio, TX</Text>
+        </Section>
+        <Hr style={hr} />
+        <Heading style={h1}>Your client portal is ready</Heading>
         <Text style={text}>
-          You've been invited to join{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          . Click the button below to accept the invitation and create your
-          account.
+          I've prepared a private dossier of properties for you to review.
+          Accept the invitation below to access your client portal — favorite homes,
+          schedule tours, and compare options side-by-side.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Accept Invitation
-        </Button>
+        <Section style={buttonWrap}>
+          <Button style={button} href={confirmationUrl}>
+            Accept Invitation
+          </Button>
+        </Section>
+        <Text style={signature}>— Emily Russell</Text>
+        <Hr style={hr} />
         <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
+          If you weren't expecting this invitation, you can safely ignore this email.
+        </Text>
+        <Text style={footer}>
+          Emily Russell, REALTOR® · TREC #791742 · Fathom Realty<br />
+          <Link href={siteUrl} style={footerLink}>alamocitydesigns.com</Link> · (210) 912-0806
         </Text>
       </Container>
     </Body>
@@ -53,27 +63,35 @@ export const InviteEmail = ({
 
 export default InviteEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
+const main = { backgroundColor: '#ffffff', fontFamily: "'DM Sans', Helvetica, Arial, sans-serif" }
+const container = { padding: '32px 28px', maxWidth: '560px' }
+const header = { textAlign: 'center' as const, padding: '8px 0 16px' }
+const brandMark = {
+  fontFamily: "'Playfair Display', Georgia, serif",
+  fontSize: '28px', fontWeight: 600 as const, letterSpacing: '4px',
+  color: 'hsl(0, 0%, 11%)', margin: '0',
+}
+const brandTagline = {
+  fontSize: '11px', letterSpacing: '2px',
+  color: 'hsl(27, 32%, 50%)', margin: '6px 0 0',
+}
+const hr = { borderTop: '1px solid hsl(30, 14%, 85%)', margin: '20px 0' }
 const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
+  fontFamily: "'Playfair Display', Georgia, serif",
+  fontSize: '24px', fontWeight: 500 as const,
+  color: 'hsl(0, 0%, 11%)', margin: '12px 0 18px',
 }
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const link = { color: 'inherit', textDecoration: 'underline' }
+const text = { fontSize: '15px', color: 'hsl(0, 0%, 33%)', lineHeight: '1.6', margin: '0 0 18px' }
+const buttonWrap = { textAlign: 'center' as const, margin: '8px 0 28px' }
 const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
+  backgroundColor: 'hsl(27, 35%, 59%)', color: '#ffffff',
+  fontSize: '14px', letterSpacing: '1px', textTransform: 'uppercase' as const,
+  borderRadius: '0px', padding: '14px 32px', textDecoration: 'none', fontWeight: 500 as const,
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const signature = {
+  fontFamily: "'Playfair Display', Georgia, serif",
+  fontSize: '16px', fontStyle: 'italic' as const,
+  color: 'hsl(0, 0%, 11%)', margin: '0 0 8px',
+}
+const footer = { fontSize: '12px', color: 'hsl(0, 0%, 33%)', lineHeight: '1.5', margin: '12px 0 0' }
+const footerLink = { color: 'hsl(27, 32%, 50%)', textDecoration: 'underline' }
