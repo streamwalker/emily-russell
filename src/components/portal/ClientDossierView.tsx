@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Heart, CalendarIcon, GraduationCap, BarChart3, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, CalendarIcon, GraduationCap, BarChart3, List, Printer } from "lucide-react";
+import "@/styles/dossier-print.css";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
