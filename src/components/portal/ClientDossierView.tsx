@@ -869,11 +869,11 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
         </div>
 
         {/* Accent bar */}
-        <div className="h-[3px]" style={{ background: getRainbowColor(allTabs.findIndex(t => t.key === activeTab)) }} />
+        <div className="h-[3px] print:hidden" style={{ background: getRainbowColor(allTabs.findIndex(t => t.key === activeTab)) }} />
 
         {/* Content */}
         <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 print:hidden">
             <div className="flex-1">
               <FilterSortToolbar
                 filters={filters}
