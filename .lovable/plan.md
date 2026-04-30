@@ -1,46 +1,63 @@
-## Plan: Temporarily Disable OSINT Analyst
+## Plan: Print / PDF Share for Client Property Dossier
 
-The OSINT Analyst is one of two features burning Lovable AI credits (per-property Gemini calls + Firecrawl searches). Disable the entry point in the Admin Property Editor while preserving all logic so it can be flipped back on once an embedded / Open Claw replacement is wired in.
+Add a one-click way for clients (and Emily) to print or save the dossier as a PDF, with each property card matching the layout shown in your screenshot — header bar, Property Details column, Agent Notes column, Tour Requested, monthly payment estimator link, and View Listing link.
 
-### What changes
+### Approach: browser-native print → PDF
 
-**File: `src/components/admin/PropertyEditor.tsx`**
+Use `window.print()` with a dedicated `@media print` stylesheet. This is the simplest, most reliable, zero-dependency path:
+- **Print** → opens the OS print dialog
+- **Save as PDF** → same dialog, "Save as PDF" destination (built into every modern browser/OS)
+- No edge function, no headless Chromium, no extra dependencies, no data round-trip
+- Works offline, works on the client's own device, works for both authenticated portal users and read-only shared views
 
-1. **Hide the "Deploy OSINT Analyst" button** (lines 1070–1082).
-   Replace it with a small, muted, non-clickable status pill:
-   ```
-   ⓘ OSINT Analyst — Disabled (pending embedded replacement)
-   ```
-   Keep it visually anchored in the same toolbar slot (`ml-auto`) so the layout doesn't shift.
+A dedicated server-rendered PDF (Puppeteer/Playwright in an edge function) is overkill here — the dossier is already perfectly rendered HTML; we just need print styles that flatten the interactive UI into a paper-friendly layout.
 
-2. **Hide the progress / log panel** (lines 1086–1118). It will never trigger now, so wrap it in `{false && (...)}` — or simpler, remove the JSX block entirely. Since state vars (`osintRunning`, `osintComplete`, `osintProgress`, `osintLog`, `osintFieldsFound`) won't update, leaving the conditional in place is a no-op. We'll just delete the JSX block to keep the file clean.
+### What gets added
 
-3. **Leave the underlying code intact**:
-   - `deployOsintAnalyst` function (lines ~532–680) — kept, just unreferenced
-   - All `osint*` state hooks (line ~255) — kept
-   - Imports (`Radar`, `Loader2` if used elsewhere) — kept if used by other features, otherwise removed only if truly orphaned
+**1. New "Print / Save as PDF" button**
+Location: `ClientDossierView.tsx` header (line ~774, next to the date/phone block, top-right).
+- Visible in both admin preview and client read-only views
+- Small icon button (Printer icon from lucide-react) with tooltip "Print or Save as PDF"
+- onClick: `window.print()`
 
-**File: `supabase/functions/enrich-properties/index.ts`** — **no changes**.
-The edge function stays deployed but becomes unreachable from the UI. This way:
-- No need to redeploy when re-enabling
-- Direct API calls (e.g. for testing) still work
-- We avoid touching the Supabase function registry
+**2. Print stylesheet** (`src/styles/dossier-print.css`, imported by `ClientDossierView.tsx`)
 
-### What does NOT change
+The stylesheet will, inside `@media print`:
 
-- The edge function `enrich-properties` stays deployed (dormant)
-- Firecrawl connector stays connected
-- `Smart Add` (the *other* AI consumer in `parse-properties`) stays fully functional — it's a different feature
-- No database changes, no RLS changes, no secrets touched
+- **Hide non-essential UI**: filter toolbar, tab strip, dashboard toggle, sort controls, feedback textarea, comment threads, expand/collapse arrows, the floating Print button itself, Realtime toasts, browser scrollbars
+- **Force-expand every property card**: override the `isExpanded` collapse so all property details, agent notes, tour requests, expenses, and rental data print on every card (not just the one the user clicked open)
+- **Match the screenshot layout per card**:
+  - Brown/accent header bar (address, community, BED/BATH/SQ FT, price, status pill)
+  - Two-column body: Property Details (left) and Agent Notes (right)
+  - "Tour Requested" block when a date is set
+  - "Estimate Monthly Payment ▸" caption preserved as a static label (the calculator itself stays collapsed in print — too much UI)
+  - "View Listing →" link with the URL printed inline next to it (since hyperlinks aren't clickable on paper): `View Listing → https://…`
+- **Page setup**: Letter size, 0.5" margins, `print-color-adjust: exact` so the brown/charcoal/gold brand colors print
+- **Page-break hygiene**: `break-inside: avoid` on each property card so cards don't split across pages; `break-after: page` between tabs when "All Homes" is active
+- **Header footprint**: print a compact version of the dossier header on page 1 only — Client name, "Prepared by Emily Russell · Fathom Realty · TREC #791742", date, phone — so the printout is self-identifying for any agent or lender who receives it
+- **Repeating footer** (via `@page`): TREC compliance line + page numbers (browser-supported `@page` margins; we'll keep this lightweight)
 
-### Re-enabling later
+**3. Force-expand-for-print logic**
 
-When the embedded / Open Claw replacement is ready, the toggle is a one-line revert: restore the button JSX and (optionally) the progress panel. Or swap the button's `onClick` to point at a new `deployEmbeddedAnalyst` function that calls the new backend.
+Two options, picking the cleaner one:
+- Add a `data-print-expanded` attribute on every property row and a CSS rule `@media print { [data-print-expanded] .card-collapsed-body { display: block !important; }}` — no React state changes, no re-render, prints whatever is in the DOM
+- This means the collapsed cards' inner JSX must always be rendered (with `display: none` when collapsed in screen view) instead of conditionally mounted via `{isExpanded && (…)}`
+
+We'll convert the `{isExpanded && (…)}` block in `ClientDossierView.tsx` (line 325) to always render the body wrapped in a div with `className={isExpanded ? "block" : "hidden print:block"}`. Same visual behavior on screen, full content available for print.
+
+### What we're explicitly NOT doing (this round)
+
+- No headless-Chromium PDF generation in an edge function (saves cost and complexity; can be added later if you want server-side PDFs for email attachments)
+- No "Email this dossier as PDF" button (separate feature — would require the headless approach)
+- No per-property print (whole-dossier print only; clients can use browser print preview to pick page ranges if they want a single property)
+- No image generation / property photos in print (the dossier currently shows no property photos in the card UI)
+- No changes to `DossierDashboardView` print formatting in this pass — print will always render the list view of the active tab. (We can add dashboard print later if you want.)
 
 ### Files touched
 
-- `src/components/admin/PropertyEditor.tsx` — replace button with disabled status pill; remove progress JSX block
+- `src/components/portal/ClientDossierView.tsx` — add Printer button to header; convert `{isExpanded && (…)}` to always-rendered with `hidden print:block`; import the print stylesheet
+- `src/styles/dossier-print.css` — **new file**, all print rules
 
 ### Memory update
 
-Add a one-liner to project memory: *"OSINT Analyst is disabled in the UI pending an embedded replacement. Edge function `enrich-properties` remains deployed but unreachable."*
+Add a small entry to `mem://features/client-portal` (or a new `mem://features/dossier-print`) noting that print/PDF is browser-native via `window.print()` and a dedicated stylesheet, not server-rendered.

@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Heart, CalendarIcon, GraduationCap, BarChart3, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, CalendarIcon, GraduationCap, BarChart3, List, Printer } from "lucide-react";
+import "@/styles/dossier-print.css";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -230,7 +231,7 @@ function PropertyRow({
         <div className="flex items-center gap-2">
           {rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           {interaction?.grade && (
             <span className={cn(
               "text-[10px] font-bold px-1.5 py-0.5 rounded font-body",
@@ -265,8 +266,9 @@ function PropertyRow({
       </div>
       <div
         onClick={onToggle}
-        className="flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
-        style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))" }}
+        data-accent={accentColor}
+        className="dossier-card-header flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
+        style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))", ["--accent" as any]: accentColor }}
       >
         <div className="flex-1 min-w-0">
           <div className="text-[17px] font-bold font-display">{prop.address}</div>
@@ -313,7 +315,7 @@ function PropertyRow({
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs ml-1 opacity-50">{isExpanded ? "▲" : "▼"}</div>
+              <div className="text-xs ml-1 opacity-50 print:hidden">{isExpanded ? "▲" : "▼"}</div>
             </TooltipTrigger>
             <TooltipContent side="left" className="text-xs max-w-[200px]">
               Click to see full details, rental estimates, and expenses.
@@ -322,9 +324,11 @@ function PropertyRow({
         </div>
       </div>
 
-      {isExpanded && (
-        <div className="px-5 py-4 border-t" style={{ borderColor: `${accentColor}15` }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div
+        className={cn("px-5 py-4 border-t", isExpanded ? "block" : "hidden print:block")}
+        style={{ borderColor: `${accentColor}15` }}
+      >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 dossier-card-body">
             <div>
               <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Property Details</div>
               <div className="font-body text-[13px]">
@@ -347,7 +351,7 @@ function PropertyRow({
 
               {/* Tour Scheduling */}
               {!readOnly ? (
-                <div className="mt-4">
+                <div className="mt-4 print:hidden">
                   <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">When would you like to see this home?</div>
                   <div className="flex gap-2 items-start">
                     <Popover>
@@ -377,6 +381,16 @@ function PropertyRow({
                 </div>
               ) : interaction?.preferred_tour_date && (
                 <div className="mt-4">
+                  <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Tour Requested</div>
+                  <div className="text-xs font-body text-foreground">
+                    {format(new Date(interaction.preferred_tour_date + "T12:00:00"), "MMM d, yyyy")}
+                    {interaction.preferred_tour_time && ` at ${interaction.preferred_tour_time}`}
+                  </div>
+                </div>
+              )}
+              {/* Print-only Tour Requested (admin preview / non-readOnly) */}
+              {!readOnly && interaction?.preferred_tour_date && (
+                <div className="hidden print:block mt-4">
                   <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Tour Requested</div>
                   <div className="text-xs font-body text-foreground">
                     {format(new Date(interaction.preferred_tour_date + "T12:00:00"), "MMM d, yyyy")}
@@ -456,6 +470,7 @@ function PropertyRow({
                   style={{ color: accentColor }}
                 >
                   View Listing →
+                  <span className="hidden print:inline ml-1 font-normal opacity-70 break-all">{prop.sourceUrl}</span>
                 </a>
               )}
             </div>
@@ -463,7 +478,7 @@ function PropertyRow({
 
           {/* Feedback Section */}
           {!readOnly ? (
-            <div className="mt-4 p-3 rounded border border-border bg-muted/50">
+            <div className="mt-4 p-3 rounded border border-border bg-muted/50 print:hidden">
               <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Your Feedback</div>
               <div className="flex gap-3 items-start">
                 <div className="flex-1">
@@ -505,7 +520,7 @@ function PropertyRow({
 
           {/* Admin Replies */}
           {replies && replies.length > 0 && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-2 print:hidden">
               {replies.map(r => (
                 <div key={r.id} className="ml-4 p-2.5 rounded border border-primary/20 bg-primary/5">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -521,10 +536,17 @@ function PropertyRow({
           )}
 
           {prop.price && (
-            <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} propertyAddress={prop.address} propertyCity={prop.city} propertyCommunity={prop.community} />
+            <div className="print:hidden">
+              <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} propertyAddress={prop.address} propertyCity={prop.city} propertyCommunity={prop.community} />
+            </div>
+          )}
+          {/* Print-only: caption mirroring the screenshot footer */}
+          {prop.price && (
+            <div className="hidden print:block mt-3 text-[11px] font-body" style={{ color: accentColor }}>
+              ▸ Estimate Monthly Payment
+            </div>
           )}
         </div>
-      )}
     </div>
   );
 }
@@ -781,11 +803,26 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
                     <Heart className="h-3.5 w-3.5 fill-red-400" /> {favCount}
                   </div>
                 )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => window.print()}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[2px] font-body text-white/70 border border-white/20 px-3 py-1.5 hover:text-white hover:border-white/40 transition-colors cursor-pointer print:hidden"
+                      style={{ background: "rgba(255,255,255,0.05)" }}
+                    >
+                      <Printer className="h-3 w-3" />
+                      Print / PDF
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    Print this dossier or save it as a PDF
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
 
             {/* Interaction Summary */}
-            <div className="flex gap-4 mb-4">
+            <div className="flex gap-4 mb-4 print:hidden">
               {[
                 { icon: Heart, label: "Favorited", count: favCount, color: "text-red-400" },
                 { icon: GraduationCap, label: "Graded", count: Object.values(interactions).filter(i => i.grade).length, color: "text-emerald-400" },
@@ -800,6 +837,7 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
             </div>
 
             {/* Tabs */}
+            <div className="print:hidden">
             <TabScrollContainer>
               {allTabs.map((tab, idx) => {
                 const rainbowColor = getRainbowColor(idx);
@@ -827,15 +865,16 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
                 );
               })}
             </TabScrollContainer>
+            </div>
           </div>
         </div>
 
         {/* Accent bar */}
-        <div className="h-[3px]" style={{ background: getRainbowColor(allTabs.findIndex(t => t.key === activeTab)) }} />
+        <div className="h-[3px] print:hidden" style={{ background: getRainbowColor(allTabs.findIndex(t => t.key === activeTab)) }} />
 
         {/* Content */}
         <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 print:hidden">
             <div className="flex-1">
               <FilterSortToolbar
                 filters={filters}
