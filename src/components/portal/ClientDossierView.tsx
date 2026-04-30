@@ -458,6 +458,7 @@ function PropertyRow({
                   style={{ color: accentColor }}
                 >
                   View Listing →
+                  <span className="hidden print:inline ml-1 font-normal opacity-70 break-all">{prop.sourceUrl}</span>
                 </a>
               )}
             </div>
