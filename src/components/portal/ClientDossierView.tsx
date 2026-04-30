@@ -313,7 +313,7 @@ function PropertyRow({
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="text-xs ml-1 opacity-50">{isExpanded ? "▲" : "▼"}</div>
+              <div className="text-xs ml-1 opacity-50 print:hidden">{isExpanded ? "▲" : "▼"}</div>
             </TooltipTrigger>
             <TooltipContent side="left" className="text-xs max-w-[200px]">
               Click to see full details, rental estimates, and expenses.
