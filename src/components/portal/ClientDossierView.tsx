@@ -802,6 +802,21 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
                     <Heart className="h-3.5 w-3.5 fill-red-400" /> {favCount}
                   </div>
                 )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => window.print()}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[2px] font-body text-white/70 border border-white/20 px-3 py-1.5 hover:text-white hover:border-white/40 transition-colors cursor-pointer print:hidden"
+                      style={{ background: "rgba(255,255,255,0.05)" }}
+                    >
+                      <Printer className="h-3 w-3" />
+                      Print / PDF
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    Print this dossier or save it as a PDF
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
 
