@@ -43,10 +43,13 @@
     gap: 1rem !important;
   }
 
-  /* Keep the brown/accent header bar visible in print */
-  .bg-card > div[style*="linear-gradient"],
-  .bg-card > div[style*="background"] {
-    color: inherit;
+  /* Force brown/accent header bar on every property card in print (matches screenshot) */
+  .dossier-card-header {
+    background: var(--accent, #7a6650) !important;
+    color: #fff !important;
+  }
+  .dossier-card-header * {
+    color: #fff !important;
   }
 
   /* Anchors: prevent underline soup; URL is already appended inline for View Listing */
