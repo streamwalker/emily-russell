@@ -1,0 +1,73 @@
+/* Client Property Dossier — Print Styles
+   Triggered by window.print(); also drives "Save as PDF" via the OS print dialog. */
+
+@media print {
+  /* Page setup: US Letter, 0.5" margins */
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
+
+  /* Force browsers to print background colors (brand brown card headers, status pills, etc.) */
+  html,
+  body,
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Strip the app shell so only the dossier prints. Hide site nav/footer/toasts. */
+  body {
+    background: #fff !important;
+  }
+
+  /* Hide things that shouldn't print at all */
+  nav,
+  header[role="banner"],
+  footer[role="contentinfo"],
+  [data-sonner-toaster],
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  /* Property cards: never split across pages */
+  .bg-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Card body grid → keep two-column layout shown in the screenshot */
+  .dossier-card-body {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Keep the brown/accent header bar visible in print */
+  .bg-card > div[style*="linear-gradient"],
+  .bg-card > div[style*="background"] {
+    color: inherit;
+  }
+
+  /* Anchors: prevent underline soup; URL is already appended inline for View Listing */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  /* Avoid orphaned headings */
+  h1, h2, h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Ensure expanded card body always shows in print (covered by hidden print:block in JSX too) */
+  .print\:block {
+    display: block !important;
+  }
+
+  /* Larger top padding on dossier header so it doesn't hug the page edge */
+  .max-w-\[960px\] {
+    max-width: 100% !important;
+  }
+}
