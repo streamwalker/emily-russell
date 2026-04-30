@@ -821,7 +821,7 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
             </div>
 
             {/* Interaction Summary */}
-            <div className="flex gap-4 mb-4">
+            <div className="flex gap-4 mb-4 print:hidden">
               {[
                 { icon: Heart, label: "Favorited", count: favCount, color: "text-red-400" },
                 { icon: GraduationCap, label: "Graded", count: Object.values(interactions).filter(i => i.grade).length, color: "text-emerald-400" },
@@ -836,6 +836,7 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
             </div>
 
             {/* Tabs */}
+            <div className="print:hidden">
             <TabScrollContainer>
               {allTabs.map((tab, idx) => {
                 const rainbowColor = getRainbowColor(idx);
