@@ -864,6 +864,7 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
                 );
               })}
             </TabScrollContainer>
+            </div>
           </div>
         </div>
 
