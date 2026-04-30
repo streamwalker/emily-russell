@@ -230,7 +230,7 @@ function PropertyRow({
         <div className="flex items-center gap-2">
           {rankInfo && <RankBadge rank={rankInfo.rank} summary={rankInfo.scoreSummary} sourceTab={rankInfo.sourceTab} color={accentColor} />}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           {interaction?.grade && (
             <span className={cn(
               "text-[10px] font-bold px-1.5 py-0.5 rounded font-body",
