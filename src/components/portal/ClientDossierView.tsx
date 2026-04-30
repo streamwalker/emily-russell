@@ -466,7 +466,7 @@ function PropertyRow({
 
           {/* Feedback Section */}
           {!readOnly ? (
-            <div className="mt-4 p-3 rounded border border-border bg-muted/50">
+            <div className="mt-4 p-3 rounded border border-border bg-muted/50 print:hidden">
               <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Your Feedback</div>
               <div className="flex gap-3 items-start">
                 <div className="flex-1">
@@ -508,7 +508,7 @@ function PropertyRow({
 
           {/* Admin Replies */}
           {replies && replies.length > 0 && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-2 print:hidden">
               {replies.map(r => (
                 <div key={r.id} className="ml-4 p-2.5 rounded border border-primary/20 bg-primary/5">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -524,7 +524,15 @@ function PropertyRow({
           )}
 
           {prop.price && (
-            <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} propertyAddress={prop.address} propertyCity={prop.city} propertyCommunity={prop.community} />
+            <div className="print:hidden">
+              <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} propertyAddress={prop.address} propertyCity={prop.city} propertyCommunity={prop.community} />
+            </div>
+          )}
+          {/* Print-only: caption mirroring the screenshot footer */}
+          {prop.price && (
+            <div className="hidden print:block mt-3 text-[11px] font-body" style={{ color: accentColor }}>
+              ▸ Estimate Monthly Payment
+            </div>
           )}
         </div>
     </div>
