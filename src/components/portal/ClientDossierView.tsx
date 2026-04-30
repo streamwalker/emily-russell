@@ -322,9 +322,11 @@ function PropertyRow({
         </div>
       </div>
 
-      {isExpanded && (
-        <div className="px-5 py-4 border-t" style={{ borderColor: `${accentColor}15` }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div
+        className={cn("px-5 py-4 border-t", isExpanded ? "block" : "hidden print:block")}
+        style={{ borderColor: `${accentColor}15` }}
+      >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 dossier-card-body">
             <div>
               <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Property Details</div>
               <div className="font-body text-[13px]">
