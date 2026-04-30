@@ -349,7 +349,7 @@ function PropertyRow({
 
               {/* Tour Scheduling */}
               {!readOnly ? (
-                <div className="mt-4">
+                <div className="mt-4 print:hidden">
                   <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">When would you like to see this home?</div>
                   <div className="flex gap-2 items-start">
                     <Popover>
@@ -379,6 +379,16 @@ function PropertyRow({
                 </div>
               ) : interaction?.preferred_tour_date && (
                 <div className="mt-4">
+                  <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Tour Requested</div>
+                  <div className="text-xs font-body text-foreground">
+                    {format(new Date(interaction.preferred_tour_date + "T12:00:00"), "MMM d, yyyy")}
+                    {interaction.preferred_tour_time && ` at ${interaction.preferred_tour_time}`}
+                  </div>
+                </div>
+              )}
+              {/* Print-only Tour Requested (admin preview / non-readOnly) */}
+              {!readOnly && interaction?.preferred_tour_date && (
+                <div className="hidden print:block mt-4">
                   <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Tour Requested</div>
                   <div className="text-xs font-body text-foreground">
                     {format(new Date(interaction.preferred_tour_date + "T12:00:00"), "MMM d, yyyy")}
