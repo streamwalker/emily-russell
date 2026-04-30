@@ -1067,55 +1067,15 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         >
           Cancel
         </button>
-        <button
-          onClick={deployOsintAnalyst}
-          disabled={osintRunning || saving}
-          className="flex items-center gap-1.5 font-body text-[10px] uppercase tracking-[2px] cursor-pointer border border-primary/60 text-primary px-4 py-2.5 hover:bg-primary/5 hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
-          style={{ background: osintRunning ? "hsl(27, 35%, 59%, 0.08)" : "transparent" }}
+        <div
+          title="Disabled pending an embedded replacement"
+          className="flex items-center gap-1.5 font-body text-[10px] uppercase tracking-[2px] border border-border text-muted-foreground px-4 py-2.5 ml-auto cursor-not-allowed select-none"
+          style={{ background: "transparent" }}
         >
-          {osintRunning ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Radar className="w-3.5 h-3.5" />
-          )}
-          {osintRunning ? "Analyst Active…" : "Deploy OSINT Analyst"}
-        </button>
-      </div>
-
-      {/* OSINT Progress & Log */}
-      {(osintRunning || osintComplete) && (
-        <div className="mt-3 border border-border bg-card p-4 shadow-sm">
-          {osintRunning && osintProgress && (
-            <div className="flex items-center gap-2 mb-3">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
-              <span className="font-body text-xs text-primary">{osintProgress}</span>
-            </div>
-          )}
-          {osintComplete && (
-            <div className="flex items-center gap-2 mb-3">
-              <Radar className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span className="font-body text-sm font-semibold text-foreground">
-                Analysis Complete — {osintFieldsFound} field{osintFieldsFound !== 1 ? "s" : ""} enriched
-              </span>
-              <button
-                onClick={() => { setOsintComplete(false); setOsintLog([]); }}
-                className="ml-auto font-body text-[10px] uppercase tracking-[2px] text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-none transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
-          {osintLog.length > 0 && (
-            <div className="font-mono text-[11px] leading-relaxed text-muted-foreground bg-muted/30 border border-border rounded p-3 max-h-[200px] overflow-y-auto">
-              {osintLog.map((line, i) => (
-                <div key={i} className={line.includes("Found") && !line.includes("Found 0") ? "text-primary font-medium" : ""}>
-                  {line}
-                </div>
-              ))}
-            </div>
-          )}
+          <Radar className="w-3.5 h-3.5 opacity-60" />
+          OSINT Analyst — Disabled
         </div>
-      )}
+      </div>
     </div>
   );
 }

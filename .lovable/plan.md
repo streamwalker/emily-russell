@@ -1,52 +1,46 @@
+## Plan: Temporarily Disable OSINT Analyst
 
-
-## Plan: Authentic Listing Photos for 5 Recent Sales
-
-Replace the generic Unsplash stock photos in the **Recent Sales** section (`RECENT_SALES` array, `src/pages/Index.tsx` lines 23–29) with real exterior shots from past Zillow listings, sourced via the Wayback Machine when needed.
-
-### Properties to update
-
-| # | Address | ZIP |
-|---|---|---|
-| 1 | 242 Wild Duck | 78253 |
-| 2 | 17010 Eaton Terrace | 78247 |
-| 3 | 7703 Chancery Gate | 78253 |
-| 4 | 7627 Parish Pl | 78253 |
-| 5 | 4210 Amos Pollard | 78253 |
-
-### Sourcing approach
-
-For each address, in this order until a usable front-exterior photo is found:
-
-1. **Search Zillow directly** for the active/off-market listing page (`zillow.com/homedetails/...`) using a web search.
-2. **If Zillow is blocked or delisted**, query the **Wayback Machine** CDX API (`web.archive.org/cdx/search/cdx?url=zillow.com/homedetails/<slug>*`) to find archived snapshots, then pull the hero image from the most recent successful capture.
-3. **Fallback**: Realtor.com or Redfin archive snapshot for the same address.
-
-I'll prioritize the **first/hero exterior** photo on each listing — same visual style as the rest of the cards.
+The OSINT Analyst is one of two features burning Lovable AI credits (per-property Gemini calls + Firecrawl searches). Disable the entry point in the Admin Property Editor while preserving all logic so it can be flipped back on once an embedded / Open Claw replacement is wired in.
 
 ### What changes
 
-- **Download** all 5 photos locally to `public/sales/` to avoid hotlinking issues (Zillow and Wayback both block cross-origin `<img>` requests). Filenames:
-  - `public/sales/242-wild-duck.jpg`
-  - `public/sales/17010-eaton-terrace.jpg`
-  - `public/sales/7703-chancery-gate.jpg`
-  - `public/sales/7627-parish-pl.jpg`
-  - `public/sales/4210-amos-pollard.jpg`
-- **Update** `src/pages/Index.tsx` — swap the `img` field on each of the 5 entries in `RECENT_SALES` to the local `/sales/...` path. No layout, copy, or styling changes.
+**File: `src/components/admin/PropertyEditor.tsx`**
 
-### Risk + fallback
+1. **Hide the "Deploy OSINT Analyst" button** (lines 1070–1082).
+   Replace it with a small, muted, non-clickable status pill:
+   ```
+   ⓘ OSINT Analyst — Disabled (pending embedded replacement)
+   ```
+   Keep it visually anchored in the same toolbar slot (`ml-auto`) so the layout doesn't shift.
 
-If a property has no archived Zillow listing AND no Realtor/Redfin snapshot with a usable image, I'll fall back to a **Google Street View Static API thumbnail** (the project already has `GOOGLE_MAPS_STATIC_API_KEY` configured for the existing map-thumbnail edge function). I'll note in chat which addresses, if any, fell back to Street View so you can replace them later with a better photo.
+2. **Hide the progress / log panel** (lines 1086–1118). It will never trigger now, so wrap it in `{false && (...)}` — or simpler, remove the JSX block entirely. Since state vars (`osintRunning`, `osintComplete`, `osintProgress`, `osintLog`, `osintFieldsFound`) won't update, leaving the conditional in place is a no-op. We'll just delete the JSX block to keep the file clean.
 
-### Out of scope
+3. **Leave the underlying code intact**:
+   - `deployOsintAnalyst` function (lines ~532–680) — kept, just unreferenced
+   - All `osint*` state hooks (line ~255) — kept
+   - Imports (`Radar`, `Loader2` if used elsewhere) — kept if used by other features, otherwise removed only if truly orphaned
 
-- Adding a photo carousel or multiple images per card
-- Replacing the New Home Communities photos (already done)
-- Any layout or copy changes to the Recent Sales section
-- Adding "Photo: Zillow" credit captions
+**File: `supabase/functions/enrich-properties/index.ts`** — **no changes**.
+The edge function stays deployed but becomes unreachable from the UI. This way:
+- No need to redeploy when re-enabling
+- Direct API calls (e.g. for testing) still work
+- We avoid touching the Supabase function registry
+
+### What does NOT change
+
+- The edge function `enrich-properties` stays deployed (dormant)
+- Firecrawl connector stays connected
+- `Smart Add` (the *other* AI consumer in `parse-properties`) stays fully functional — it's a different feature
+- No database changes, no RLS changes, no secrets touched
+
+### Re-enabling later
+
+When the embedded / Open Claw replacement is ready, the toggle is a one-line revert: restore the button JSX and (optionally) the progress panel. Or swap the button's `onClick` to point at a new `deployEmbeddedAnalyst` function that calls the new backend.
 
 ### Files touched
 
-- `public/sales/*.jpg` (5 new image files)
-- `src/pages/Index.tsx` — five single-line `img` URL swaps in `RECENT_SALES`
+- `src/components/admin/PropertyEditor.tsx` — replace button with disabled status pill; remove progress JSX block
 
+### Memory update
+
+Add a one-liner to project memory: *"OSINT Analyst is disabled in the UI pending an embedded replacement. Edge function `enrich-properties` remains deployed but unreachable."*
