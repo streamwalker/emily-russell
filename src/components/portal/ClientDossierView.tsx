@@ -266,8 +266,9 @@ function PropertyRow({
       </div>
       <div
         onClick={onToggle}
-        className="flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
-        style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))" }}
+        data-accent={accentColor}
+        className="dossier-card-header flex justify-between items-center px-5 py-3.5 cursor-pointer transition-all duration-150"
+        style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))", ["--accent" as any]: accentColor }}
       >
         <div className="flex-1 min-w-0">
           <div className="text-[17px] font-bold font-display">{prop.address}</div>
