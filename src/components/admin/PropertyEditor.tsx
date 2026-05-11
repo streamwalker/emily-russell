@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check, Upload, FileText, ChevronDown, ChevronUp, Radar } from "lucide-react";
 import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import {
@@ -371,7 +372,10 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         body: { rawText: combinedText, images },
       });
       if (error) throw new Error(error.message || "Extraction failed");
-      if (result?.error) throw new Error(result.error);
+      if (result?.error) {
+        if (result.code === "CREDITS_EXHAUSTED") toast.error(result.error);
+        throw new Error(result.error);
+      }
       const parsed = result.dossierData as DossierData;
       setSmartAddPreview(parsed);
     } catch (e: unknown) {
