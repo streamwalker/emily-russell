@@ -528,7 +528,10 @@ export default function AdminDashboard() {
         body: { rawText: combinedText, images },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        if (data.code === "CREDITS_EXHAUSTED") toast.error(data.error);
+        throw new Error(data.error);
+      }
       setExtractedData(data.dossierData);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to extract properties");
