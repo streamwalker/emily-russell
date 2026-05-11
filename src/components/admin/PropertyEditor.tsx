@@ -372,7 +372,10 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         body: { rawText: combinedText, images },
       });
       if (error) throw new Error(error.message || "Extraction failed");
-      if (result?.error) throw new Error(result.error);
+      if (result?.error) {
+        if (result.code === "CREDITS_EXHAUSTED") toast.error(result.error);
+        throw new Error(result.error);
+      }
       const parsed = result.dossierData as DossierData;
       setSmartAddPreview(parsed);
     } catch (e: unknown) {
