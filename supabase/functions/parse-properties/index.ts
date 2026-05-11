@@ -361,20 +361,19 @@ serve(async (req) => {
     if (!response.ok) {
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
+      // Return 200 with structured error so the client SDK surfaces it via `data.error`
+      // instead of a generic "Edge function returned non-2xx" runtime error.
+      let userError = "AI extraction failed. Please try again.";
+      let code: string | undefined;
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "AI rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        userError = "AI rate limit exceeded. Please try again in a moment.";
+        code = "RATE_LIMITED";
+      } else if (response.status === 402) {
+        userError = "AI credits exhausted. Please add credits in Settings → Workspace → Usage, then retry.";
+        code = "CREDITS_EXHAUSTED";
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(JSON.stringify({ error: "AI extraction failed" }), {
-        status: 500,
+      return new Response(JSON.stringify({ error: userError, code, fallback: true }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
