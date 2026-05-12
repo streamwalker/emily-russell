@@ -61,6 +61,10 @@ export default function DossierDocumentsCard({
     if (dossierId) load();
   }, [dossierId, load]);
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUploaderId(data.user?.id || ""));
+  }, []);
+
   const handleDownload = async (doc: DossierDocument) => {
     setDownloadingId(doc.id);
     try {
@@ -158,7 +162,7 @@ export default function DossierDocumentsCard({
           onOpenChange={setOpen}
           dossierId={dossierId}
           ownerUserId={ownerUserId}
-          uploaderUserId={uploaderUserId}
+          uploaderUserId={uploaderId}
           onSaved={load}
         />
       )}
