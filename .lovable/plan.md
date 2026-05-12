@@ -1,63 +1,86 @@
-## Plan: Print / PDF Share for Client Property Dossier
+## Document Upload & PDF Builder for the Client Dossier
 
-Add a one-click way for clients (and Emily) to print or save the dossier as a PDF, with each property card matching the layout shown in your screenshot — header bar, Property Details column, Agent Notes column, Tour Requested, monthly payment estimator link, and View Listing link.
+A new "Documents" panel inside the client dossier that lets the client drop in photos, Word docs, and PDFs, auto-straightens skewed photos like a phone scanner, and produces a single merged PDF that's saved to the dossier and visible to Emily in the admin portal.
 
-### Approach: browser-native print → PDF
+### User flow
 
-Use `window.print()` with a dedicated `@media print` stylesheet. This is the simplest, most reliable, zero-dependency path:
-- **Print** → opens the OS print dialog
-- **Save as PDF** → same dialog, "Save as PDF" destination (built into every modern browser/OS)
-- No edge function, no headless Chromium, no extra dependencies, no data round-trip
-- Works offline, works on the client's own device, works for both authenticated portal users and read-only shared views
+1. In `ClientDossierView`, a new **"Documents"** card sits near the top (collapsible, brand-styled). Inside: an "Upload & Build PDF" button + a list of previously saved PDFs for that dossier.
+2. Client clicks **Upload & Build PDF** → modal opens.
+3. Client drops/picks files (JPG, PNG, HEIC, PDF, DOC/DOCX, multi-select OK).
+4. Each file becomes a "page tile" in a reorderable grid:
+   - **Photos** → auto-detected document edges + perspective corrected + cropped + B&W/color toggle. Per-page controls: rotate 90°, manual angle slider, re-crop, revert to original.
+   - **PDFs** → exploded into page thumbnails (reuse existing `pdfjs-dist`).
+   - **Word docs** → converted to PDF pages server-side (LibreOffice in an edge function), then thumbnailed.
+5. Client drags tiles to reorder, deletes unwanted pages, types a filename.
+6. Click **Save PDF** → all pages assembled into one PDF in the browser → uploaded to storage → row inserted in `dossier_documents`.
+7. Saved PDFs appear in the Documents card with download / preview / delete (client) and are also visible to Emily on the admin dossier editor.
 
-A dedicated server-rendered PDF (Puppeteer/Playwright in an edge function) is overkill here — the dossier is already perfectly rendered HTML; we just need print styles that flatten the interactive UI into a paper-friendly layout.
+### Technical breakdown
 
-### What gets added
+**Client-side libraries (added):**
+- `pdf-lib` — assemble final PDF from images + existing PDF pages
+- `opencv.js` (loaded lazy from CDN, ~8 MB, cached) — edge detection + perspective transform for auto-deskew/auto-crop
+- `heic2any` — convert iPhone HEIC photos to JPEG in-browser
+- `@dnd-kit/core` + `@dnd-kit/sortable` — drag-to-reorder page tiles
+- Reuse existing: `pdfjs-dist` (PDF page rasterization), `mammoth` (already in `documentParser.ts`)
 
-**1. New "Print / Save as PDF" button**
-Location: `ClientDossierView.tsx` header (line ~774, next to the date/phone block, top-right).
-- Visible in both admin preview and client read-only views
-- Small icon button (Printer icon from lucide-react) with tooltip "Print or Save as PDF"
-- onClick: `window.print()`
+**Why OpenCV.js for deskew:** it's the standard for document-scanner pipelines (Canny edge → contour → 4-point perspective warp). Loaded once, cached by the browser; no edge function round-trip; works offline.
 
-**2. Print stylesheet** (`src/styles/dossier-print.css`, imported by `ClientDossierView.tsx`)
+**Word → PDF conversion (server-side):**
+- New edge function `convert-docx-to-pdf` running LibreOffice headless (`soffice --headless --convert-to pdf`).
+- Lovable's edge runtime supports this via the standard Deno `Deno.Command` API + LibreOffice in the runtime image. If LibreOffice isn't available in the function runtime, fallback is rendering the `.docx` with `mammoth` → HTML → `pdf-lib` page (lower fidelity but reliable). I'll start with the `mammoth → pdf-lib` path for reliability and document the LibreOffice option as a future upgrade.
 
-The stylesheet will, inside `@media print`:
+**Storage:**
+- New private bucket `dossier-documents` (one folder per dossier id, files keyed by `{dossier_id}/{document_id}.pdf`).
+- RLS: client can read/write only their own dossier's folder; admins (Emily, Phil) full access.
 
-- **Hide non-essential UI**: filter toolbar, tab strip, dashboard toggle, sort controls, feedback textarea, comment threads, expand/collapse arrows, the floating Print button itself, Realtime toasts, browser scrollbars
-- **Force-expand every property card**: override the `isExpanded` collapse so all property details, agent notes, tour requests, expenses, and rental data print on every card (not just the one the user clicked open)
-- **Match the screenshot layout per card**:
-  - Brown/accent header bar (address, community, BED/BATH/SQ FT, price, status pill)
-  - Two-column body: Property Details (left) and Agent Notes (right)
-  - "Tour Requested" block when a date is set
-  - "Estimate Monthly Payment ▸" caption preserved as a static label (the calculator itself stays collapsed in print — too much UI)
-  - "View Listing →" link with the URL printed inline next to it (since hyperlinks aren't clickable on paper): `View Listing → https://…`
-- **Page setup**: Letter size, 0.5" margins, `print-color-adjust: exact` so the brown/charcoal/gold brand colors print
-- **Page-break hygiene**: `break-inside: avoid` on each property card so cards don't split across pages; `break-after: page` between tabs when "All Homes" is active
-- **Header footprint**: print a compact version of the dossier header on page 1 only — Client name, "Prepared by Emily Russell · Fathom Realty · TREC #791742", date, phone — so the printout is self-identifying for any agent or lender who receives it
-- **Repeating footer** (via `@page`): TREC compliance line + page numbers (browser-supported `@page` margins; we'll keep this lightweight)
+**New table `dossier_documents`:**
 
-**3. Force-expand-for-print logic**
+| column | type | purpose |
+|---|---|---|
+| id | uuid PK | |
+| dossier_id | uuid | FK to `client_dossiers.id` |
+| user_id | uuid | dossier owner — for RLS |
+| filename | text | client-chosen name (e.g. "Pre-approval Letter.pdf") |
+| storage_path | text | path in `dossier-documents` bucket |
+| size_bytes | int | for display |
+| page_count | int | for display |
+| uploaded_by | uuid | client OR admin user id |
+| created_at | timestamptz | |
 
-Two options, picking the cleaner one:
-- Add a `data-print-expanded` attribute on every property row and a CSS rule `@media print { [data-print-expanded] .card-collapsed-body { display: block !important; }}` — no React state changes, no re-render, prints whatever is in the DOM
-- This means the collapsed cards' inner JSX must always be rendered (with `display: none` when collapsed in screen view) instead of conditionally mounted via `{isExpanded && (…)}`
+RLS:
+- Client: select/insert/delete rows where `user_id = auth.uid()`
+- Admin: full CRUD via `has_role(auth.uid(), 'admin')`
 
-We'll convert the `{isExpanded && (…)}` block in `ClientDossierView.tsx` (line 325) to always render the body wrapped in a div with `className={isExpanded ? "block" : "hidden print:block"}`. Same visual behavior on screen, full content available for print.
+**Admin visibility:**
+- In `AdminDashboard.tsx`'s dossier editor, add a read-only "Client Documents" section listing each PDF with download link. Admin can also delete or upload on the client's behalf.
 
-### What we're explicitly NOT doing (this round)
+### Files to add / change
 
-- No headless-Chromium PDF generation in an edge function (saves cost and complexity; can be added later if you want server-side PDFs for email attachments)
-- No "Email this dossier as PDF" button (separate feature — would require the headless approach)
-- No per-property print (whole-dossier print only; clients can use browser print preview to pick page ranges if they want a single property)
-- No image generation / property photos in print (the dossier currently shows no property photos in the card UI)
-- No changes to `DossierDashboardView` print formatting in this pass — print will always render the list view of the active tab. (We can add dashboard print later if you want.)
+**New:**
+- `src/components/portal/DocumentBuilder.tsx` — the upload + tile grid + reorder + save modal
+- `src/components/portal/DocumentScanner.ts` — OpenCV.js loader + deskew/crop pipeline (pure logic, no JSX)
+- `src/components/portal/DossierDocumentsCard.tsx` — the card shown in the dossier with the saved-PDFs list
+- `src/lib/pdfBuilder.ts` — `pdf-lib` helpers (image → PDF page, merge PDFs, render docx)
 
-### Files touched
+**Modified:**
+- `src/components/portal/ClientDossierView.tsx` — render `<DossierDocumentsCard />` near the top
+- `src/pages/AdminDashboard.tsx` — show client documents list in the dossier editor
+- `package.json` — add `pdf-lib`, `heic2any`, `@dnd-kit/core`, `@dnd-kit/sortable`
 
-- `src/components/portal/ClientDossierView.tsx` — add Printer button to header; convert `{isExpanded && (…)}` to always-rendered with `hidden print:block`; import the print stylesheet
-- `src/styles/dossier-print.css` — **new file**, all print rules
+**Database migration:**
+- Create `dossier-documents` storage bucket (private) + RLS policies on `storage.objects`
+- Create `dossier_documents` table + RLS policies
 
-### Memory update
+### Out of scope (this round)
 
-Add a small entry to `mem://features/client-portal` (or a new `mem://features/dossier-print`) noting that print/PDF is browser-native via `window.print()` and a dedicated stylesheet, not server-rendered.
+- OCR / making the PDF text-searchable (can add `tesseract.js` later as a "Make searchable" toggle)
+- E-signatures on uploaded documents (separate feature; signed agreements already have their own flow)
+- Email-the-PDF-to-Emily button (she can already access via admin dossier; can add later)
+- LibreOffice-based high-fidelity .docx conversion (start with `mammoth` fallback; revisit if fidelity is insufficient)
+- Versioning of uploaded documents (replace = delete + reupload for now)
+
+### Memory updates
+
+- New entry `mem://features/dossier-documents` documenting the upload/scan/PDF flow, the storage bucket name, and the table.
+- Update `mem://features/client-portal` index entry to mention document upload.
