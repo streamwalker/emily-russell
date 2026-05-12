@@ -15,6 +15,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { toast } from "sonner";
 import AiCreditsBadge from "@/components/admin/AiCreditsBadge";
 import { reportAiResult } from "@/lib/aiCreditStatus";
+import { CreditsExhaustedNotice, isCreditsExhaustedError } from "@/components/admin/CreditsExhaustedNotice";
 
 interface DossierRow {
   id: string;
@@ -657,7 +658,11 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {error && <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>}
+            {error && (
+              isCreditsExhaustedError(error)
+                ? <CreditsExhaustedNotice message={error} />
+                : <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>
+            )}
 
             {/* New Dossier Form */}
             {showNew && (
@@ -1110,7 +1115,11 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {error && <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>}
+            {error && (
+              isCreditsExhaustedError(error)
+                ? <CreditsExhaustedNotice message={error} />
+                : <div className="text-destructive text-sm mb-4 font-body p-3 bg-white border border-destructive/20 rounded">{error}</div>
+            )}
 
             {/* New Template Form */}
             {showNewTemplate && (
