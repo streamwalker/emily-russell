@@ -17,7 +17,6 @@ interface DossierDocument {
 interface Props {
   dossierId: string;
   ownerUserId: string;
-  uploaderUserId: string;
   /** Read-only viewers (e.g. admin preview) can still view & download but the upload button can be hidden. */
   canUpload?: boolean;
   /** Allow viewer to delete (owner or admin). */
@@ -33,10 +32,10 @@ function fmtSize(n: number) {
 export default function DossierDocumentsCard({
   dossierId,
   ownerUserId,
-  uploaderUserId,
   canUpload = true,
   canDelete = true,
 }: Props) {
+  const [uploaderId, setUploaderId] = useState<string>("");
   const [docs, setDocs] = useState<DossierDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
