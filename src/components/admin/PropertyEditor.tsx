@@ -372,6 +372,7 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
         body: { rawText: combinedText, images },
       });
       if (error) throw new Error(error.message || "Extraction failed");
+      reportAiResult(result);
       if (result?.error) {
         if (result.code === "CREDITS_EXHAUSTED") toast.error(result.error);
         throw new Error(result.error);
