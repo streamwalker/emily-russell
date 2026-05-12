@@ -153,6 +153,50 @@ export type Database = {
           },
         ]
       }
+      dossier_documents: {
+        Row: {
+          created_at: string
+          dossier_id: string
+          filename: string
+          id: string
+          page_count: number
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dossier_id: string
+          filename: string
+          id?: string
+          page_count?: number
+          size_bytes?: number
+          storage_path: string
+          uploaded_by: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dossier_id?: string
+          filename?: string
+          id?: string
+          page_count?: number
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_documents_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "client_dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossier_templates: {
         Row: {
           created_at: string
