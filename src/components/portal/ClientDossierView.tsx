@@ -5,6 +5,7 @@ import FilterSortToolbar from "@/components/portal/FilterSortToolbar";
 import RankBadge from "@/components/portal/RankBadge";
 import TabSummary from "@/components/portal/TabSummary";
 import DossierDashboardView from "@/components/portal/DossierDashboardView";
+import DossierDocumentsCard from "@/components/portal/DossierDocumentsCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -874,6 +875,11 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
 
         {/* Content */}
         <div className="max-w-[960px] mx-auto px-6 py-5 pb-12">
+          {dossierId && clientUserId && (
+            <div className="mb-4">
+              <DossierDocumentsCard dossierId={dossierId} ownerUserId={clientUserId} />
+            </div>
+          )}
           <div className="flex items-center gap-2 mb-4 print:hidden">
             <div className="flex-1">
               <FilterSortToolbar
