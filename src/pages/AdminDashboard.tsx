@@ -15,6 +15,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { toast } from "sonner";
 import AiCreditsBadge from "@/components/admin/AiCreditsBadge";
 import { reportAiResult } from "@/lib/aiCreditStatus";
+import { CreditsExhaustedNotice, isCreditsExhaustedError } from "@/components/admin/CreditsExhaustedNotice";
 
 interface DossierRow {
   id: string;

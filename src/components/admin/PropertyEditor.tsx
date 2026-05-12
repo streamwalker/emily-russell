@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { reportAiResult } from "@/lib/aiCreditStatus";
+import { CreditsExhaustedNotice, isCreditsExhaustedError } from "@/components/admin/CreditsExhaustedNotice";
 import { Trash2, Plus, Sparkles, Loader2, Search, GripVertical, Pencil, X, Check, Upload, FileText, ChevronDown, ChevronUp, Radar } from "lucide-react";
 import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import {
@@ -774,7 +775,11 @@ export default function PropertyEditor({ dossierData, onSave, onCancel, saving }
             </div>
           )}
 
-          {smartAddError && <div className="text-destructive text-xs mb-2">{smartAddError}</div>}
+          {smartAddError && (
+            isCreditsExhaustedError(smartAddError)
+              ? <CreditsExhaustedNotice message={smartAddError} />
+              : <div className="text-destructive text-xs mb-2">{smartAddError}</div>
+          )}
           <div className="flex gap-2">
             <button
               onClick={smartAdd}
