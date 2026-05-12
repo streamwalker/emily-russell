@@ -247,7 +247,7 @@ export default function DocumentBuilder({
       const path = `${ownerUserId}/${documentId}.pdf`;
       const upload = await supabase.storage
         .from("dossier-documents")
-        .upload(path, new Blob([pdfBytes], { type: "application/pdf" }), {
+        .upload(path, new Blob([pdfBytes as BlobPart], { type: "application/pdf" }), {
           contentType: "application/pdf",
           upsert: false,
         });
