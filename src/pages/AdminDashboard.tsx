@@ -13,6 +13,8 @@ import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/document
 import ClientDossierView from "@/components/portal/ClientDossierView";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
 import { toast } from "sonner";
+import AiCreditsBadge from "@/components/admin/AiCreditsBadge";
+import { reportAiResult } from "@/lib/aiCreditStatus";
 
 interface DossierRow {
   id: string;
@@ -508,6 +510,7 @@ export default function AdminDashboard() {
         body: { rawText: combinedText, images },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
+      reportAiResult(data);
       if (data?.error) {
         if (data.code === "CREDITS_EXHAUSTED") toast.error(data.error);
         throw new Error(data.error);
@@ -528,6 +531,7 @@ export default function AdminDashboard() {
         body: { rawText: combinedText, images },
       });
       if (fnErr) throw new Error(fnErr.message || "Extraction failed");
+      reportAiResult(data);
       if (data?.error) {
         if (data.code === "CREDITS_EXHAUSTED") toast.error(data.error);
         throw new Error(data.error);
@@ -610,6 +614,7 @@ export default function AdminDashboard() {
             <p className="text-[10px] tracking-[3px] uppercase opacity-45 mt-1">Dossiers · Templates · Analytics · Engagement</p>
           </div>
           <div className="flex gap-3 items-center">
+            <AiCreditsBadge />
             <Link to="/portal/admin/leads" className="font-body text-[11px] uppercase tracking-[2px] text-white/70 no-underline hover:text-white transition-colors">
               Recent Leads
             </Link>
