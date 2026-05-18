@@ -645,6 +645,9 @@ export default function AdminDashboard() {
             <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-xs">
               <BarChart3 className="w-3.5 h-3.5" /> Site Analytics
             </TabsTrigger>
+            <TabsTrigger value="cma" className="flex items-center gap-1.5 text-xs">
+              <LineChartIcon className="w-3.5 h-3.5" /> CMA
+            </TabsTrigger>
             <TabsTrigger value="engagement" className="flex items-center gap-1.5 text-xs">
               <MousePointerClick className="w-3.5 h-3.5" /> Engagement
             </TabsTrigger>
