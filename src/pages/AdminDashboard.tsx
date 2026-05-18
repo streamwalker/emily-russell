@@ -8,7 +8,8 @@ import ClientCredentialsDialog from "@/components/admin/ClientCredentialsDialog"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X, Upload, ChevronRight, Calculator, Share2, UserPlus } from "lucide-react";
+import { Heart, GraduationCap, Calendar, MessageSquare, Users, BarChart3, MousePointerClick, Clock, FileText, TrendingUp, Eye, Globe, Monitor, Smartphone, Sparkles, Loader2, ArrowLeft, Trash2, Pencil, BookTemplate, Copy, Send, X, Upload, ChevronRight, Calculator, Share2, UserPlus, LineChart as LineChartIcon } from "lucide-react";
+import CmaWorkspace from "@/components/admin/cma/CmaWorkspace";
 import { parseFiles, ACCEPTED_FILE_TYPES, type ParsedFile } from "@/lib/documentParser";
 import ClientDossierView from "@/components/portal/ClientDossierView";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
@@ -643,6 +644,9 @@ export default function AdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-1.5 text-xs">
               <BarChart3 className="w-3.5 h-3.5" /> Site Analytics
+            </TabsTrigger>
+            <TabsTrigger value="cma" className="flex items-center gap-1.5 text-xs">
+              <LineChartIcon className="w-3.5 h-3.5" /> CMA
             </TabsTrigger>
             <TabsTrigger value="engagement" className="flex items-center gap-1.5 text-xs">
               <MousePointerClick className="w-3.5 h-3.5" /> Engagement
@@ -1422,7 +1426,12 @@ export default function AdminDashboard() {
             )}
           </TabsContent>
 
-          {/* ═══════════ TAB 3: ENGAGEMENT ═══════════ */}
+          {/* ═══════════ TAB: CMA ═══════════ */}
+          <TabsContent value="cma">
+            <CmaWorkspace />
+          </TabsContent>
+
+          {/* ═══════════ TAB: ENGAGEMENT ═══════════ */}
           <TabsContent value="engagement">
             {analyticsLoading ? (
               <div className="text-center py-12 text-muted-foreground">Loading engagement data…</div>
