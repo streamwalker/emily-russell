@@ -118,6 +118,72 @@ export type Database = {
           },
         ]
       }
+      cma_reports: {
+        Row: {
+          address: string
+          comps_data: Json
+          created_at: string
+          created_by: string
+          error: string | null
+          executive_summary: string | null
+          id: string
+          narrative: string | null
+          notes: string | null
+          pdf_path: string | null
+          ppsf_high: number | null
+          ppsf_low: number | null
+          ppsf_recommended: number | null
+          status: string
+          subject_data: Json
+          updated_at: string
+          value_high: number | null
+          value_low: number | null
+          value_recommended: number | null
+        }
+        Insert: {
+          address: string
+          comps_data?: Json
+          created_at?: string
+          created_by: string
+          error?: string | null
+          executive_summary?: string | null
+          id?: string
+          narrative?: string | null
+          notes?: string | null
+          pdf_path?: string | null
+          ppsf_high?: number | null
+          ppsf_low?: number | null
+          ppsf_recommended?: number | null
+          status?: string
+          subject_data?: Json
+          updated_at?: string
+          value_high?: number | null
+          value_low?: number | null
+          value_recommended?: number | null
+        }
+        Update: {
+          address?: string
+          comps_data?: Json
+          created_at?: string
+          created_by?: string
+          error?: string | null
+          executive_summary?: string | null
+          id?: string
+          narrative?: string | null
+          notes?: string | null
+          pdf_path?: string | null
+          ppsf_high?: number | null
+          ppsf_low?: number | null
+          ppsf_recommended?: number | null
+          status?: string
+          subject_data?: Json
+          updated_at?: string
+          value_high?: number | null
+          value_low?: number | null
+          value_recommended?: number | null
+        }
+        Relationships: []
+      }
       comment_replies: {
         Row: {
           admin_user_id: string
