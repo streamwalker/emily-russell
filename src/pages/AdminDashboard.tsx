@@ -1426,7 +1426,12 @@ export default function AdminDashboard() {
             )}
           </TabsContent>
 
-          {/* ═══════════ TAB 3: ENGAGEMENT ═══════════ */}
+          {/* ═══════════ TAB: CMA ═══════════ */}
+          <TabsContent value="cma">
+            <CmaWorkspace />
+          </TabsContent>
+
+          {/* ═══════════ TAB: ENGAGEMENT ═══════════ */}
           <TabsContent value="engagement">
             {analyticsLoading ? (
               <div className="text-center py-12 text-muted-foreground">Loading engagement data…</div>
