@@ -1,86 +1,76 @@
-## Document Upload & PDF Builder for the Client Dossier
+## Alamo City CMA — Internal Admin Platform
 
-A new "Documents" panel inside the client dossier that lets the client drop in photos, Word docs, and PDFs, auto-straightens skewed photos like a phone scanner, and produces a single merged PDF that's saved to the dossier and visible to Emily in the admin portal.
+A new **CMA** tab inside `/portal/admin` (alongside Dossiers, Templates, Leads). Emily types in a subject address + a handful of comparable sales, Claude generates an analyst-grade narrative and value range, and the result renders as a branded PDF she can save, re-open, and email to a client. No public signup, no Stripe, no credits — it's an internal tool only Emily and Phil can see.
 
 ### User flow
 
-1. In `ClientDossierView`, a new **"Documents"** card sits near the top (collapsible, brand-styled). Inside: an "Upload & Build PDF" button + a list of previously saved PDFs for that dossier.
-2. Client clicks **Upload & Build PDF** → modal opens.
-3. Client drops/picks files (JPG, PNG, HEIC, PDF, DOC/DOCX, multi-select OK).
-4. Each file becomes a "page tile" in a reorderable grid:
-   - **Photos** → auto-detected document edges + perspective corrected + cropped + B&W/color toggle. Per-page controls: rotate 90°, manual angle slider, re-crop, revert to original.
-   - **PDFs** → exploded into page thumbnails (reuse existing `pdfjs-dist`).
-   - **Word docs** → converted to PDF pages server-side (LibreOffice in an edge function), then thumbnailed.
-5. Client drags tiles to reorder, deletes unwanted pages, types a filename.
-6. Click **Save PDF** → all pages assembled into one PDF in the browser → uploaded to storage → row inserted in `dossier_documents`.
-7. Saved PDFs appear in the Documents card with download / preview / delete (client) and are also visible to Emily on the admin dossier editor.
+1. Emily opens `/portal/admin` → clicks the **CMA** tab.
+2. Sees a two-pane workspace:
+   - **Left**: list of past CMAs (address, date, value range, status) with a "New CMA" button.
+   - **Right**: editor for the active CMA.
+3. **New CMA** opens a 3-step form:
+   - **Subject**: address, beds, baths, sqft, year built, lot, condition notes.
+   - **Comps**: add 3–6 rows (address, sale price, sqft, beds/baths, sale date, distance, condition). "Paste from clipboard" accepts a tab/CSV block for fast entry.
+   - **Adjustments & notes**: optional per-comp $ adjustments + free-form market commentary.
+4. Click **Generate** → spinner → Claude returns: narrative (~400 words), value range (low / recommended / high), adjusted PPSF table, and a one-paragraph executive summary.
+5. Emily reviews, can edit any field inline, then clicks **Save PDF** → branded PDF rendered via `pdf-lib` and stored in a new private bucket; row appears in history.
+6. Each saved CMA has: View PDF, Download, Re-generate narrative, Duplicate, Delete.
 
-### Technical breakdown
+### Database
 
-**Client-side libraries (added):**
-- `pdf-lib` — assemble final PDF from images + existing PDF pages
-- `opencv.js` (loaded lazy from CDN, ~8 MB, cached) — edge detection + perspective transform for auto-deskew/auto-crop
-- `heic2any` — convert iPhone HEIC photos to JPEG in-browser
-- `@dnd-kit/core` + `@dnd-kit/sortable` — drag-to-reorder page tiles
-- Reuse existing: `pdfjs-dist` (PDF page rasterization), `mammoth` (already in `documentParser.ts`)
+New table `cma_reports`:
 
-**Why OpenCV.js for deskew:** it's the standard for document-scanner pipelines (Canny edge → contour → 4-point perspective warp). Loaded once, cached by the browser; no edge function round-trip; works offline.
-
-**Word → PDF conversion (server-side):**
-- New edge function `convert-docx-to-pdf` running LibreOffice headless (`soffice --headless --convert-to pdf`).
-- Lovable's edge runtime supports this via the standard Deno `Deno.Command` API + LibreOffice in the runtime image. If LibreOffice isn't available in the function runtime, fallback is rendering the `.docx` with `mammoth` → HTML → `pdf-lib` page (lower fidelity but reliable). I'll start with the `mammoth → pdf-lib` path for reliability and document the LibreOffice option as a future upgrade.
-
-**Storage:**
-- New private bucket `dossier-documents` (one folder per dossier id, files keyed by `{dossier_id}/{document_id}.pdf`).
-- RLS: client can read/write only their own dossier's folder; admins (Emily, Phil) full access.
-
-**New table `dossier_documents`:**
-
-| column | type | purpose |
+| column | type | notes |
 |---|---|---|
 | id | uuid PK | |
-| dossier_id | uuid | FK to `client_dossiers.id` |
-| user_id | uuid | dossier owner — for RLS |
-| filename | text | client-chosen name (e.g. "Pre-approval Letter.pdf") |
-| storage_path | text | path in `dossier-documents` bucket |
-| size_bytes | int | for display |
-| page_count | int | for display |
-| uploaded_by | uuid | client OR admin user id |
-| created_at | timestamptz | |
+| created_by | uuid | admin user_id |
+| address | text | subject |
+| subject_data | jsonb | beds/baths/sqft/year/lot/condition |
+| comps_data | jsonb | array of comp rows + adjustments |
+| narrative | text | Claude output |
+| value_low / value_recommended / value_high | numeric | |
+| ppsf_low / ppsf_recommended / ppsf_high | numeric | |
+| status | text | `draft` \| `generated` \| `failed` |
+| pdf_path | text | path in `cma-reports` bucket |
+| created_at / updated_at | timestamptz | |
 
-RLS:
-- Client: select/insert/delete rows where `user_id = auth.uid()`
-- Admin: full CRUD via `has_role(auth.uid(), 'admin')`
+RLS: admin-only (`has_role(auth.uid(), 'admin')`) for all CRUD. New private storage bucket `cma-reports` with matching admin-only policies.
 
-**Admin visibility:**
-- In `AdminDashboard.tsx`'s dossier editor, add a read-only "Client Documents" section listing each PDF with download link. Admin can also delete or upload on the client's behalf.
+### New edge function
 
-### Files to add / change
+`generate-cma-narrative` — accepts `{ subject, comps, notes }`, calls Claude (`claude-sonnet-4-5` via Anthropic SDK), returns structured JSON `{ narrative, valueLow, valueRecommended, valueHigh, ppsf, executiveSummary }`. Requires a new `ANTHROPIC_API_KEY` secret (we'll request it via the secrets tool before deploying). Includes Zod validation, CORS, admin-role check on the JWT.
+
+### Frontend files
 
 **New:**
-- `src/components/portal/DocumentBuilder.tsx` — the upload + tile grid + reorder + save modal
-- `src/components/portal/DocumentScanner.ts` — OpenCV.js loader + deskew/crop pipeline (pure logic, no JSX)
-- `src/components/portal/DossierDocumentsCard.tsx` — the card shown in the dossier with the saved-PDFs list
-- `src/lib/pdfBuilder.ts` — `pdf-lib` helpers (image → PDF page, merge PDFs, render docx)
+- `src/pages/admin/CmaWorkspace.tsx` — top-level page (list + editor split).
+- `src/components/admin/cma/CmaList.tsx` — history sidebar.
+- `src/components/admin/cma/CmaEditor.tsx` — 3-step form + generate button.
+- `src/components/admin/cma/CompsTable.tsx` — editable rows + paste-CSV.
+- `src/components/admin/cma/CmaResultView.tsx` — narrative + value range + adjusted table.
+- `src/lib/cmaPdf.ts` — pdf-lib builder using existing brand colors/fonts.
 
 **Modified:**
-- `src/components/portal/ClientDossierView.tsx` — render `<DossierDocumentsCard />` near the top
-- `src/pages/AdminDashboard.tsx` — show client documents list in the dossier editor
-- `package.json` — add `pdf-lib`, `heic2any`, `@dnd-kit/core`, `@dnd-kit/sortable`
+- `src/pages/AdminDashboard.tsx` — add "CMA" tab and route to `<CmaWorkspace />`.
+- `src/integrations/supabase/types.ts` — auto-regenerates after migration.
 
-**Database migration:**
-- Create `dossier-documents` storage bucket (private) + RLS policies on `storage.objects`
-- Create `dossier_documents` table + RLS policies
+### Brand alignment
 
-### Out of scope (this round)
+Reuse the existing site palette (gold/charcoal/cream, Playfair + DM Sans). I'll ignore the spec's bronze/Georgia palette since it conflicts with the established Emily Russell brand already in `index.css`.
 
-- OCR / making the PDF text-searchable (can add `tesseract.js` later as a "Make searchable" toggle)
-- E-signatures on uploaded documents (separate feature; signed agreements already have their own flow)
-- Email-the-PDF-to-Emily button (she can already access via admin dossier; can add later)
-- LibreOffice-based high-fidelity .docx conversion (start with `mammoth` fallback; revisit if fidelity is insufficient)
-- Versioning of uploaded documents (replace = delete + reupload for now)
+### Out of scope (this round, queued for follow-ups)
+
+- RentCast (or any live data API) — Emily enters comps manually for now.
+- Word `.docx` / Excel `.xlsx` exports — PDF only.
+- Public `/cma` signup, Stripe, credit system, multi-tenant accounts.
+- Saving a CMA into a client's dossier (can wire later if useful).
+- Email-to-client button.
+
+### Secrets to request before implementing
+
+- `ANTHROPIC_API_KEY` — from console.anthropic.com → API Keys. I'll prompt for it after you approve this plan.
 
 ### Memory updates
 
-- New entry `mem://features/dossier-documents` documenting the upload/scan/PDF flow, the storage bucket name, and the table.
-- Update `mem://features/client-portal` index entry to mention document upload.
+- New entry `mem://features/cma-platform` documenting the internal CMA tool, table, bucket, and edge function.
+- Update `mem://features/admin-portal` to mention the new CMA tab.
