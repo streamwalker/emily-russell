@@ -888,12 +888,40 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   );
 }
 
+function SourceBadge({ url }: { url?: string | null }) {
+  if (!url) return null;
+  let host = url;
+  try { host = new URL(url).hostname.replace(/^www\./, ""); } catch {}
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Source: ${url}`}
+      aria-label={`Source: ${url}`}
+      className="inline-flex items-center gap-0.5 text-[9px] font-body text-primary hover:underline normal-case tracking-normal"
+    >
+      <ExternalLink className="w-2.5 h-2.5" />
+      <span className="truncate max-w-[120px]">{host}</span>
+    </a>
+  );
+}
+
+function FieldLabel({ label, sourceUrl }: { label: string; sourceUrl?: string | null }) {
+  return (
+    <label className="flex items-center justify-between gap-2 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground mb-1">
+      <span>{label}</span>
+      <SourceBadge url={sourceUrl} />
+    </label>
+  );
+}
+
 function Input({
-  label, value, onChange, placeholder, wide,
-}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; wide?: boolean }) {
+  label, value, onChange, placeholder, wide, sourceUrl,
+}: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; wide?: boolean; sourceUrl?: string | null }) {
   return (
     <div className={wide ? "md:col-span-2" : ""}>
-      <label className="block text-[10px] font-body uppercase tracking-[2px] text-muted-foreground mb-1">{label}</label>
+      <FieldLabel label={label} sourceUrl={sourceUrl} />
       <input
         className="w-full px-3 py-2 border border-border bg-white text-sm"
         value={value}
@@ -905,11 +933,11 @@ function Input({
 }
 
 function NumInput({
-  label, value, onChange, step = 1,
-}: { label: string; value: number | null | undefined; onChange: (v: number | null) => void; step?: number }) {
+  label, value, onChange, step = 1, sourceUrl,
+}: { label: string; value: number | null | undefined; onChange: (v: number | null) => void; step?: number; sourceUrl?: string | null }) {
   return (
     <div>
-      <label className="block text-[10px] font-body uppercase tracking-[2px] text-muted-foreground mb-1">{label}</label>
+      <FieldLabel label={label} sourceUrl={sourceUrl} />
       <input
         type="number"
         step={step}
