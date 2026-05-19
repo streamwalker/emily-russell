@@ -171,6 +171,7 @@ export default function Index() {
   const [affiliateOpen, setAffiliateOpen] = useState(false);
   const [mobileAffiliateOpen, setMobileAffiliateOpen] = useState(false);
   const affiliateRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -178,6 +179,30 @@ export default function Index() {
     const h = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", h, { passive: true });
     return () => { cleanup(); window.removeEventListener("scroll", h); };
+  }, []);
+
+  // Keep --header-h synced to the fixed nav's actual height (changes on scroll
+  // collapse, banner toggle, responsive breakpoints, etc.) so scroll offsets
+  // and CSS scroll-padding stay accurate.
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const update = () => {
+      document.documentElement.style.setProperty("--header-h", `${nav.offsetHeight}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(nav);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
+  }, []);
+
+  // Honor incoming hash on first load (after layout settles)
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      requestAnimationFrame(() => scrollTo(hash));
+    }
   }, []);
 
   useEffect(() => {
