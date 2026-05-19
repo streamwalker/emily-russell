@@ -76,7 +76,7 @@ function withinRadius(distance: number | null | undefined, max: number) {
   return distance <= max;
 }
 
-// Date filter — keep when date unknown
+// Date filter — keep when date unknown (but flag it)
 function withinWindow(saleDate: string | null | undefined, monthsBack: number) {
   if (!saleDate) return true;
   const d = new Date(saleDate);
@@ -84,6 +84,58 @@ function withinWindow(saleDate: string | null | undefined, monthsBack: number) {
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - monthsBack);
   return d >= cutoff;
+}
+
+// Looks like a real street address: starts with digits + street name token
+function looksLikeAddress(a: any): boolean {
+  if (typeof a !== "string") return false;
+  const s = a.trim();
+  if (s.length < 8) return false;
+  return /^\d{1,6}\s+\w/.test(s);
+}
+
+// Plausibility for a sold home
+function plausibleComp(c: any): boolean {
+  if (!looksLikeAddress(c.address)) return false;
+  const price = Number(c.salePrice);
+  if (!price || price < 50_000 || price > 10_000_000) return false;
+  if (c.sqft != null) {
+    const sq = Number(c.sqft);
+    if (!sq || sq < 300 || sq > 20_000) return false;
+  }
+  if (c.beds != null) {
+    const b = Number(c.beds);
+    if (b < 0 || b > 12) return false;
+  }
+  return true;
+}
+
+function normAddr(a: string): string {
+  return a.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+// How well does the extracted subject match what we asked for?
+function subjectConfidence(extracted: any, address: string, ctx: string): {
+  score: number; fields: number; addressMatch: boolean;
+} {
+  if (!extracted || typeof extracted !== "object") {
+    return { score: 0, fields: 0, addressMatch: false };
+  }
+  const checkKeys = ["beds", "baths", "sqft", "yearBuilt", "lotSize", "builder", "condition"];
+  const fields = checkKeys.filter((k) => {
+    const v = extracted[k];
+    return v != null && v !== "" && !(typeof v === "number" && isNaN(v));
+  }).length;
+  // Address signal: does the street number + first word of street appear in scraped context?
+  const m = address.match(/^(\d{1,6})\s+(\w+)/);
+  let addressMatch = false;
+  if (m) {
+    const needle = `${m[1]} ${m[2].toLowerCase()}`;
+    addressMatch = ctx.toLowerCase().includes(needle);
+  }
+  // Score: 0–10. Fields out of 7 → up to 7, addressMatch adds 3.
+  const score = Math.min(10, fields + (addressMatch ? 3 : 0));
+  return { score, fields, addressMatch };
 }
 
 serve(async (req) => {
@@ -138,7 +190,9 @@ serve(async (req) => {
 
     const log: string[] = [];
     let subject: any = null;
+    let subjectMeta: any = null;
     let comps: any[] = [];
+    let compsMeta: any = null;
 
     // ── Subject ──
     if (mode === "subject" || mode === "both") {
@@ -160,8 +214,15 @@ serve(async (req) => {
       if (ctx) {
         try {
           const userMsg = `Subject address: ${address}\n\nSearch results:\n${ctx}\n\nExtract the property details for THIS address only. Ignore neighbors.`;
-          subject = await claudeExtract(SUBJECT_SYSTEM, userMsg, ANTHROPIC);
-          log.push(`subject: extracted ${Object.keys(subject || {}).length} fields`);
+          const extracted = await claudeExtract(SUBJECT_SYSTEM, userMsg, ANTHROPIC);
+          const conf = subjectConfidence(extracted, address, ctx);
+          // Stricter gate: require at least 3 of 7 fields AND address match
+          const accepted = conf.fields >= 3 && conf.addressMatch;
+          subject = accepted ? extracted : null;
+          subjectMeta = { ...conf, accepted };
+          log.push(
+            `subject: ${conf.fields}/7 fields, addressMatch=${conf.addressMatch}, score=${conf.score}/10 → ${accepted ? "accepted" : "rejected (thin/mismatched)"}`,
+          );
         } catch (e) {
           log.push(`subject: extraction failed — ${e instanceof Error ? e.message : "unknown"}`);
         }
@@ -190,12 +251,37 @@ serve(async (req) => {
         try {
           const userMsg = `Subject address: ${address}\nRadius: ${radiusMiles} miles\nWindow: last ${monthsBack} months\n\nSearch results:\n${ctx}\n\nExtract recent SOLD comparable sales near the subject.`;
           const parsed = await claudeExtract(COMPS_SYSTEM, userMsg, ANTHROPIC);
-          const rawComps = Array.isArray(parsed?.comps) ? parsed.comps : [];
-          const filtered = rawComps.filter((c: any) =>
-            c.address && c.salePrice && withinRadius(c.distanceMiles, radiusMiles) && withinWindow(c.saleDate, monthsBack)
+          const rawComps: any[] = Array.isArray(parsed?.comps) ? parsed.comps : [];
+
+          // Reject obvious junk
+          const plausible = rawComps.filter(plausibleComp);
+          // Reject self-comp (subject address showing up in comps)
+          const subjNorm = normAddr(address);
+          const notSelf = plausible.filter((c) => normAddr(c.address) !== subjNorm);
+          // Dedupe by normalized address
+          const seen = new Set<string>();
+          const deduped = notSelf.filter((c) => {
+            const k = normAddr(c.address);
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+          // Apply radius + window filters
+          const filtered = deduped.filter((c) =>
+            withinRadius(c.distanceMiles, radiusMiles) && withinWindow(c.saleDate, monthsBack)
           );
+
           comps = filtered.slice(0, 8);
-          log.push(`comps: extracted ${rawComps.length}, kept ${comps.length} after filters`);
+          compsMeta = {
+            raw: rawComps.length,
+            plausible: plausible.length,
+            deduped: deduped.length,
+            kept: comps.length,
+            sufficient: comps.length >= 3,
+          };
+          log.push(
+            `comps: raw=${rawComps.length}, plausible=${plausible.length}, deduped=${deduped.length}, kept=${comps.length} ${comps.length >= 3 ? "(sufficient)" : "(thin — keeping existing)"}`,
+          );
         } catch (e) {
           log.push(`comps: extraction failed — ${e instanceof Error ? e.message : "unknown"}`);
         }
@@ -204,7 +290,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ subject, comps, log }), {
+    return new Response(JSON.stringify({ subject, subjectMeta, comps, compsMeta, log }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

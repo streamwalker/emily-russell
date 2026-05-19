@@ -34,6 +34,16 @@ const emptyComp = (): CmaComp => ({
   notes: "",
 });
 
+// When confidence is strong, prefer the new value; otherwise only fill if existing is blank.
+function pickField<T>(existing: T, incoming: T | null | undefined, strong: boolean): T {
+  const blank = existing == null || existing === "" || (typeof existing === "number" && existing === 0);
+  if (incoming == null || incoming === "") return existing;
+  if (strong || blank) return incoming as T;
+  return existing;
+}
+
+
+
 export default function CmaEditor({ initial, onSaved }: Props) {
   const [subject, setSubject] = useState<CmaSubject>(initial?.subject_data || emptySubject);
   const [comps, setComps] = useState<CmaComp[]>(
@@ -76,43 +86,72 @@ export default function CmaEditor({ initial, onSaved }: Props) {
       if (invErr) throw invErr;
       if (data?.error) throw new Error(data.error);
 
-      if (data?.subject && (mode === "subject" || mode === "both")) {
-        setSubject((s) => ({
-          ...s,
-          beds: data.subject.beds ?? s.beds,
-          baths: data.subject.baths ?? s.baths,
-          sqft: data.subject.sqft ?? s.sqft,
-          yearBuilt: data.subject.yearBuilt ?? s.yearBuilt,
-          lotSize: data.subject.lotSize ?? s.lotSize,
-          builder: data.subject.builder ?? s.builder,
-          condition: data.subject.condition ?? s.condition,
-        }));
-      }
-      if (Array.isArray(data?.comps) && (mode === "comps" || mode === "both")) {
-        const mapped: CmaComp[] = data.comps.map((c: any) => ({
-          address: c.address || "",
-          salePrice: Number(c.salePrice) || 0,
-          sqft: c.sqft ?? null,
-          beds: c.beds ?? null,
-          baths: c.baths ?? null,
-          saleDate: c.saleDate || "",
-          distanceMiles: c.distanceMiles ?? null,
-          condition: c.condition || "",
-          adjustment: null,
-          notes: "",
-        }));
-        if (mapped.length) {
-          setComps(mapped);
-          toast.success(`Found ${mapped.length} comps`);
-        } else {
-          toast.warning("No comps found — try widening the radius or window");
+      const sMeta = data?.subjectMeta;
+      const cMeta = data?.compsMeta;
+
+      if ((mode === "subject" || mode === "both")) {
+        if (data?.subject && sMeta?.accepted) {
+          // Only overwrite fields when (a) currently empty, or (b) confidence is strong (score >= 6)
+          const strong = (sMeta?.score ?? 0) >= 6;
+          setSubject((s) => ({
+            ...s,
+            beds: pickField(s.beds, data.subject.beds, strong),
+            baths: pickField(s.baths, data.subject.baths, strong),
+            sqft: pickField(s.sqft, data.subject.sqft, strong),
+            yearBuilt: pickField(s.yearBuilt, data.subject.yearBuilt, strong),
+            lotSize: pickField(s.lotSize, data.subject.lotSize, strong),
+            builder: pickField(s.builder, data.subject.builder, strong),
+            condition: pickField(s.condition, data.subject.condition, strong),
+          }));
+          toast.success(
+            `Subject updated — ${sMeta.fields}/7 fields, confidence ${sMeta.score}/10` +
+              (strong ? "" : " (only filled blanks; existing values kept)"),
+          );
+        } else if (mode === "subject" || (mode === "both" && !data?.subject)) {
+          toast.warning(
+            `Subject result was too thin to trust — kept your existing values${
+              sMeta ? ` (${sMeta.fields}/7 fields, addressMatch=${sMeta.addressMatch})` : ""
+            }`,
+          );
         }
       }
-      if (mode !== "comps" && data?.subject) {
-        const filled = Object.keys(data.subject).length;
-        toast.success(`Auto-filled ${filled} subject field${filled === 1 ? "" : "s"}`);
+
+      if (mode === "comps" || mode === "both") {
+        const newComps: any[] = Array.isArray(data?.comps) ? data.comps : [];
+        const existingValid = comps.filter((c) => c.address && c.salePrice > 0).length;
+        const sufficient = cMeta?.sufficient ?? newComps.length >= 3;
+        // Require: ≥3 comps AND at least as many as we already have (so a 1-comp result never wipes 5 good comps)
+        const safeToReplace = sufficient && newComps.length >= Math.max(3, Math.min(existingValid, 5));
+
+        if (newComps.length && safeToReplace) {
+          const mapped: CmaComp[] = newComps.map((c: any) => ({
+            address: c.address || "",
+            salePrice: Number(c.salePrice) || 0,
+            sqft: c.sqft ?? null,
+            beds: c.beds ?? null,
+            baths: c.baths ?? null,
+            saleDate: c.saleDate || "",
+            distanceMiles: c.distanceMiles ?? null,
+            condition: c.condition || "",
+            adjustment: null,
+            notes: "",
+          }));
+          setComps(mapped);
+          toast.success(
+            `Replaced comps — ${mapped.length} kept of ${cMeta?.raw ?? mapped.length} found`,
+          );
+        } else if (newComps.length) {
+          toast.warning(
+            `Only ${newComps.length} usable comp${newComps.length === 1 ? "" : "s"} found (need ≥${Math.max(3, Math.min(existingValid, 5))}). Kept your existing comps — widen radius or window.`,
+          );
+        } else {
+          toast.warning("No usable comps after filters — kept your existing comps.");
+        }
       }
+
       setAutoLog(Array.isArray(data?.log) ? data.log : []);
+
+
     } catch (e: any) {
       console.error(e);
       toast.error("Auto-fill failed: " + (e?.message || String(e)));
