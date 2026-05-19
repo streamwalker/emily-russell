@@ -818,3 +818,36 @@ function NumInput({
     </div>
   );
 }
+
+function AutoSavePill({
+  state, lastSavedAt, onRetry,
+}: {
+  state: "idle" | "saving" | "saved" | "error";
+  lastSavedAt: Date | null;
+  onRetry: () => void;
+}) {
+  if (state === "idle" && !lastSavedAt) return null;
+  if (state === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">
+        <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+      </span>
+    );
+  }
+  if (state === "error") {
+    return (
+      <button
+        onClick={onRetry}
+        className="inline-flex items-center gap-1.5 text-[10px] font-body uppercase tracking-[2px] text-destructive hover:underline"
+      >
+        Unsaved — retry
+      </button>
+    );
+  }
+  const stamp = lastSavedAt ? lastSavedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-body uppercase tracking-[2px] text-sage">
+      <Check className="w-3 h-3" /> Saved {stamp && `· ${stamp}`}
+    </span>
+  );
+}
