@@ -105,10 +105,23 @@ export default function CmaEditor({ initial, onSaved }: Props) {
             builder: pickField(s.builder, data.subject.builder, strong),
             condition: pickField(s.condition, data.subject.condition, strong),
           }));
+          // Merge per-field source URLs (only for fields we actually accepted)
+          const incomingSrc = (data.subject.sources && typeof data.subject.sources === "object") ? data.subject.sources : {};
+          setSubjectSources((prev) => {
+            const next = { ...prev };
+            for (const k of ["beds","baths","sqft","yearBuilt","lotSize","builder","condition"]) {
+              const v = data.subject[k];
+              if (v != null && v !== "" && typeof incomingSrc[k] === "string" && incomingSrc[k]) {
+                next[k] = incomingSrc[k];
+              }
+            }
+            return next;
+          });
           toast.success(
             `Subject updated — ${sMeta.fields}/7 fields, confidence ${sMeta.score}/10` +
               (strong ? "" : " (only filled blanks; existing values kept)"),
           );
+
         } else if (mode === "subject" || (mode === "both" && !data?.subject)) {
           toast.warning(
             `Subject result was too thin to trust — kept your existing values${
