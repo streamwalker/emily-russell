@@ -76,7 +76,7 @@ function withinRadius(distance: number | null | undefined, max: number) {
   return distance <= max;
 }
 
-// Date filter — keep when date unknown
+// Date filter — keep when date unknown (but flag it)
 function withinWindow(saleDate: string | null | undefined, monthsBack: number) {
   if (!saleDate) return true;
   const d = new Date(saleDate);
@@ -84,6 +84,58 @@ function withinWindow(saleDate: string | null | undefined, monthsBack: number) {
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - monthsBack);
   return d >= cutoff;
+}
+
+// Looks like a real street address: starts with digits + street name token
+function looksLikeAddress(a: any): boolean {
+  if (typeof a !== "string") return false;
+  const s = a.trim();
+  if (s.length < 8) return false;
+  return /^\d{1,6}\s+\w/.test(s);
+}
+
+// Plausibility for a sold home
+function plausibleComp(c: any): boolean {
+  if (!looksLikeAddress(c.address)) return false;
+  const price = Number(c.salePrice);
+  if (!price || price < 50_000 || price > 10_000_000) return false;
+  if (c.sqft != null) {
+    const sq = Number(c.sqft);
+    if (!sq || sq < 300 || sq > 20_000) return false;
+  }
+  if (c.beds != null) {
+    const b = Number(c.beds);
+    if (b < 0 || b > 12) return false;
+  }
+  return true;
+}
+
+function normAddr(a: string): string {
+  return a.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+// How well does the extracted subject match what we asked for?
+function subjectConfidence(extracted: any, address: string, ctx: string): {
+  score: number; fields: number; addressMatch: boolean;
+} {
+  if (!extracted || typeof extracted !== "object") {
+    return { score: 0, fields: 0, addressMatch: false };
+  }
+  const checkKeys = ["beds", "baths", "sqft", "yearBuilt", "lotSize", "builder", "condition"];
+  const fields = checkKeys.filter((k) => {
+    const v = extracted[k];
+    return v != null && v !== "" && !(typeof v === "number" && isNaN(v));
+  }).length;
+  // Address signal: does the street number + first word of street appear in scraped context?
+  const m = address.match(/^(\d{1,6})\s+(\w+)/);
+  let addressMatch = false;
+  if (m) {
+    const needle = `${m[1]} ${m[2].toLowerCase()}`;
+    addressMatch = ctx.toLowerCase().includes(needle);
+  }
+  // Score: 0–10. Fields out of 7 → up to 7, addressMatch adds 3.
+  const score = Math.min(10, fields + (addressMatch ? 3 : 0));
+  return { score, fields, addressMatch };
 }
 
 serve(async (req) => {
