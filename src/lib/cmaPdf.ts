@@ -7,6 +7,7 @@ export interface CmaSubject {
   sqft?: number | null;
   yearBuilt?: number | null;
   lotSize?: string | null;
+  builder?: string | null;
   condition?: string | null;
 }
 
