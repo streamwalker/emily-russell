@@ -618,22 +618,13 @@ export default function CmaEditor({ initial, onSaved }: Props) {
 
         {/* Column headers */}
         <div className="grid grid-cols-12 gap-2 mb-1 px-1">
-          {[
-            ["Address", 4],
-            ["Sale Price", 2],
-            ["Sqft", 1],
-            ["Bd", 1],
-            ["Ba", 1],
-            ["Sale Date", 2],
-            ["", 1],
-          ].map(([label, span], idx) => (
-            <div
-              key={idx}
-              className={`col-span-${span} text-[10px] font-body uppercase tracking-[2px] text-muted-foreground`}
-            >
-              {label}
-            </div>
-          ))}
+          <div className="col-span-4 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">Address</div>
+          <div className="col-span-2 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">Sale Price</div>
+          <div className="col-span-1 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">Sqft</div>
+          <div className="col-span-1 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">Bd</div>
+          <div className="col-span-1 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">Ba</div>
+          <div className="col-span-2 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">Sale Date</div>
+          <div className="col-span-1" />
         </div>
 
         <div className="space-y-2">
