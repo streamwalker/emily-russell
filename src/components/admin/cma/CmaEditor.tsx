@@ -615,14 +615,41 @@ export default function CmaEditor({ initial, onSaved }: Props) {
         </div>
 
 
+        {/* Column headers */}
+        <div className="grid grid-cols-12 gap-2 mb-1 px-1">
+          {[
+            ["Address", 4],
+            ["Sale Price", 2],
+            ["Sqft", 1],
+            ["Bd", 1],
+            ["Ba", 1],
+            ["Sale Date", 2],
+            ["", 1],
+          ].map(([label, span], idx) => (
+            <div
+              key={idx}
+              className={`col-span-${span} text-[10px] font-body uppercase tracking-[2px] text-muted-foreground`}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+
         <div className="space-y-2">
           {comps.map((c, i) => {
             let srcHost = "";
             if (c.sourceUrl) {
               try { srcHost = new URL(c.sourceUrl).hostname.replace(/^www\./, ""); } catch { srcHost = c.sourceUrl; }
             }
+            const hasDetails = !!(
+              c.yearBuilt || c.builder || c.priorOwners != null ||
+              c.listingAgent || c.listingBroker ||
+              (c.everRented && c.everRented !== "unknown") ||
+              c.insuranceClaims
+            );
+            const isOpen = openDetails[i] ?? hasDetails;
             return (
-            <div key={i} className="space-y-1">
+            <div key={i} className="space-y-1 border-b border-border/40 pb-2">
               <div className="grid grid-cols-12 gap-2 items-center text-sm">
                 <input
                   className="col-span-4 px-2 py-1.5 border border-border bg-white text-sm"
@@ -672,21 +699,90 @@ export default function CmaEditor({ initial, onSaved }: Props) {
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-              {c.sourceUrl && (
-                <a
-                  href={c.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[10px] font-body text-primary hover:underline ml-1"
-                  title={c.sourceUrl}
+
+              <div className="flex items-center gap-3 flex-wrap pl-1">
+                <button
+                  type="button"
+                  onClick={() => setOpenDetails((m) => ({ ...m, [i]: !isOpen }))}
+                  className="text-[10px] font-body uppercase tracking-[2px] text-muted-foreground hover:text-primary"
                 >
-                  <ExternalLink className="w-3 h-3" />
-                  source: {srcHost}
-                </a>
+                  {isOpen ? "▾ Details" : "▸ Details"}
+                </button>
+                {c.sourceUrl && (
+                  <a
+                    href={c.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] font-body text-primary hover:underline"
+                    title={c.sourceUrl}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    source: {srcHost}
+                  </a>
+                )}
+              </div>
+
+              {isOpen && (
+                <div className="grid grid-cols-12 gap-2 pt-1 pb-1">
+                  <input
+                    className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
+                    placeholder="Year built"
+                    type="number"
+                    value={c.yearBuilt ?? ""}
+                    onChange={(e) => updateComp(i, { yearBuilt: e.target.value ? parseInt(e.target.value) : null })}
+                  />
+                  <input
+                    className="col-span-3 px-2 py-1.5 border border-border bg-white text-sm"
+                    placeholder="Builder"
+                    value={c.builder || ""}
+                    onChange={(e) => updateComp(i, { builder: e.target.value })}
+                  />
+                  <input
+                    className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
+                    placeholder="# Prior owners"
+                    type="number"
+                    value={c.priorOwners ?? ""}
+                    onChange={(e) => updateComp(i, { priorOwners: e.target.value ? parseInt(e.target.value) : null })}
+                  />
+                  <input
+                    className="col-span-3 px-2 py-1.5 border border-border bg-white text-sm"
+                    placeholder="Listing agent"
+                    value={c.listingAgent || ""}
+                    onChange={(e) => updateComp(i, { listingAgent: e.target.value })}
+                  />
+                  <input
+                    className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
+                    placeholder="Listing broker"
+                    value={c.listingBroker || ""}
+                    onChange={(e) => updateComp(i, { listingBroker: e.target.value })}
+                  />
+                  <div className="col-span-3 flex items-center gap-2">
+                    <label className="text-[10px] font-body uppercase tracking-[2px] text-muted-foreground whitespace-nowrap">
+                      Ever Rented
+                    </label>
+                    <select
+                      className="flex-1 px-2 py-1.5 border border-border bg-white text-sm"
+                      value={c.everRented || "unknown"}
+                      onChange={(e) => updateComp(i, { everRented: e.target.value as "yes" | "no" | "unknown" })}
+                    >
+                      <option value="unknown">Unknown</option>
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </div>
+                  <textarea
+                    className="col-span-9 px-2 py-1.5 border border-border bg-white text-sm"
+                    placeholder="Major insurance claims (fire, water damage, hail, etc.)"
+                    rows={2}
+                    value={c.insuranceClaims || ""}
+                    onChange={(e) => updateComp(i, { insuranceClaims: e.target.value })}
+                  />
+                </div>
               )}
             </div>
           );})}
         </div>
+
 
         <p className="font-body text-[11px] text-muted-foreground mt-3">
           Tip: paste a tab- or comma-separated list as <em>address, price, sqft, bd, ba, date</em>.
