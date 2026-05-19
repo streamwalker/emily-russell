@@ -37,6 +37,13 @@ const emptyComp = (): CmaComp => ({
   condition: "",
   adjustment: null,
   notes: "",
+  yearBuilt: null,
+  builder: "",
+  priorOwners: null,
+  listingAgent: "",
+  listingBroker: "",
+  everRented: "unknown",
+  insuranceClaims: "",
 });
 
 // When confidence is strong, prefer the new value; otherwise only fill if existing is blank.
