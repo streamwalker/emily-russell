@@ -193,12 +193,139 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   };
 
 
+  // ─────────────────────────────────────────────────────────
+  // Auto-save: debounced upsert of homes + cma_reports
+  // ─────────────────────────────────────────────────────────
+  const persistNow = useCallback(async () => {
+    const addr = subject.address?.trim();
+    if (!addr || addr.length < 5) return;
+    setAutoSaveState("saving");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+
+      const key = normAddressKey(addr);
+      const validComps = comps.filter((c) => c.address && c.salePrice > 0);
+
+      // 1) Upsert homes (canonical record per address)
+      const { data: homeRow, error: homeErr } = await supabase
+        .from("homes")
+        .upsert(
+          {
+            address: addr,
+            address_key: key,
+            beds: subject.beds ?? null,
+            baths: subject.baths ?? null,
+            sqft: subject.sqft ?? null,
+            year_built: subject.yearBuilt ?? null,
+            lot_size: subject.lotSize || null,
+            builder: subject.builder || null,
+            condition: subject.condition || null,
+            sources: subjectSources || {},
+            last_autofill_at: Object.keys(subjectSources || {}).length ? new Date().toISOString() : null,
+            created_by: user.id,
+          },
+          { onConflict: "address_key" },
+        )
+        .select("id")
+        .single();
+      if (homeErr) throw homeErr;
+      const newHomeId = homeRow?.id || null;
+      if (newHomeId && newHomeId !== homeId) setHomeId(newHomeId);
+
+      // 2) Upsert cma_reports — update existing or insert new
+      const reportPayload: any = {
+        created_by: user.id,
+        address: addr,
+        subject_data: subject as any,
+        comps_data: validComps as any,
+        subject_sources: subjectSources || {},
+        notes: notes || null,
+        home_id: newHomeId,
+        status: result ? "generated" : "draft",
+      };
+
+      if (reportId) {
+        const { error: upErr } = await supabase.from("cma_reports").update(reportPayload).eq("id", reportId);
+        if (upErr) throw upErr;
+      } else {
+        const { data: ins, error: insErr } = await supabase
+          .from("cma_reports")
+          .insert(reportPayload)
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        if (ins?.id) setReportId(ins.id);
+      }
+
+      setLastSavedAt(new Date());
+      setAutoSaveState("saved");
+    } catch (e: any) {
+      console.error("auto-save failed", e);
+      setAutoSaveState("error");
+    }
+  }, [subject, comps, notes, subjectSources, reportId, homeId, result]);
+
+  // Debounced trigger on edits
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    if (!subject.address || subject.address.trim().length < 5) return;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      persistNow();
+    }, 1000);
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, [subject, comps, notes, subjectSources, persistNow]);
+
+  // Hydrate from existing homes record when the address changes/blurs to a new value
+  useEffect(() => {
+    const key = normAddressKey(subject.address);
+    if (!key || key.length < 5) return;
+    if (key === hydratedAddressKey.current) return;
+    // address changed — try hydrate from homes
+    let cancelled = false;
+    (async () => {
+      const { data, error: hErr } = await supabase
+        .from("homes")
+        .select("id, beds, baths, sqft, year_built, lot_size, builder, condition, sources")
+        .eq("address_key", key)
+        .maybeSingle();
+      if (cancelled || hErr || !data) {
+        hydratedAddressKey.current = key;
+        return;
+      }
+      hydratedAddressKey.current = key;
+      // Only fill blanks — never clobber what the user has typed
+      skipNextSave.current = true;
+      setSubject((s) => ({
+        ...s,
+        beds: s.beds ?? data.beds,
+        baths: s.baths ?? data.baths,
+        sqft: s.sqft ?? data.sqft,
+        yearBuilt: s.yearBuilt ?? data.year_built,
+        lotSize: s.lotSize || data.lot_size || "",
+        builder: s.builder || data.builder || "",
+        condition: s.condition || data.condition || "",
+      }));
+      setSubjectSources((prev) => ({ ...((data.sources as any) || {}), ...prev }));
+      setHomeId(data.id);
+      toast.success("Loaded saved details for this address");
+    })();
+    return () => { cancelled = true; };
+  }, [subject.address]);
+
   const updateSubject = <K extends keyof CmaSubject>(k: K, v: CmaSubject[K]) =>
     setSubject((s) => ({ ...s, [k]: v }));
   const updateComp = (i: number, patch: Partial<CmaComp>) =>
     setComps((c) => c.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
   const addComp = () => setComps((c) => [...c, emptyComp()]);
   const removeComp = (i: number) => setComps((c) => c.filter((_, idx) => idx !== i));
+
 
   const pasteComps = async () => {
     try {
