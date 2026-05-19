@@ -173,6 +173,13 @@ export default function CmaEditor({ initial, onSaved }: Props) {
             adjustment: null,
             notes: "",
             sourceUrl: typeof c.sourceUrl === "string" ? c.sourceUrl : null,
+            yearBuilt: c.yearBuilt ?? null,
+            builder: c.builder || "",
+            priorOwners: c.priorOwners ?? null,
+            listingAgent: c.listingAgent || "",
+            listingBroker: c.listingBroker || "",
+            everRented: c.everRented === "yes" || c.everRented === "no" ? c.everRented : "unknown",
+            insuranceClaims: c.insuranceClaims || "",
           }));
 
           setComps(mapped);
