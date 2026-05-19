@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink } from "lucide-react";
+import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink, Check } from "lucide-react";
 import { toast } from "sonner";
 import { buildCmaPdf, type CmaSubject, type CmaComp, type CmaResult } from "@/lib/cmaPdf";
 import type { CmaReportRow } from "./CmaWorkspace";
+
+function normAddressKey(a: string): string {
+  return (a || "").toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
+}
+
 
 interface Props {
   initial: CmaReportRow | null;
@@ -71,7 +76,16 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [radiusMiles, setRadiusMiles] = useState(0.5);
   const [monthsBack, setMonthsBack] = useState(6);
   const [autoLog, setAutoLog] = useState<string[]>([]);
-  const [subjectSources, setSubjectSources] = useState<Record<string, string>>({});
+  const [subjectSources, setSubjectSources] = useState<Record<string, string>>(
+    (initial?.subject_sources as Record<string, string>) || {},
+  );
+  const [reportId, setReportId] = useState<string | null>(initial?.id || null);
+  const [homeId, setHomeId] = useState<string | null>(initial?.home_id || null);
+  const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(initial ? new Date() : null);
+  const saveTimer = useRef<number | null>(null);
+  const hydratedAddressKey = useRef<string>(normAddressKey(initial?.address || ""));
+  const skipNextSave = useRef<boolean>(true); // skip initial mount save
 
 
   const runAutoFill = async (mode: "subject" | "comps" | "both") => {
@@ -82,6 +96,7 @@ export default function CmaEditor({ initial, onSaved }: Props) {
     setAutoFilling(mode);
     setAutoLog([]);
     try {
+
       const { data, error: invErr } = await supabase.functions.invoke("cma-autofill", {
         body: { address: subject.address, mode, radiusMiles, monthsBack },
       });
@@ -178,12 +193,139 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   };
 
 
+  // ─────────────────────────────────────────────────────────
+  // Auto-save: debounced upsert of homes + cma_reports
+  // ─────────────────────────────────────────────────────────
+  const persistNow = useCallback(async () => {
+    const addr = subject.address?.trim();
+    if (!addr || addr.length < 5) return;
+    setAutoSaveState("saving");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+
+      const key = normAddressKey(addr);
+      const validComps = comps.filter((c) => c.address && c.salePrice > 0);
+
+      // 1) Upsert homes (canonical record per address)
+      const { data: homeRow, error: homeErr } = await supabase
+        .from("homes")
+        .upsert(
+          {
+            address: addr,
+            address_key: key,
+            beds: subject.beds ?? null,
+            baths: subject.baths ?? null,
+            sqft: subject.sqft ?? null,
+            year_built: subject.yearBuilt ?? null,
+            lot_size: subject.lotSize || null,
+            builder: subject.builder || null,
+            condition: subject.condition || null,
+            sources: subjectSources || {},
+            last_autofill_at: Object.keys(subjectSources || {}).length ? new Date().toISOString() : null,
+            created_by: user.id,
+          },
+          { onConflict: "address_key" },
+        )
+        .select("id")
+        .single();
+      if (homeErr) throw homeErr;
+      const newHomeId = homeRow?.id || null;
+      if (newHomeId && newHomeId !== homeId) setHomeId(newHomeId);
+
+      // 2) Upsert cma_reports — update existing or insert new
+      const reportPayload: any = {
+        created_by: user.id,
+        address: addr,
+        subject_data: subject as any,
+        comps_data: validComps as any,
+        subject_sources: subjectSources || {},
+        notes: notes || null,
+        home_id: newHomeId,
+        status: result ? "generated" : "draft",
+      };
+
+      if (reportId) {
+        const { error: upErr } = await supabase.from("cma_reports").update(reportPayload).eq("id", reportId);
+        if (upErr) throw upErr;
+      } else {
+        const { data: ins, error: insErr } = await supabase
+          .from("cma_reports")
+          .insert(reportPayload)
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        if (ins?.id) setReportId(ins.id);
+      }
+
+      setLastSavedAt(new Date());
+      setAutoSaveState("saved");
+    } catch (e: any) {
+      console.error("auto-save failed", e);
+      setAutoSaveState("error");
+    }
+  }, [subject, comps, notes, subjectSources, reportId, homeId, result]);
+
+  // Debounced trigger on edits
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    if (!subject.address || subject.address.trim().length < 5) return;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      persistNow();
+    }, 1000);
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, [subject, comps, notes, subjectSources, persistNow]);
+
+  // Hydrate from existing homes record when the address changes/blurs to a new value
+  useEffect(() => {
+    const key = normAddressKey(subject.address);
+    if (!key || key.length < 5) return;
+    if (key === hydratedAddressKey.current) return;
+    // address changed — try hydrate from homes
+    let cancelled = false;
+    (async () => {
+      const { data, error: hErr } = await supabase
+        .from("homes")
+        .select("id, beds, baths, sqft, year_built, lot_size, builder, condition, sources")
+        .eq("address_key", key)
+        .maybeSingle();
+      if (cancelled || hErr || !data) {
+        hydratedAddressKey.current = key;
+        return;
+      }
+      hydratedAddressKey.current = key;
+      // Only fill blanks — never clobber what the user has typed
+      skipNextSave.current = true;
+      setSubject((s) => ({
+        ...s,
+        beds: s.beds ?? data.beds,
+        baths: s.baths ?? data.baths,
+        sqft: s.sqft ?? data.sqft,
+        yearBuilt: s.yearBuilt ?? data.year_built,
+        lotSize: s.lotSize || data.lot_size || "",
+        builder: s.builder || data.builder || "",
+        condition: s.condition || data.condition || "",
+      }));
+      setSubjectSources((prev) => ({ ...((data.sources as any) || {}), ...prev }));
+      setHomeId(data.id);
+      toast.success("Loaded saved details for this address");
+    })();
+    return () => { cancelled = true; };
+  }, [subject.address]);
+
   const updateSubject = <K extends keyof CmaSubject>(k: K, v: CmaSubject[K]) =>
     setSubject((s) => ({ ...s, [k]: v }));
   const updateComp = (i: number, patch: Partial<CmaComp>) =>
     setComps((c) => c.map((row, idx) => (idx === i ? { ...row, ...patch } : row)));
   const addComp = () => setComps((c) => [...c, emptyComp()]);
   const removeComp = (i: number) => setComps((c) => c.filter((_, idx) => idx !== i));
+
 
   const pasteComps = async () => {
     try {
@@ -318,7 +460,11 @@ export default function CmaEditor({ initial, onSaved }: Props) {
       {/* Subject */}
       <section className="bg-white border border-border p-5">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-          <h3 className="font-display text-base font-semibold">Subject Property</h3>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h3 className="font-display text-base font-semibold">Subject Property</h3>
+            <AutoSavePill state={autoSaveState} lastSavedAt={lastSavedAt} onRetry={persistNow} />
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={() => runAutoFill("subject")}
@@ -670,5 +816,38 @@ function NumInput({
         onChange={(e) => onChange(e.target.value ? parseFloat(e.target.value) : null)}
       />
     </div>
+  );
+}
+
+function AutoSavePill({
+  state, lastSavedAt, onRetry,
+}: {
+  state: "idle" | "saving" | "saved" | "error";
+  lastSavedAt: Date | null;
+  onRetry: () => void;
+}) {
+  if (state === "idle" && !lastSavedAt) return null;
+  if (state === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[10px] font-body uppercase tracking-[2px] text-muted-foreground">
+        <Loader2 className="w-3 h-3 animate-spin" /> Saving…
+      </span>
+    );
+  }
+  if (state === "error") {
+    return (
+      <button
+        onClick={onRetry}
+        className="inline-flex items-center gap-1.5 text-[10px] font-body uppercase tracking-[2px] text-destructive hover:underline"
+      >
+        Unsaved — retry
+      </button>
+    );
+  }
+  const stamp = lastSavedAt ? lastSavedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-body uppercase tracking-[2px] text-sage">
+      <Check className="w-3 h-3" /> Saved {stamp && `· ${stamp}`}
+    </span>
   );
 }

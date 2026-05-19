@@ -21,7 +21,10 @@ export interface CmaReportRow {
   ppsf_low: number | null;
   ppsf_recommended: number | null;
   ppsf_high: number | null;
+  home_id: string | null;
+  subject_sources: Record<string, string> | null;
 }
+
 
 export default function CmaWorkspace() {
   const [rows, setRows] = useState<CmaReportRow[]>([]);

@@ -1,63 +1,56 @@
-## CMA Auto-Fill: Subject + Comps via Firecrawl + Claude
+# Persist home data + auto-save CMA edits
 
-Add address-driven auto-fill to the existing CMA editor. Emily types an address, clicks **Auto-Fill**, and the platform scrapes the web to populate subject details and pull recent comparable sales within configurable radius/timeframe.
+Build a canonical `homes` record per address, link each CMA report to it, and auto-save edits (with sources) as the admin types.
 
-### User flow
+## Database
 
-1. In the CMA editor, the **Subject** card gets a single address input + **Auto-Fill from Address** button.
-2. Spinner shows progress: "Looking up property → Finding comps → Extracting details".
-3. Subject fields fill in: beds, baths, sqft, year built, lot size, builder, condition notes (from listing descriptions).
-4. Comps section auto-populates with up to 6 recent sales. Each is editable; Emily can delete/swap.
-5. Two sliders above the comps: **Radius** (0.25 – 2 mi, default 0.5) and **Window** (3 – 24 months, default 6). Changing them re-runs comp search only.
-6. Emily reviews/edits everything, then clicks **Generate** (existing Claude narrative flow, unchanged).
+New tables:
 
-### Data sourcing strategy
+- `homes`
+  - `id` uuid pk
+  - `address` text — display address
+  - `address_key` text unique — normalized (lowercase, alnum-only) for dedupe
+  - `beds`, `baths`, `sqft`, `year_built` numeric/int
+  - `lot_size`, `builder`, `condition` text
+  - `sources` jsonb — `{ beds: "https://...", sqft: "...", ... }`
+  - `last_autofill_at` timestamptz
+  - `created_by`, timestamps
+  - RLS: admins full CRUD
 
-**Split approach** (per your selection):
+- `cma_reports` (alter)
+  - add `home_id uuid` nullable → references `homes(id)`
+  - add `subject_sources jsonb default '{}'`
+  - (comps already carry `sourceUrl` inside `comps_data`)
 
-- **Subject details** → Firecrawl `search` for the address across Zillow / Redfin / Realtor.com / county appraisal sites → scrape top 1–2 results → Claude extracts structured fields (beds, baths, sqft, year built, lot, builder, condition notes).
-- **Comps** → Firecrawl `search` for "recently sold homes near {address}" + scrape Redfin/Zillow sold-listings pages → Claude extracts an array of comps, then filters server-side by lat/long distance and sale date against the configured radius/window.
-- Honest about reliability: scraped data is best-effort. Every field stays editable, and the UI flags low-confidence values.
+Indexes: `homes(address_key)` unique, `cma_reports(home_id)`.
 
-### New edge function
+## Save flow
 
-`cma-autofill` (deployed alongside existing `generate-cma-narrative`):
+In `CmaEditor.tsx`:
 
-- Input: `{ address, mode: "subject" | "comps" | "both", radiusMiles, monthsBack }`
-- Admin JWT check (same pattern as `enrich-properties`).
-- Subject pass: 2–3 Firecrawl search queries (quoted address, address+city, address+county records) → Claude structured extraction.
-- Comps pass: Firecrawl search for "homes sold near {address} last {N} months" + scrape Redfin sold map → Claude returns array → server filters by distance (haversine on extracted lat/long when present, else string-match neighborhood) and `saleDate >= now - monthsBack`.
-- Returns `{ subject: {...}, comps: [...], log: [...] }`. Log surfaces which queries hit so Emily understands gaps.
-- Uses existing `FIRECRAWL_API_KEY` and `ANTHROPIC_API_KEY`.
+1. On mount / address change, look up `homes` by `address_key`. If found and the current subject is blank, hydrate from it (so reopening an address brings back data + sources).
+2. Debounced auto-save (1s after last edit) writes:
+   - `homes` upsert keyed on `address_key` — subject fields + sources + `last_autofill_at`
+   - `cma_reports` update (existing row) or insert (new) — subject_data, comps_data (including each comp's `sourceUrl`), notes, subject_sources, home_id
+3. Auto-fill button runs (subject/comps/both) now also write through this same path so sources persist.
+4. Small status indicator near the header: "Saved · 3s ago" / "Saving…" / "Unsaved — retrying".
+5. Manual Save button stays for the PDF + narrative flow (regenerate + upload PDF only happens on explicit click).
 
-### Frontend changes
+## UX guards
 
-**Modified:** `src/components/admin/cma/CmaEditor.tsx`
-- Add address-only "Quick Start" row above the existing subject form with **Auto-Fill** button.
-- Add **Radius** + **Window** sliders above the comps table with a **Re-find Comps** button.
-- Wire `supabase.functions.invoke("cma-autofill", ...)`.
-- Show per-field "AI-filled" badges that disappear when Emily edits the field.
-- Toast on partial results ("Found 4 of 6 requested comps — try widening radius").
+- Don't auto-save until `subject.address` ≥ 5 chars.
+- Skip writes that would clear non-null fields with null (the existing `pickField` rules already enforce this for auto-fill; for manual edits the user's value wins).
+- Debounce per-field so rapid typing collapses into one DB call.
+- Toast only on errors; success stays silent in the status pill.
 
-**New (small):** `src/components/admin/cma/AutoFillStatus.tsx` — progress strip + result summary.
+## Files touched
 
-No DB changes. The existing `cma_reports.subject_data` and `comps_data` jsonb columns already accept whatever shape we save.
+- migration: new `homes` table + `cma_reports` columns + RLS
+- `src/components/admin/cma/CmaEditor.tsx` — hydrate, debounced save, status pill
+- `src/components/admin/cma/CmaWorkspace.tsx` — pass through `home_id`
+- (types regenerate automatically)
 
-### Honest limitations (will surface in UI)
+## Out of scope
 
-- Zillow/Redfin actively block scraping; some lookups will fail or return stale data.
-- Sale dates and exact distances aren't always present in scraped HTML — Emily may need to verify before generating.
-- County appraisal sites (BCAD for Bexar County) often have the cleanest subject data but limited search.
-- If results are thin too often, RentCast remains the next-round upgrade — same edge function shape, just swap the provider.
-
-### Out of scope (this round)
-
-- RentCast / ATTOM integration (queued for next round if scraping proves too noisy).
-- Auto-running adjustments (per-comp $ delta) — Emily still enters those manually.
-- Bulk auto-fill across multiple saved CMAs.
-- Persistent caching of scraped data.
-
-### Memory updates
-
-- Append auto-fill capability + limitations to `mem://features/cma-platform`.
-
+- Showing a homes browser / cross-CMA history view (can come later — the data will be there).
+- Versioning history of edits.
