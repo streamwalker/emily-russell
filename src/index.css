@@ -89,6 +89,18 @@
   }
 }
 
+/* Anchor-link offset & motion preferences
+   --header-h is updated at runtime via ResizeObserver so anchor links
+   land below the fixed header even when its height changes. */
+html {
+  --header-h: 88px;
+  scroll-padding-top: calc(var(--header-h) + 8px);
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
 @layer base {
   * {
     @apply border-border;
