@@ -261,7 +261,29 @@ export default function CmaEditor({ initial, onSaved }: Props) {
     <div className="space-y-6">
       {/* Subject */}
       <section className="bg-white border border-border p-5">
-        <h3 className="font-display text-base font-semibold mb-4">Subject Property</h3>
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+          <h3 className="font-display text-base font-semibold">Subject Property</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => runAutoFill("subject")}
+              disabled={!!autoFilling || !subject.address}
+              className="flex items-center gap-1.5 text-xs font-body uppercase tracking-[2px] text-primary hover:text-primary/80 px-3 py-1.5 border border-primary/40 disabled:opacity-40"
+              title="Look up beds/baths/sqft/year/builder from web sources"
+            >
+              {autoFilling === "subject" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+              Auto-Fill Subject
+            </button>
+            <button
+              onClick={() => runAutoFill("both")}
+              disabled={!!autoFilling || !subject.address}
+              className="flex items-center gap-1.5 text-xs font-body uppercase tracking-[2px] bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 border border-primary disabled:opacity-40"
+              title="Subject details + recent comps in one shot"
+            >
+              {autoFilling === "both" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              Auto-Fill Everything
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input label="Address" value={subject.address} onChange={(v) => updateSubject("address", v)} placeholder="3850 Millbrook Way, San Antonio, TX 78258" wide />
           <NumInput label="Beds" value={subject.beds} onChange={(v) => updateSubject("beds", v)} />
@@ -269,15 +291,27 @@ export default function CmaEditor({ initial, onSaved }: Props) {
           <NumInput label="Square Feet" value={subject.sqft} onChange={(v) => updateSubject("sqft", v)} />
           <NumInput label="Year Built" value={subject.yearBuilt} onChange={(v) => updateSubject("yearBuilt", v)} />
           <Input label="Lot Size" value={subject.lotSize || ""} onChange={(v) => updateSubject("lotSize", v)} placeholder="0.25 acres" />
+          <Input label="Builder" value={subject.builder || ""} onChange={(v) => updateSubject("builder", v)} placeholder="Lennar, KB Home, etc." />
           <Input label="Condition" value={subject.condition || ""} onChange={(v) => updateSubject("condition", v)} placeholder="Updated kitchen, original baths" wide />
         </div>
+        <p className="font-body text-[11px] text-muted-foreground mt-3">
+          Auto-fill scrapes public web sources (Zillow, Redfin, county records). Always verify — every field is editable.
+        </p>
       </section>
 
       {/* Comps */}
       <section className="bg-white border border-border p-5">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <h3 className="font-display text-base font-semibold">Comparable Sales</h3>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => runAutoFill("comps")}
+              disabled={!!autoFilling || !subject.address}
+              className="flex items-center gap-1.5 text-xs font-body uppercase tracking-[2px] text-primary hover:text-primary/80 px-3 py-1.5 border border-primary/40 disabled:opacity-40"
+            >
+              {autoFilling === "comps" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Find Comps
+            </button>
             <button onClick={pasteComps} className="flex items-center gap-1.5 text-xs font-body uppercase tracking-[2px] text-muted-foreground hover:text-primary px-3 py-1.5 border border-border">
               <ClipboardPaste className="w-3.5 h-3.5" /> Paste CSV
             </button>
@@ -286,6 +320,35 @@ export default function CmaEditor({ initial, onSaved }: Props) {
             </button>
           </div>
         </div>
+
+        {/* Sliders */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-cream/30 border border-border">
+          <div>
+            <div className="flex justify-between text-[10px] font-body uppercase tracking-[2px] text-muted-foreground mb-1">
+              <span>Radius</span>
+              <span className="text-primary font-semibold">{radiusMiles.toFixed(2)} mi</span>
+            </div>
+            <input
+              type="range" min={0.25} max={2} step={0.25}
+              value={radiusMiles}
+              onChange={(e) => setRadiusMiles(parseFloat(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+          <div>
+            <div className="flex justify-between text-[10px] font-body uppercase tracking-[2px] text-muted-foreground mb-1">
+              <span>Window</span>
+              <span className="text-primary font-semibold">{monthsBack} months</span>
+            </div>
+            <input
+              type="range" min={3} max={24} step={1}
+              value={monthsBack}
+              onChange={(e) => setMonthsBack(parseInt(e.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
           {comps.map((c, i) => (
             <div key={i} className="grid grid-cols-12 gap-2 items-center text-sm">
