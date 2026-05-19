@@ -460,7 +460,11 @@ export default function CmaEditor({ initial, onSaved }: Props) {
       {/* Subject */}
       <section className="bg-white border border-border p-5">
         <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-          <h3 className="font-display text-base font-semibold">Subject Property</h3>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h3 className="font-display text-base font-semibold">Subject Property</h3>
+            <AutoSavePill state={autoSaveState} lastSavedAt={lastSavedAt} onRetry={persistNow} />
+          </div>
+
           <div className="flex gap-2">
             <button
               onClick={() => runAutoFill("subject")}
