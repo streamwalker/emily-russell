@@ -273,7 +273,37 @@ export async function buildCmaPdf(
       page.drawText(txt, { x: cx, y, size: 10, font: i === 0 ? serif : sans, color: CHARCOAL });
       cx += colWidths[i];
     }
-    y -= 16;
+    y -= 14;
+
+    // Provenance & History sub-block (only fields with values)
+    const provLine1Parts: string[] = [];
+    if (c.yearBuilt) provLine1Parts.push(`Built ${c.yearBuilt}`);
+    if (c.builder) provLine1Parts.push(c.builder);
+    if (c.priorOwners != null) provLine1Parts.push(`${c.priorOwners} prior owner${c.priorOwners === 1 ? "" : "s"}`);
+    const listingParts: string[] = [];
+    if (c.listingAgent) listingParts.push(c.listingAgent);
+    if (c.listingBroker) listingParts.push(`(${c.listingBroker})`);
+    const extras: string[] = [];
+    if (provLine1Parts.length) extras.push(provLine1Parts.join(" · "));
+    if (listingParts.length) extras.push(`Listed by: ${listingParts.join(" ")}`);
+    if (c.everRented && c.everRented !== "unknown") {
+      extras.push(`Rental history: ${c.everRented === "yes" ? "Yes" : "No"}`);
+    }
+    if (c.insuranceClaims && c.insuranceClaims.trim()) {
+      extras.push(`Claims: ${c.insuranceClaims.trim()}`);
+    }
+    for (const line of extras) {
+      if (y < margin + 20) newPage();
+      let txt = line;
+      const maxW = W - margin * 2;
+      while (sans.widthOfTextAtSize(txt, 8.5) > maxW && txt.length > 8) {
+        txt = txt.slice(0, -1);
+      }
+      page.drawText(txt, { x: margin + 8, y, size: 8.5, font: sans, color: MUTED });
+      y -= 11;
+    }
+    if (extras.length) y -= 2;
+    else y -= 2;
   }
   y -= 10;
 
