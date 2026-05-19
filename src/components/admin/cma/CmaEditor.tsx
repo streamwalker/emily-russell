@@ -34,6 +34,16 @@ const emptyComp = (): CmaComp => ({
   notes: "",
 });
 
+// When confidence is strong, prefer the new value; otherwise only fill if existing is blank.
+function pickField<T>(existing: T, incoming: T | null | undefined, strong: boolean): T {
+  const blank = existing == null || existing === "" || (typeof existing === "number" && existing === 0);
+  if (incoming == null || incoming === "") return existing;
+  if (strong || blank) return incoming as T;
+  return existing;
+}
+
+
+
 export default function CmaEditor({ initial, onSaved }: Props) {
   const [subject, setSubject] = useState<CmaSubject>(initial?.subject_data || emptySubject);
   const [comps, setComps] = useState<CmaComp[]>(
