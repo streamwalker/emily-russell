@@ -22,7 +22,9 @@ export interface CmaComp {
   condition?: string | null;
   adjustment?: number | null;
   notes?: string | null;
+  sourceUrl?: string | null;
 }
+
 
 export interface CmaResult {
   executiveSummary?: string;

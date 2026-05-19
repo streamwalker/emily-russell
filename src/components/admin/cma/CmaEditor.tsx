@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { buildCmaPdf, type CmaSubject, type CmaComp, type CmaResult } from "@/lib/cmaPdf";
 import type { CmaReportRow } from "./CmaWorkspace";
@@ -71,6 +71,8 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [radiusMiles, setRadiusMiles] = useState(0.5);
   const [monthsBack, setMonthsBack] = useState(6);
   const [autoLog, setAutoLog] = useState<string[]>([]);
+  const [subjectSources, setSubjectSources] = useState<Record<string, string>>({});
+
 
   const runAutoFill = async (mode: "subject" | "comps" | "both") => {
     if (!subject.address || subject.address.trim().length < 5) {
@@ -103,10 +105,23 @@ export default function CmaEditor({ initial, onSaved }: Props) {
             builder: pickField(s.builder, data.subject.builder, strong),
             condition: pickField(s.condition, data.subject.condition, strong),
           }));
+          // Merge per-field source URLs (only for fields we actually accepted)
+          const incomingSrc = (data.subject.sources && typeof data.subject.sources === "object") ? data.subject.sources : {};
+          setSubjectSources((prev) => {
+            const next = { ...prev };
+            for (const k of ["beds","baths","sqft","yearBuilt","lotSize","builder","condition"]) {
+              const v = data.subject[k];
+              if (v != null && v !== "" && typeof incomingSrc[k] === "string" && incomingSrc[k]) {
+                next[k] = incomingSrc[k];
+              }
+            }
+            return next;
+          });
           toast.success(
             `Subject updated — ${sMeta.fields}/7 fields, confidence ${sMeta.score}/10` +
               (strong ? "" : " (only filled blanks; existing values kept)"),
           );
+
         } else if (mode === "subject" || (mode === "both" && !data?.subject)) {
           toast.warning(
             `Subject result was too thin to trust — kept your existing values${
@@ -135,7 +150,9 @@ export default function CmaEditor({ initial, onSaved }: Props) {
             condition: c.condition || "",
             adjustment: null,
             notes: "",
+            sourceUrl: typeof c.sourceUrl === "string" ? c.sourceUrl : null,
           }));
+
           setComps(mapped);
           toast.success(
             `Replaced comps — ${mapped.length} kept of ${cMeta?.raw ?? mapped.length} found`,
@@ -333,9 +350,35 @@ export default function CmaEditor({ initial, onSaved }: Props) {
           <Input label="Builder" value={subject.builder || ""} onChange={(v) => updateSubject("builder", v)} placeholder="Lennar, KB Home, etc." />
           <Input label="Condition" value={subject.condition || ""} onChange={(v) => updateSubject("condition", v)} placeholder="Updated kitchen, original baths" wide />
         </div>
+        {Object.keys(subjectSources).length > 0 && (
+          <div className="mt-3 p-3 bg-cream/30 border border-border">
+            <div className="text-[10px] font-body uppercase tracking-[2px] text-muted-foreground mb-2">
+              Field sources (auto-fill)
+            </div>
+            <ul className="space-y-1 text-[11px] font-body">
+              {Object.entries(subjectSources).map(([field, url]) => {
+                let host = url;
+                try { host = new URL(url).hostname.replace(/^www\./, ""); } catch {}
+                const labelMap: Record<string, string> = {
+                  beds: "Beds", baths: "Baths", sqft: "Sqft", yearBuilt: "Year Built",
+                  lotSize: "Lot Size", builder: "Builder", condition: "Condition",
+                };
+                return (
+                  <li key={field} className="flex items-center gap-2">
+                    <span className="font-semibold text-charcoal min-w-[80px]">{labelMap[field] || field}</span>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate" title={url}>
+                      {host}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
         <p className="font-body text-[11px] text-muted-foreground mt-3">
           Auto-fill scrapes public web sources (Zillow, Redfin, county records). Always verify — every field is editable.
         </p>
+
       </section>
 
       {/* Comps */}
@@ -413,58 +456,78 @@ export default function CmaEditor({ initial, onSaved }: Props) {
 
 
         <div className="space-y-2">
-          {comps.map((c, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-center text-sm">
-              <input
-                className="col-span-4 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Address"
-                value={c.address}
-                onChange={(e) => updateComp(i, { address: e.target.value })}
-              />
-              <input
-                className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Sale price"
-                type="number"
-                value={c.salePrice || ""}
-                onChange={(e) => updateComp(i, { salePrice: parseFloat(e.target.value) || 0 })}
-              />
-              <input
-                className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Sqft"
-                type="number"
-                value={c.sqft ?? ""}
-                onChange={(e) => updateComp(i, { sqft: e.target.value ? parseFloat(e.target.value) : null })}
-              />
-              <input
-                className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Bd"
-                type="number"
-                value={c.beds ?? ""}
-                onChange={(e) => updateComp(i, { beds: e.target.value ? parseFloat(e.target.value) : null })}
-              />
-              <input
-                className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Ba"
-                type="number"
-                step="0.5"
-                value={c.baths ?? ""}
-                onChange={(e) => updateComp(i, { baths: e.target.value ? parseFloat(e.target.value) : null })}
-              />
-              <input
-                className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Sale date"
-                value={c.saleDate || ""}
-                onChange={(e) => updateComp(i, { saleDate: e.target.value })}
-              />
-              <button
-                onClick={() => removeComp(i)}
-                className="col-span-1 p-1.5 text-muted-foreground hover:text-destructive flex justify-center"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+          {comps.map((c, i) => {
+            let srcHost = "";
+            if (c.sourceUrl) {
+              try { srcHost = new URL(c.sourceUrl).hostname.replace(/^www\./, ""); } catch { srcHost = c.sourceUrl; }
+            }
+            return (
+            <div key={i} className="space-y-1">
+              <div className="grid grid-cols-12 gap-2 items-center text-sm">
+                <input
+                  className="col-span-4 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Address"
+                  value={c.address}
+                  onChange={(e) => updateComp(i, { address: e.target.value })}
+                />
+                <input
+                  className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Sale price"
+                  type="number"
+                  value={c.salePrice || ""}
+                  onChange={(e) => updateComp(i, { salePrice: parseFloat(e.target.value) || 0 })}
+                />
+                <input
+                  className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Sqft"
+                  type="number"
+                  value={c.sqft ?? ""}
+                  onChange={(e) => updateComp(i, { sqft: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+                <input
+                  className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Bd"
+                  type="number"
+                  value={c.beds ?? ""}
+                  onChange={(e) => updateComp(i, { beds: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+                <input
+                  className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Ba"
+                  type="number"
+                  step="0.5"
+                  value={c.baths ?? ""}
+                  onChange={(e) => updateComp(i, { baths: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+                <input
+                  className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Sale date"
+                  value={c.saleDate || ""}
+                  onChange={(e) => updateComp(i, { saleDate: e.target.value })}
+                />
+                <button
+                  onClick={() => removeComp(i)}
+                  className="col-span-1 p-1.5 text-muted-foreground hover:text-destructive flex justify-center"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              {c.sourceUrl && (
+                <a
+                  href={c.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-body text-primary hover:underline ml-1"
+                  title={c.sourceUrl}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  source: {srcHost}
+                </a>
+              )}
             </div>
-          ))}
+          );})}
         </div>
+
         <p className="font-body text-[11px] text-muted-foreground mt-3">
           Tip: paste a tab- or comma-separated list as <em>address, price, sqft, bd, ba, date</em>.
         </p>
