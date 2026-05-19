@@ -350,9 +350,35 @@ export default function CmaEditor({ initial, onSaved }: Props) {
           <Input label="Builder" value={subject.builder || ""} onChange={(v) => updateSubject("builder", v)} placeholder="Lennar, KB Home, etc." />
           <Input label="Condition" value={subject.condition || ""} onChange={(v) => updateSubject("condition", v)} placeholder="Updated kitchen, original baths" wide />
         </div>
+        {Object.keys(subjectSources).length > 0 && (
+          <div className="mt-3 p-3 bg-cream/30 border border-border">
+            <div className="text-[10px] font-body uppercase tracking-[2px] text-muted-foreground mb-2">
+              Field sources (auto-fill)
+            </div>
+            <ul className="space-y-1 text-[11px] font-body">
+              {Object.entries(subjectSources).map(([field, url]) => {
+                let host = url;
+                try { host = new URL(url).hostname.replace(/^www\./, ""); } catch {}
+                const labelMap: Record<string, string> = {
+                  beds: "Beds", baths: "Baths", sqft: "Sqft", yearBuilt: "Year Built",
+                  lotSize: "Lot Size", builder: "Builder", condition: "Condition",
+                };
+                return (
+                  <li key={field} className="flex items-center gap-2">
+                    <span className="font-semibold text-charcoal min-w-[80px]">{labelMap[field] || field}</span>
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate" title={url}>
+                      {host}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
         <p className="font-body text-[11px] text-muted-foreground mt-3">
           Auto-fill scrapes public web sources (Zillow, Redfin, county records). Always verify — every field is editable.
         </p>
+
       </section>
 
       {/* Comps */}
