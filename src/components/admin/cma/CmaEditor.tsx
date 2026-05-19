@@ -456,58 +456,78 @@ export default function CmaEditor({ initial, onSaved }: Props) {
 
 
         <div className="space-y-2">
-          {comps.map((c, i) => (
-            <div key={i} className="grid grid-cols-12 gap-2 items-center text-sm">
-              <input
-                className="col-span-4 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Address"
-                value={c.address}
-                onChange={(e) => updateComp(i, { address: e.target.value })}
-              />
-              <input
-                className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Sale price"
-                type="number"
-                value={c.salePrice || ""}
-                onChange={(e) => updateComp(i, { salePrice: parseFloat(e.target.value) || 0 })}
-              />
-              <input
-                className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Sqft"
-                type="number"
-                value={c.sqft ?? ""}
-                onChange={(e) => updateComp(i, { sqft: e.target.value ? parseFloat(e.target.value) : null })}
-              />
-              <input
-                className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Bd"
-                type="number"
-                value={c.beds ?? ""}
-                onChange={(e) => updateComp(i, { beds: e.target.value ? parseFloat(e.target.value) : null })}
-              />
-              <input
-                className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Ba"
-                type="number"
-                step="0.5"
-                value={c.baths ?? ""}
-                onChange={(e) => updateComp(i, { baths: e.target.value ? parseFloat(e.target.value) : null })}
-              />
-              <input
-                className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
-                placeholder="Sale date"
-                value={c.saleDate || ""}
-                onChange={(e) => updateComp(i, { saleDate: e.target.value })}
-              />
-              <button
-                onClick={() => removeComp(i)}
-                className="col-span-1 p-1.5 text-muted-foreground hover:text-destructive flex justify-center"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+          {comps.map((c, i) => {
+            let srcHost = "";
+            if (c.sourceUrl) {
+              try { srcHost = new URL(c.sourceUrl).hostname.replace(/^www\./, ""); } catch { srcHost = c.sourceUrl; }
+            }
+            return (
+            <div key={i} className="space-y-1">
+              <div className="grid grid-cols-12 gap-2 items-center text-sm">
+                <input
+                  className="col-span-4 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Address"
+                  value={c.address}
+                  onChange={(e) => updateComp(i, { address: e.target.value })}
+                />
+                <input
+                  className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Sale price"
+                  type="number"
+                  value={c.salePrice || ""}
+                  onChange={(e) => updateComp(i, { salePrice: parseFloat(e.target.value) || 0 })}
+                />
+                <input
+                  className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Sqft"
+                  type="number"
+                  value={c.sqft ?? ""}
+                  onChange={(e) => updateComp(i, { sqft: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+                <input
+                  className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Bd"
+                  type="number"
+                  value={c.beds ?? ""}
+                  onChange={(e) => updateComp(i, { beds: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+                <input
+                  className="col-span-1 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Ba"
+                  type="number"
+                  step="0.5"
+                  value={c.baths ?? ""}
+                  onChange={(e) => updateComp(i, { baths: e.target.value ? parseFloat(e.target.value) : null })}
+                />
+                <input
+                  className="col-span-2 px-2 py-1.5 border border-border bg-white text-sm"
+                  placeholder="Sale date"
+                  value={c.saleDate || ""}
+                  onChange={(e) => updateComp(i, { saleDate: e.target.value })}
+                />
+                <button
+                  onClick={() => removeComp(i)}
+                  className="col-span-1 p-1.5 text-muted-foreground hover:text-destructive flex justify-center"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              {c.sourceUrl && (
+                <a
+                  href={c.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[10px] font-body text-primary hover:underline ml-1"
+                  title={c.sourceUrl}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  source: {srcHost}
+                </a>
+              )}
             </div>
-          ))}
+          );})}
         </div>
+
         <p className="font-body text-[11px] text-muted-foreground mt-3">
           Tip: paste a tab- or comma-separated list as <em>address, price, sqft, bd, ba, date</em>.
         </p>
