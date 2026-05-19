@@ -702,16 +702,19 @@ export default function CmaEditor({ initial, onSaved }: Props) {
                   {isOpen ? "▾ Details" : "▸ Details"}
                 </button>
                 {c.sourceUrl && (
-                  <a
-                    href={c.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-body text-primary hover:underline"
-                    title={c.sourceUrl}
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    source: {srcHost}
-                  </a>
+                  <span className="inline-flex items-center gap-1">
+                    <a
+                      href={c.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] font-body text-primary hover:underline"
+                      title={c.sourceUrl}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      source: {srcHost}
+                    </a>
+                    <CopyUrlButton url={c.sourceUrl} />
+                  </span>
                 )}
               </div>
 
