@@ -23,6 +23,13 @@ export interface CmaComp {
   adjustment?: number | null;
   notes?: string | null;
   sourceUrl?: string | null;
+  yearBuilt?: number | null;
+  builder?: string | null;
+  priorOwners?: number | null;
+  listingAgent?: string | null;
+  listingBroker?: string | null;
+  everRented?: "yes" | "no" | "unknown" | null;
+  insuranceClaims?: string | null;
 }
 
 
