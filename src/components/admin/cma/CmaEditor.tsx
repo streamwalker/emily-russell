@@ -150,7 +150,9 @@ export default function CmaEditor({ initial, onSaved }: Props) {
             condition: c.condition || "",
             adjustment: null,
             notes: "",
+            sourceUrl: typeof c.sourceUrl === "string" ? c.sourceUrl : null,
           }));
+
           setComps(mapped);
           toast.success(
             `Replaced comps — ${mapped.length} kept of ${cMeta?.raw ?? mapped.length} found`,
