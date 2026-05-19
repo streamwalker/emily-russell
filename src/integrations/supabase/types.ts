@@ -126,6 +126,7 @@ export type Database = {
           created_by: string
           error: string | null
           executive_summary: string | null
+          home_id: string | null
           id: string
           narrative: string | null
           notes: string | null
@@ -135,6 +136,7 @@ export type Database = {
           ppsf_recommended: number | null
           status: string
           subject_data: Json
+          subject_sources: Json
           updated_at: string
           value_high: number | null
           value_low: number | null
@@ -147,6 +149,7 @@ export type Database = {
           created_by: string
           error?: string | null
           executive_summary?: string | null
+          home_id?: string | null
           id?: string
           narrative?: string | null
           notes?: string | null
@@ -156,6 +159,7 @@ export type Database = {
           ppsf_recommended?: number | null
           status?: string
           subject_data?: Json
+          subject_sources?: Json
           updated_at?: string
           value_high?: number | null
           value_low?: number | null
@@ -168,6 +172,7 @@ export type Database = {
           created_by?: string
           error?: string | null
           executive_summary?: string | null
+          home_id?: string | null
           id?: string
           narrative?: string | null
           notes?: string | null
@@ -177,12 +182,21 @@ export type Database = {
           ppsf_recommended?: number | null
           status?: string
           subject_data?: Json
+          subject_sources?: Json
           updated_at?: string
           value_high?: number | null
           value_low?: number | null
           value_recommended?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cma_reports_home_id_fkey"
+            columns: ["home_id"]
+            isOneToOne: false
+            referencedRelation: "homes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comment_replies: {
         Row: {
@@ -377,6 +391,60 @@ export type Database = {
           id?: string
           token?: string
           used_at?: string | null
+        }
+        Relationships: []
+      }
+      homes: {
+        Row: {
+          address: string
+          address_key: string
+          baths: number | null
+          beds: number | null
+          builder: string | null
+          condition: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          last_autofill_at: string | null
+          lot_size: string | null
+          sources: Json
+          sqft: number | null
+          updated_at: string
+          year_built: number | null
+        }
+        Insert: {
+          address: string
+          address_key: string
+          baths?: number | null
+          beds?: number | null
+          builder?: string | null
+          condition?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_autofill_at?: string | null
+          lot_size?: string | null
+          sources?: Json
+          sqft?: number | null
+          updated_at?: string
+          year_built?: number | null
+        }
+        Update: {
+          address?: string
+          address_key?: string
+          baths?: number | null
+          beds?: number | null
+          builder?: string | null
+          condition?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_autofill_at?: string | null
+          lot_size?: string | null
+          sources?: Json
+          sqft?: number | null
+          updated_at?: string
+          year_built?: number | null
         }
         Relationships: []
       }
