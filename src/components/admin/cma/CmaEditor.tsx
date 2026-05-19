@@ -88,11 +88,15 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const skipNextSave = useRef<boolean>(true); // skip initial mount save
 
 
-
+  const runAutoFill = async (mode: "subject" | "comps" | "both") => {
+    if (!subject.address || subject.address.trim().length < 5) {
+      toast.error("Enter an address first");
+      return;
     }
     setAutoFilling(mode);
     setAutoLog([]);
     try {
+
       const { data, error: invErr } = await supabase.functions.invoke("cma-autofill", {
         body: { address: subject.address, mode, radiusMiles, monthsBack },
       });
