@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { buildCmaPdf, type CmaSubject, type CmaComp, type CmaResult } from "@/lib/cmaPdf";
 import type { CmaReportRow } from "./CmaWorkspace";
