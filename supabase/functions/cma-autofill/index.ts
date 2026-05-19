@@ -190,7 +190,9 @@ serve(async (req) => {
 
     const log: string[] = [];
     let subject: any = null;
+    let subjectMeta: any = null;
     let comps: any[] = [];
+    let compsMeta: any = null;
 
     // ── Subject ──
     if (mode === "subject" || mode === "both") {
@@ -212,8 +214,15 @@ serve(async (req) => {
       if (ctx) {
         try {
           const userMsg = `Subject address: ${address}\n\nSearch results:\n${ctx}\n\nExtract the property details for THIS address only. Ignore neighbors.`;
-          subject = await claudeExtract(SUBJECT_SYSTEM, userMsg, ANTHROPIC);
-          log.push(`subject: extracted ${Object.keys(subject || {}).length} fields`);
+          const extracted = await claudeExtract(SUBJECT_SYSTEM, userMsg, ANTHROPIC);
+          const conf = subjectConfidence(extracted, address, ctx);
+          // Stricter gate: require at least 3 of 7 fields AND address match
+          const accepted = conf.fields >= 3 && conf.addressMatch;
+          subject = accepted ? extracted : null;
+          subjectMeta = { ...conf, accepted };
+          log.push(
+            `subject: ${conf.fields}/7 fields, addressMatch=${conf.addressMatch}, score=${conf.score}/10 → ${accepted ? "accepted" : "rejected (thin/mismatched)"}`,
+          );
         } catch (e) {
           log.push(`subject: extraction failed — ${e instanceof Error ? e.message : "unknown"}`);
         }
@@ -242,12 +251,37 @@ serve(async (req) => {
         try {
           const userMsg = `Subject address: ${address}\nRadius: ${radiusMiles} miles\nWindow: last ${monthsBack} months\n\nSearch results:\n${ctx}\n\nExtract recent SOLD comparable sales near the subject.`;
           const parsed = await claudeExtract(COMPS_SYSTEM, userMsg, ANTHROPIC);
-          const rawComps = Array.isArray(parsed?.comps) ? parsed.comps : [];
-          const filtered = rawComps.filter((c: any) =>
-            c.address && c.salePrice && withinRadius(c.distanceMiles, radiusMiles) && withinWindow(c.saleDate, monthsBack)
+          const rawComps: any[] = Array.isArray(parsed?.comps) ? parsed.comps : [];
+
+          // Reject obvious junk
+          const plausible = rawComps.filter(plausibleComp);
+          // Reject self-comp (subject address showing up in comps)
+          const subjNorm = normAddr(address);
+          const notSelf = plausible.filter((c) => normAddr(c.address) !== subjNorm);
+          // Dedupe by normalized address
+          const seen = new Set<string>();
+          const deduped = notSelf.filter((c) => {
+            const k = normAddr(c.address);
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          });
+          // Apply radius + window filters
+          const filtered = deduped.filter((c) =>
+            withinRadius(c.distanceMiles, radiusMiles) && withinWindow(c.saleDate, monthsBack)
           );
+
           comps = filtered.slice(0, 8);
-          log.push(`comps: extracted ${rawComps.length}, kept ${comps.length} after filters`);
+          compsMeta = {
+            raw: rawComps.length,
+            plausible: plausible.length,
+            deduped: deduped.length,
+            kept: comps.length,
+            sufficient: comps.length >= 3,
+          };
+          log.push(
+            `comps: raw=${rawComps.length}, plausible=${plausible.length}, deduped=${deduped.length}, kept=${comps.length} ${comps.length >= 3 ? "(sufficient)" : "(thin — keeping existing)"}`,
+          );
         } catch (e) {
           log.push(`comps: extraction failed — ${e instanceof Error ? e.message : "unknown"}`);
         }
@@ -256,7 +290,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ subject, comps, log }), {
+    return new Response(JSON.stringify({ subject, subjectMeta, comps, compsMeta, log }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
