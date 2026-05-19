@@ -888,22 +888,53 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   );
 }
 
+function CopyUrlButton({ url, size = "sm" }: { url: string; size?: "xs" | "sm" }) {
+  const [copied, setCopied] = useState(false);
+  const iconCls = size === "xs" ? "w-2.5 h-2.5" : "w-3 h-3";
+  const handle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("URL copied");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Could not copy");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      title={copied ? "Copied!" : `Copy URL: ${url}`}
+      aria-label="Copy source URL"
+      className="inline-flex items-center text-muted-foreground hover:text-primary"
+    >
+      {copied ? <Check className={iconCls} /> : <Copy className={iconCls} />}
+    </button>
+  );
+}
+
 function SourceBadge({ url }: { url?: string | null }) {
   if (!url) return null;
   let host = url;
   try { host = new URL(url).hostname.replace(/^www\./, ""); } catch {}
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      title={`Source: ${url}`}
-      aria-label={`Source: ${url}`}
-      className="inline-flex items-center gap-0.5 text-[9px] font-body text-primary hover:underline normal-case tracking-normal"
-    >
-      <ExternalLink className="w-2.5 h-2.5" />
-      <span className="truncate max-w-[120px]">{host}</span>
-    </a>
+    <span className="inline-flex items-center gap-1">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={`Source: ${url}`}
+        aria-label={`Source: ${url}`}
+        className="inline-flex items-center gap-0.5 text-[9px] font-body text-primary hover:underline normal-case tracking-normal"
+      >
+        <ExternalLink className="w-2.5 h-2.5" />
+        <span className="truncate max-w-[120px]">{host}</span>
+      </a>
+      <CopyUrlButton url={url} size="xs" />
+    </span>
   );
 }
 
