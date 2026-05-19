@@ -57,6 +57,70 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>("");
+  const [autoFilling, setAutoFilling] = useState<null | "subject" | "comps" | "both">(null);
+  const [radiusMiles, setRadiusMiles] = useState(0.5);
+  const [monthsBack, setMonthsBack] = useState(6);
+  const [autoLog, setAutoLog] = useState<string[]>([]);
+
+  const runAutoFill = async (mode: "subject" | "comps" | "both") => {
+    if (!subject.address || subject.address.trim().length < 5) {
+      toast.error("Enter an address first");
+      return;
+    }
+    setAutoFilling(mode);
+    setAutoLog([]);
+    try {
+      const { data, error: invErr } = await supabase.functions.invoke("cma-autofill", {
+        body: { address: subject.address, mode, radiusMiles, monthsBack },
+      });
+      if (invErr) throw invErr;
+      if (data?.error) throw new Error(data.error);
+
+      if (data?.subject && (mode === "subject" || mode === "both")) {
+        setSubject((s) => ({
+          ...s,
+          beds: data.subject.beds ?? s.beds,
+          baths: data.subject.baths ?? s.baths,
+          sqft: data.subject.sqft ?? s.sqft,
+          yearBuilt: data.subject.yearBuilt ?? s.yearBuilt,
+          lotSize: data.subject.lotSize ?? s.lotSize,
+          builder: data.subject.builder ?? s.builder,
+          condition: data.subject.condition ?? s.condition,
+        }));
+      }
+      if (Array.isArray(data?.comps) && (mode === "comps" || mode === "both")) {
+        const mapped: CmaComp[] = data.comps.map((c: any) => ({
+          address: c.address || "",
+          salePrice: Number(c.salePrice) || 0,
+          sqft: c.sqft ?? null,
+          beds: c.beds ?? null,
+          baths: c.baths ?? null,
+          saleDate: c.saleDate || "",
+          distanceMiles: c.distanceMiles ?? null,
+          condition: c.condition || "",
+          adjustment: null,
+          notes: "",
+        }));
+        if (mapped.length) {
+          setComps(mapped);
+          toast.success(`Found ${mapped.length} comps`);
+        } else {
+          toast.warning("No comps found — try widening the radius or window");
+        }
+      }
+      if (mode !== "comps" && data?.subject) {
+        const filled = Object.keys(data.subject).length;
+        toast.success(`Auto-filled ${filled} subject field${filled === 1 ? "" : "s"}`);
+      }
+      setAutoLog(Array.isArray(data?.log) ? data.log : []);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Auto-fill failed: " + (e?.message || String(e)));
+    } finally {
+      setAutoFilling(null);
+    }
+  };
+
 
   const updateSubject = <K extends keyof CmaSubject>(k: K, v: CmaSubject[K]) =>
     setSubject((s) => ({ ...s, [k]: v }));
