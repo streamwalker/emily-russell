@@ -405,7 +405,16 @@ export default function CmaEditor({ initial, onSaved }: Props) {
         <p className="font-body text-[11px] text-muted-foreground mt-3">
           Tip: paste a tab- or comma-separated list as <em>address, price, sqft, bd, ba, date</em>.
         </p>
+        {autoLog.length > 0 && (
+          <details className="mt-3 text-[11px] font-body text-muted-foreground">
+            <summary className="cursor-pointer hover:text-primary">Auto-fill log ({autoLog.length})</summary>
+            <ul className="mt-2 space-y-0.5 pl-4 list-disc">
+              {autoLog.map((l, i) => <li key={i}>{l}</li>)}
+            </ul>
+          </details>
+        )}
       </section>
+
 
       {/* Notes */}
       <section className="bg-white border border-border p-5">
