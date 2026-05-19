@@ -503,13 +503,13 @@ export default function CmaEditor({ initial, onSaved }: Props) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input label="Address" value={subject.address} onChange={(v) => updateSubject("address", v)} placeholder="3850 Millbrook Way, San Antonio, TX 78258" wide />
-          <NumInput label="Beds" value={subject.beds} onChange={(v) => updateSubject("beds", v)} />
-          <NumInput label="Baths" value={subject.baths} onChange={(v) => updateSubject("baths", v)} step={0.5} />
-          <NumInput label="Square Feet" value={subject.sqft} onChange={(v) => updateSubject("sqft", v)} />
-          <NumInput label="Year Built" value={subject.yearBuilt} onChange={(v) => updateSubject("yearBuilt", v)} />
-          <Input label="Lot Size" value={subject.lotSize || ""} onChange={(v) => updateSubject("lotSize", v)} placeholder="0.25 acres" />
-          <Input label="Builder" value={subject.builder || ""} onChange={(v) => updateSubject("builder", v)} placeholder="Lennar, KB Home, etc." />
-          <Input label="Condition" value={subject.condition || ""} onChange={(v) => updateSubject("condition", v)} placeholder="Updated kitchen, original baths" wide />
+          <NumInput label="Beds" value={subject.beds} onChange={(v) => updateSubject("beds", v)} sourceUrl={subjectSources.beds} />
+          <NumInput label="Baths" value={subject.baths} onChange={(v) => updateSubject("baths", v)} step={0.5} sourceUrl={subjectSources.baths} />
+          <NumInput label="Square Feet" value={subject.sqft} onChange={(v) => updateSubject("sqft", v)} sourceUrl={subjectSources.sqft} />
+          <NumInput label="Year Built" value={subject.yearBuilt} onChange={(v) => updateSubject("yearBuilt", v)} sourceUrl={subjectSources.yearBuilt} />
+          <Input label="Lot Size" value={subject.lotSize || ""} onChange={(v) => updateSubject("lotSize", v)} placeholder="0.25 acres" sourceUrl={subjectSources.lotSize} />
+          <Input label="Builder" value={subject.builder || ""} onChange={(v) => updateSubject("builder", v)} placeholder="Lennar, KB Home, etc." sourceUrl={subjectSources.builder} />
+          <Input label="Condition" value={subject.condition || ""} onChange={(v) => updateSubject("condition", v)} placeholder="Updated kitchen, original baths" wide sourceUrl={subjectSources.condition} />
         </div>
         {Object.keys(subjectSources).length > 0 && (
           <div className="mt-3 p-3 bg-cream/30 border border-border">
