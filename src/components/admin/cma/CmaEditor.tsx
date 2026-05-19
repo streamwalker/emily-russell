@@ -71,6 +71,8 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [radiusMiles, setRadiusMiles] = useState(0.5);
   const [monthsBack, setMonthsBack] = useState(6);
   const [autoLog, setAutoLog] = useState<string[]>([]);
+  const [subjectSources, setSubjectSources] = useState<Record<string, string>>({});
+
 
   const runAutoFill = async (mode: "subject" | "comps" | "both") => {
     if (!subject.address || subject.address.trim().length < 5) {
