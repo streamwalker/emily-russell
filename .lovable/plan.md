@@ -1,56 +1,78 @@
-# Persist home data + auto-save CMA edits
+## Goal
 
-Build a canonical `homes` record per address, link each CMA report to it, and auto-save edits (with sources) as the admin types.
+Make the comps grid self-explanatory with column labels, and capture richer per-comp data: builder, year built, prior owners, listing agent, listing broker, rental history, and major insurance claims.
 
-## Database
+## UI changes — `src/components/admin/cma/CmaEditor.tsx`
 
-New tables:
+**1. Column headers above the comps grid**
 
-- `homes`
-  - `id` uuid pk
-  - `address` text — display address
-  - `address_key` text unique — normalized (lowercase, alnum-only) for dedupe
-  - `beds`, `baths`, `sqft`, `year_built` numeric/int
-  - `lot_size`, `builder`, `condition` text
-  - `sources` jsonb — `{ beds: "https://...", sqft: "...", ... }`
-  - `last_autofill_at` timestamptz
-  - `created_by`, timestamps
-  - RLS: admins full CRUD
+A non-input header row matching the 12-column layout:
 
-- `cma_reports` (alter)
-  - add `home_id uuid` nullable → references `homes(id)`
-  - add `subject_sources jsonb default '{}'`
-  - (comps already carry `sourceUrl` inside `comps_data`)
+```
+ADDRESS (4)  ·  SALE PRICE (2)  ·  SQFT (1)  ·  BD (1)  ·  BA (1)  ·  SALE DATE (2)  ·  ⋯ (1)
+```
 
-Indexes: `homes(address_key)` unique, `cma_reports(home_id)`.
+Small uppercase tracked muted-foreground caps, same treatment as the subject section labels.
 
-## Save flow
+**2. Per-comp "Details" disclosure (one row per comp, collapsed by default)**
 
-In `CmaEditor.tsx`:
+Six fields don't fit on the primary row, so add a "▾ Details" toggle on each comp that reveals a second grid:
 
-1. On mount / address change, look up `homes` by `address_key`. If found and the current subject is blank, hydrate from it (so reopening an address brings back data + sources).
-2. Debounced auto-save (1s after last edit) writes:
-   - `homes` upsert keyed on `address_key` — subject fields + sources + `last_autofill_at`
-   - `cma_reports` update (existing row) or insert (new) — subject_data, comps_data (including each comp's `sourceUrl`), notes, subject_sources, home_id
-3. Auto-fill button runs (subject/comps/both) now also write through this same path so sources persist.
-4. Small status indicator near the header: "Saved · 3s ago" / "Saving…" / "Unsaved — retrying".
-5. Manual Save button stays for the PDF + narrative flow (regenerate + upload PDF only happens on explicit click).
+```
+Year Built · Builder · # Prior Owners · Listing Agent · Listing Broker
+Ever Rented? (yes/no/unknown)  ·  Major Insurance Claims (multi-line text)
+```
 
-## UX guards
+- Year Built: number input
+- Builder, Listing Agent, Listing Broker: text inputs
+- # Prior Owners: number input
+- Ever Rented: 3-state select (Unknown / No / Yes)
+- Insurance Claims: textarea (fire/water/hail/etc. — free text since these are narrative)
 
-- Don't auto-save until `subject.address` ≥ 5 chars.
-- Skip writes that would clear non-null fields with null (the existing `pickField` rules already enforce this for auto-fill; for manual edits the user's value wins).
-- Debounce per-field so rapid typing collapses into one DB call.
-- Toast only on errors; success stays silent in the status pill.
+Auto-expands if any of the new fields already has a value.
 
-## Files touched
+## Type changes — `src/lib/cmaPdf.ts`
 
-- migration: new `homes` table + `cma_reports` columns + RLS
-- `src/components/admin/cma/CmaEditor.tsx` — hydrate, debounced save, status pill
-- `src/components/admin/cma/CmaWorkspace.tsx` — pass through `home_id`
-- (types regenerate automatically)
+Extend `CmaComp`:
+
+```ts
+export interface CmaComp {
+  // existing...
+  yearBuilt?: number | null;
+  builder?: string | null;
+  priorOwners?: number | null;
+  listingAgent?: string | null;
+  listingBroker?: string | null;
+  everRented?: "yes" | "no" | "unknown" | null;
+  insuranceClaims?: string | null;
+}
+```
+
+Update `emptyComp()` in CmaEditor to include the new keys.
+
+## PDF output — `src/lib/cmaPdf.ts`
+
+In the comps section, add a small "Provenance & History" sub-block under each comp listing the new fields (only those with values, to avoid clutter). Format:
+
+```
+Built 2018 · Lennar · 2 prior owners
+Listed by: Jane Doe (Keller Williams)
+Rental history: No
+Claims: Water damage 2021 (roof)
+```
+
+## Autofill — `supabase/functions/cma-autofill/index.ts`
+
+Extend the Gemini extraction schema for comps to attempt: `yearBuilt`, `builder`, `priorOwners`, `listingAgent`, `listingBroker`, `everRented`, `insuranceClaims`.
+
+These are best-effort — most scrape sources won't have owner counts or claims, so leave them null when unknown. Existing confidence filters stay as-is (still gated on price/sqft/address).
+
+## Persistence
+
+Already handled — `cma_reports.comps_data` is JSONB and auto-save serializes the full comp objects. No migration needed.
 
 ## Out of scope
 
-- Showing a homes browser / cross-CMA history view (can come later — the data will be there).
-- Versioning history of edits.
+- Public-records lookups for owner history (would require a paid data provider like ATTOM/CoreLogic)
+- Insurance claim databases (CLUE reports are not API-accessible; user enters manually when known)
+- Subject property doesn't get these new fields in this pass — comps only, per the request
