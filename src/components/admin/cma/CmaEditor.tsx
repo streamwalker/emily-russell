@@ -347,7 +347,31 @@ export default function CmaEditor({ initial, onSaved }: Props) {
               className="w-full accent-primary"
             />
           </div>
+          <div className="md:col-span-2 flex items-center justify-between gap-3 pt-2 border-t border-border/60">
+            <p className="font-body text-[11px] text-muted-foreground">
+              Adjusted the sliders? Rerun to pull fresh results with the new radius and window.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => runAutoFill("comps")}
+                disabled={!!autoFilling || !subject.address}
+                className="flex items-center gap-1.5 text-xs font-body uppercase tracking-[2px] text-primary hover:text-primary/80 px-3 py-1.5 border border-primary/40 disabled:opacity-40 bg-white"
+              >
+                {autoFilling === "comps" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                Rerun Comps
+              </button>
+              <button
+                onClick={() => runAutoFill("both")}
+                disabled={!!autoFilling || !subject.address}
+                className="flex items-center gap-1.5 text-xs font-body uppercase tracking-[2px] bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-1.5 border border-primary disabled:opacity-40"
+              >
+                {autoFilling === "both" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                Rerun Subject + Comps
+              </button>
+            </div>
+          </div>
         </div>
+
 
         <div className="space-y-2">
           {comps.map((c, i) => (
