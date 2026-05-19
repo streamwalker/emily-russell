@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink } from "lucide-react";
+import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink, Check } from "lucide-react";
 import { toast } from "sonner";
 import { buildCmaPdf, type CmaSubject, type CmaComp, type CmaResult } from "@/lib/cmaPdf";
 import type { CmaReportRow } from "./CmaWorkspace";
+
+function normAddressKey(a: string): string {
+  return (a || "").toLowerCase().replace(/[^a-z0-9]+/g, "").trim();
+}
+
 
 interface Props {
   initial: CmaReportRow | null;
