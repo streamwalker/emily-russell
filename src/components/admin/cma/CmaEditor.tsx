@@ -149,6 +149,9 @@ export default function CmaEditor({ initial, onSaved }: Props) {
         }
       }
 
+      setAutoLog(Array.isArray(data?.log) ? data.log : []);
+
+
     } catch (e: any) {
       console.error(e);
       toast.error("Auto-fill failed: " + (e?.message || String(e)));
