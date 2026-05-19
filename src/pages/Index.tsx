@@ -141,8 +141,22 @@ function FadeIn({ children, delay = 0, className = "" }: { children: ReactNode; 
   );
 }
 
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
 const scrollTo = (id: string) => {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const el = document.getElementById(id);
+  if (!el) return;
+  const headerH =
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) || 0;
+  const top = el.getBoundingClientRect().top + window.scrollY - headerH - 8;
+  const behavior: ScrollBehavior = prefersReducedMotion() ? "auto" : "smooth";
+  window.scrollTo({ top, behavior });
+  // Sync URL hash without triggering another jump
+  if (window.location.hash !== `#${id}`) {
+    history.replaceState(null, "", `#${id}`);
+  }
 };
 
 /* ── Main Component ── */
