@@ -524,6 +524,7 @@ export default function CmaEditor({ initial, onSaved }: Props) {
                   beds: "Beds", baths: "Baths", sqft: "Sqft", yearBuilt: "Year Built",
                   lotSize: "Lot Size", builder: "Builder", condition: "Condition",
                 };
+                return (
                   <li key={field} className="flex items-center gap-2">
                     <span className="font-semibold text-charcoal min-w-[80px]">{labelMap[field] || field}</span>
                     <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate" title={url}>
