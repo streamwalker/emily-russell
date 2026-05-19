@@ -76,13 +76,19 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [radiusMiles, setRadiusMiles] = useState(0.5);
   const [monthsBack, setMonthsBack] = useState(6);
   const [autoLog, setAutoLog] = useState<string[]>([]);
-  const [subjectSources, setSubjectSources] = useState<Record<string, string>>({});
+  const [subjectSources, setSubjectSources] = useState<Record<string, string>>(
+    (initial?.subject_sources as Record<string, string>) || {},
+  );
+  const [reportId, setReportId] = useState<string | null>(initial?.id || null);
+  const [homeId, setHomeId] = useState<string | null>(initial?.home_id || null);
+  const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(initial ? new Date() : null);
+  const saveTimer = useRef<number | null>(null);
+  const hydratedAddressKey = useRef<string>(normAddressKey(initial?.address || ""));
+  const skipNextSave = useRef<boolean>(true); // skip initial mount save
 
 
-  const runAutoFill = async (mode: "subject" | "comps" | "both") => {
-    if (!subject.address || subject.address.trim().length < 5) {
-      toast.error("Enter an address first");
-      return;
+
     }
     setAutoFilling(mode);
     setAutoLog([]);
