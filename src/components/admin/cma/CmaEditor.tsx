@@ -90,6 +90,7 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [homeId, setHomeId] = useState<string | null>(initial?.home_id || null);
   const [autoSaveState, setAutoSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(initial ? new Date() : null);
+  const [openDetails, setOpenDetails] = useState<Record<number, boolean>>({});
   const saveTimer = useRef<number | null>(null);
   const hydratedAddressKey = useRef<string>(normAddressKey(initial?.address || ""));
   const skipNextSave = useRef<boolean>(true); // skip initial mount save
