@@ -58,10 +58,16 @@ function pickField<T>(existing: T, incoming: T | null | undefined, strong: boole
 
 
 export default function CmaEditor({ initial, onSaved }: Props) {
-  const [subject, setSubject] = useState<CmaSubject>(initial?.subject_data || emptySubject);
-  const [comps, setComps] = useState<CmaComp[]>(
-    initial?.comps_data?.length ? initial.comps_data : [emptyComp(), emptyComp(), emptyComp()],
+  // Hydrate from saved row through the schema migrator so older reports gain
+  // any newly-added fields (with safe defaults) while preserving everything
+  // the user previously saved — including subjectSources and comp.sourceUrl.
+  const [subject, setSubject] = useState<CmaSubject>(() =>
+    initial?.subject_data ? migrateSubject(initial.subject_data as any) : { ...emptySubject },
   );
+  const [comps, setComps] = useState<CmaComp[]>(() => {
+    const migrated = migrateComps((initial?.comps_data as any) || []);
+    return migrated.length ? migrated : [emptyComp(), emptyComp(), emptyComp()];
+  });
   const [notes, setNotes] = useState<string>(initial?.notes || "");
   const [result, setResult] = useState<CmaResult | null>(() =>
     initial?.narrative
@@ -85,7 +91,7 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [monthsBack, setMonthsBack] = useState(6);
   const [autoLog, setAutoLog] = useState<string[]>([]);
   const [subjectSources, setSubjectSources] = useState<Record<string, string>>(
-    (initial?.subject_sources as Record<string, string>) || {},
+    () => migrateSubjectSources(initial?.subject_sources as any),
   );
   const [reportId, setReportId] = useState<string | null>(initial?.id || null);
   const [homeId, setHomeId] = useState<string | null>(initial?.home_id || null);
