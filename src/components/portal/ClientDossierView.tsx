@@ -277,7 +277,39 @@ function PropertyRow({
         style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))", ["--accent" as any]: accentColor }}
       >
         <div className="flex-1 min-w-0">
-          <div className="text-[17px] font-bold font-display">{prop.address}</div>
+          <div className="text-[17px] font-bold font-display flex items-center gap-2 flex-wrap">
+            <span>{prop.address}</span>
+            {changeStatus === "new" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded bg-gold text-charcoal print:hidden">New</span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Added{prop.createdAt ? ` ${format(new Date(prop.createdAt), "MMM d")}` : ""} — new since your last visit
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {changeStatus === "updated" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded bg-blush text-charcoal print:hidden">Updated</span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Updated{prop.updatedAt ? ` ${format(new Date(prop.updatedAt), "MMM d")}` : ""} — changed since your last visit
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {hasNewReply && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded bg-sage text-charcoal print:hidden">New Reply</span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Emily replied to your comment since your last visit
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           <div className="text-xs opacity-70 mt-0.5 font-body">{prop.city} · {prop.community}</div>
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
