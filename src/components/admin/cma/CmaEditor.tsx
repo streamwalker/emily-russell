@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { buildCmaPdf, type CmaSubject, type CmaComp, type CmaResult } from "@/lib/cmaPdf";
+import { CMA_SCHEMA_VERSION, migrateSubject, migrateComps, migrateSubjectSources } from "@/lib/cmaSchema";
 import type { CmaReportRow } from "./CmaWorkspace";
 
 function normAddressKey(a: string): string {
