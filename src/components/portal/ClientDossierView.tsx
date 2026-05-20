@@ -893,6 +893,8 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
         gradeCounts={gradeCounts}
         replies={interactionId ? replies[interactionId] : undefined}
         readOnly={readOnly}
+        changeStatus={changes.newIds.has(p.id) ? "new" : changes.updatedIds.has(p.id) ? "updated" : null}
+        hasNewReply={changes.replyPropIds.has(p.id)}
       />
     );
   };
