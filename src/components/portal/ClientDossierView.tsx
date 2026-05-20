@@ -282,7 +282,10 @@ function PropertyRow({
             {changeStatus === "new" && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded bg-gold text-charcoal print:hidden">New</span>
+                  <span
+                    className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded print:hidden"
+                    style={{ background: "hsl(var(--gold))", color: "hsl(var(--charcoal))" }}
+                  >New</span>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
                   Added{prop.createdAt ? ` ${format(new Date(prop.createdAt), "MMM d")}` : ""} — new since your last visit
@@ -292,7 +295,10 @@ function PropertyRow({
             {changeStatus === "updated" && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded bg-blush text-charcoal print:hidden">Updated</span>
+                  <span
+                    className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded print:hidden"
+                    style={{ background: "hsl(var(--blush))", color: "#fff" }}
+                  >Updated</span>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
                   Updated{prop.updatedAt ? ` ${format(new Date(prop.updatedAt), "MMM d")}` : ""} — changed since your last visit
@@ -302,7 +308,10 @@ function PropertyRow({
             {hasNewReply && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded bg-sage text-charcoal print:hidden">New Reply</span>
+                  <span
+                    className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded print:hidden"
+                    style={{ background: "hsl(var(--sage))", color: "#fff" }}
+                  >New Reply</span>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
                   Emily replied to your comment since your last visit
