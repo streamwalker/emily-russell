@@ -197,7 +197,7 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userI
 /* ── Property Row ── */
 function PropertyRow({
   prop, isExpanded, onToggle, accentColor, rankInfo, isCompareSelected, onCompareToggle,
-  userId, interaction, onInteractionChange, gradeCounts, replies, readOnly,
+  userId, interaction, onInteractionChange, gradeCounts, replies, readOnly, changeStatus, hasNewReply,
 }: {
   prop: Property;
   isExpanded: boolean;
@@ -212,6 +212,8 @@ function PropertyRow({
   gradeCounts?: Record<string, number>;
   replies?: CommentReply[];
   readOnly?: boolean;
+  changeStatus?: "new" | "updated" | null;
+  hasNewReply?: boolean;
 }) {
   const isFav = interaction?.is_favorite || false;
 
