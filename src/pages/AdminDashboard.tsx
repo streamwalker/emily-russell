@@ -406,9 +406,11 @@ export default function AdminDashboard() {
     setError("");
     try {
       const parsed = JSON.parse(editJson);
+      const prev = dossiers.find(x => x.id === editingId)?.dossier_data as any;
+      const stamped = stampDossierChanges(prev, parsed);
       const { error: err } = await supabase
         .from("client_dossiers")
-        .update({ title: editTitle, prepared_date: editDate, dossier_data: parsed })
+        .update({ title: editTitle, prepared_date: editDate, dossier_data: stamped })
         .eq("id", editingId);
       if (err) throw err;
       setEditingId(null);
