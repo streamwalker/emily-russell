@@ -442,8 +442,9 @@ export default function CmaEditor({ initial, onSaved }: Props) {
       const payload: any = {
         created_by: user.id,
         address: subject.address,
-        subject_data: subject as any,
+        subject_data: { ...subject, _schemaVersion: CMA_SCHEMA_VERSION } as any,
         comps_data: validComps as any,
+        subject_sources: subjectSources || {},
         notes: notes || null,
         narrative: result?.narrative || null,
         executive_summary: result?.executiveSummary || null,
