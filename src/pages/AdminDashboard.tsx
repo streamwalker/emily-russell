@@ -554,11 +554,12 @@ export default function AdminDashboard() {
     try {
       const finalData = dossierDataOverride || (useRawJson ? JSON.parse(newJson) : extractedData);
       if (!finalData) throw new Error("No dossier data. Extract properties or enter JSON first.");
+      const stampedNew = stampDossierChanges(null, finalData);
       const { error: err } = await supabase.from("client_dossiers").insert({
         user_id: newUserId,
         title: newTitle,
         prepared_date: newDate,
-        dossier_data: finalData,
+        dossier_data: stampedNew,
       });
       if (err) throw err;
       setShowNew(false);
