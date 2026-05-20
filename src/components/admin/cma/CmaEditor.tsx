@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Loader2, Save, Plus, Trash2, ClipboardPaste, Download, Wand2, RefreshCw, ExternalLink, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { buildCmaPdf, type CmaSubject, type CmaComp, type CmaResult } from "@/lib/cmaPdf";
+import { CMA_SCHEMA_VERSION, migrateSubject, migrateComps, migrateSubjectSources } from "@/lib/cmaSchema";
 import type { CmaReportRow } from "./CmaWorkspace";
 
 function normAddressKey(a: string): string {
@@ -57,10 +58,16 @@ function pickField<T>(existing: T, incoming: T | null | undefined, strong: boole
 
 
 export default function CmaEditor({ initial, onSaved }: Props) {
-  const [subject, setSubject] = useState<CmaSubject>(initial?.subject_data || emptySubject);
-  const [comps, setComps] = useState<CmaComp[]>(
-    initial?.comps_data?.length ? initial.comps_data : [emptyComp(), emptyComp(), emptyComp()],
+  // Hydrate from saved row through the schema migrator so older reports gain
+  // any newly-added fields (with safe defaults) while preserving everything
+  // the user previously saved — including subjectSources and comp.sourceUrl.
+  const [subject, setSubject] = useState<CmaSubject>(() =>
+    initial?.subject_data ? migrateSubject(initial.subject_data as any) : { ...emptySubject },
   );
+  const [comps, setComps] = useState<CmaComp[]>(() => {
+    const migrated = migrateComps((initial?.comps_data as any) || []);
+    return migrated.length ? migrated : [emptyComp(), emptyComp(), emptyComp()];
+  });
   const [notes, setNotes] = useState<string>(initial?.notes || "");
   const [result, setResult] = useState<CmaResult | null>(() =>
     initial?.narrative
@@ -84,7 +91,7 @@ export default function CmaEditor({ initial, onSaved }: Props) {
   const [monthsBack, setMonthsBack] = useState(6);
   const [autoLog, setAutoLog] = useState<string[]>([]);
   const [subjectSources, setSubjectSources] = useState<Record<string, string>>(
-    (initial?.subject_sources as Record<string, string>) || {},
+    () => migrateSubjectSources(initial?.subject_sources as any),
   );
   const [reportId, setReportId] = useState<string | null>(initial?.id || null);
   const [homeId, setHomeId] = useState<string | null>(initial?.home_id || null);
@@ -252,7 +259,7 @@ export default function CmaEditor({ initial, onSaved }: Props) {
       const reportPayload: any = {
         created_by: user.id,
         address: addr,
-        subject_data: subject as any,
+        subject_data: { ...subject, _schemaVersion: CMA_SCHEMA_VERSION } as any,
         comps_data: validComps as any,
         subject_sources: subjectSources || {},
         notes: notes || null,
@@ -435,8 +442,9 @@ export default function CmaEditor({ initial, onSaved }: Props) {
       const payload: any = {
         created_by: user.id,
         address: subject.address,
-        subject_data: subject as any,
+        subject_data: { ...subject, _schemaVersion: CMA_SCHEMA_VERSION } as any,
         comps_data: validComps as any,
+        subject_sources: subjectSources || {},
         notes: notes || null,
         narrative: result?.narrative || null,
         executive_summary: result?.executiveSummary || null,
