@@ -959,7 +959,8 @@ export default function AdminDashboard() {
                             onSave={async (updatedData) => {
                               setSaving(true); setError("");
                               try {
-                                const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
+                                 const stamped = stampDossierChanges(d.dossier_data as any, updatedData as any);
+                                 const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: stamped as any }).eq("id", d.id);
                                 if (err) throw err;
                                 setPropertyEditId(null); fetchData();
                               } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save properties"); }
