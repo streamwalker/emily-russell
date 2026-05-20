@@ -622,7 +622,37 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
   const [interactions, setInteractions] = useState<Record<string, PropertyInteraction>>({});
   const [replies, setReplies] = useState<Record<string, CommentReply[]>>({});
   const [loading, setLoading] = useState(true);
+  const [lastViewedAt, setLastViewedAt] = useState<string | null | undefined>(undefined); // undefined = loading, null = first visit
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const toastShownRef = useRef(false);
+
+  // Fetch the user's last-viewed timestamp for this dossier, then upsert "now" on unmount
+  useEffect(() => {
+    if (readOnly || !clientUserId || !dossierId) { setLastViewedAt(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("dossier_views")
+        .select("last_viewed_at")
+        .eq("user_id", clientUserId)
+        .eq("dossier_id", dossierId)
+        .maybeSingle();
+      if (!cancelled) setLastViewedAt(data?.last_viewed_at ?? null);
+    })();
+    return () => {
+      cancelled = true;
+      // Mark this dossier as viewed when leaving
+      supabase
+        .from("dossier_views")
+        .upsert(
+          { user_id: clientUserId, dossier_id: dossierId, last_viewed_at: new Date().toISOString() },
+          { onConflict: "user_id,dossier_id" },
+        )
+        .then(() => {});
+    };
+  }, [clientUserId, dossierId, readOnly]);
+
+
 
   // Fetch interactions and replies for the client
   useEffect(() => {
