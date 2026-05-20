@@ -1,78 +1,68 @@
-## Goal
+# Dossier "What's New" Notifications
 
-Make the comps grid self-explanatory with column labels, and capture richer per-comp data: builder, year built, prior owners, listing agent, listing broker, rental history, and major insurance claims.
+Show clients what changed in their dossier since they last viewed it: a one-time toast on login, plus inline NEW / UPDATED badges on tabs and property rows. Admins automatically stamp items when they edit them; admin replies to client comments also count as updates.
 
-## UI changes — `src/components/admin/cma/CmaEditor.tsx`
+## What the client sees
 
-**1. Column headers above the comps grid**
+1. **Login toast** — On entering the dossier, a single toast appears if anything is new since their last visit:
+   > "3 new properties added · 2 updated · 1 new reply from Emily" with a "View changes" action that scrolls to the first change.
+2. **Tab badges** — A small dot + count on each builder tab that contains new or updated properties.
+3. **Row badges** — Each property row shows a `NEW` (gold) or `UPDATED` (blush) chip next to the address, plus a tooltip showing what changed and when. Reply notifications show a small dot on the comments icon.
+4. **Auto-clear** — Badges fade after the client has scrolled to / expanded the row, and the "last viewed" timestamp advances when they leave the page.
 
-A non-input header row matching the 12-column layout:
+## How change tracking works
 
-```
-ADDRESS (4)  ·  SALE PRICE (2)  ·  SQFT (1)  ·  BD (1)  ·  BA (1)  ·  SALE DATE (2)  ·  ⋯ (1)
-```
+- **Property-level stamps**: each `Property` in `dossier_data.properties` gets two optional fields the admin editor writes automatically:
+  - `createdAt` — set the first time a property is added
+  - `updatedAt` — bumped whenever any field on that property changes (admin save)
+- **Dossier-level stamp**: `dossier_data.lastUpdatedAt` — bumped on any admin save, used as a quick "anything new?" gate.
+- **Comment replies**: `comment_replies.created_at` already exists; treat any reply newer than `last_viewed_at` as new.
+- **Last-viewed**: stored per-user in a new tiny table `dossier_views(user_id, dossier_id, last_viewed_at)` (upserted when the client opens the dossier). RLS: user can read/upsert own row; admins read all.
 
-Small uppercase tracked muted-foreground caps, same treatment as the subject section labels.
+Anything older than the client's `last_viewed_at` is considered "seen" and shows no badge.
 
-**2. Per-comp "Details" disclosure (one row per comp, collapsed by default)**
+## Scope notes
 
-Six fields don't fit on the primary row, so add a "▾ Details" toggle on each comp that reveals a second grid:
+- Client's own edits (favorites, grades, their own comments) do **not** trigger notifications — only admin-originated changes and admin replies.
+- Removed properties are not surfaced (out of scope; can be added later as a "removed" section).
+- No email — in-app only.
 
-```
-Year Built · Builder · # Prior Owners · Listing Agent · Listing Broker
-Ever Rented? (yes/no/unknown)  ·  Major Insurance Claims (multi-line text)
-```
+## Technical details
 
-- Year Built: number input
-- Builder, Listing Agent, Listing Broker: text inputs
-- # Prior Owners: number input
-- Ever Rented: 3-state select (Unknown / No / Yes)
-- Insurance Claims: textarea (fire/water/hail/etc. — free text since these are narrative)
-
-Auto-expands if any of the new fields already has a value.
-
-## Type changes — `src/lib/cmaPdf.ts`
-
-Extend `CmaComp`:
-
-```ts
-export interface CmaComp {
-  // existing...
-  yearBuilt?: number | null;
-  builder?: string | null;
-  priorOwners?: number | null;
-  listingAgent?: string | null;
-  listingBroker?: string | null;
-  everRented?: "yes" | "no" | "unknown" | null;
-  insuranceClaims?: string | null;
-}
+**Schema (one migration):**
+```sql
+create table public.dossier_views (
+  user_id uuid not null,
+  dossier_id uuid not null,
+  last_viewed_at timestamptz not null default now(),
+  primary key (user_id, dossier_id)
+);
+alter table public.dossier_views enable row level security;
+-- policies: user manages own row; admins select all (via has_role)
 ```
 
-Update `emptyComp()` in CmaEditor to include the new keys.
+**Types (`ClientDossierView.tsx`):**
+- Extend `Property` with `createdAt?: string; updatedAt?: string;`
+- Extend `DossierData` with `lastUpdatedAt?: string;`
 
-## PDF output — `src/lib/cmaPdf.ts`
+**Admin write path (`PropertyEditor.tsx` / `AdminDashboard.tsx` save handler):**
+- On add → set `createdAt = updatedAt = now()`.
+- On edit → diff against previous snapshot; if any tracked field changed, bump `updatedAt`.
+- Always bump `dossier_data.lastUpdatedAt` on save.
 
-In the comps section, add a small "Provenance & History" sub-block under each comp listing the new fields (only those with values, to avoid clutter). Format:
+**Client read path (`ClientDossierView.tsx` / `ClientPortal.tsx`):**
+1. On mount, fetch `dossier_views` row → `lastViewedAt` (null = first visit, treat everything as "seen" to avoid spam).
+2. Compute `changes = { new: Property[], updated: Property[], replies: CommentReply[] }` against `lastViewedAt`.
+3. Render toast once via `useToast` with summary + scroll-to-first-change action.
+4. Pass `changes` down to tab list and `renderPropertyRow` to render badges + tooltips.
+5. On unmount (or after 5s on page), upsert `dossier_views.last_viewed_at = now()`.
 
-```
-Built 2018 · Lennar · 2 prior owners
-Listed by: Jane Doe (Keller Williams)
-Rental history: No
-Claims: Water damage 2021 (roof)
-```
+**Badge components:** small additions inside `ClientDossierView.tsx` (no new files needed) using existing Tailwind tokens (`bg-gold/15 text-gold`, `bg-blush/15 text-blush`).
 
-## Autofill — `supabase/functions/cma-autofill/index.ts`
+## Files touched
 
-Extend the Gemini extraction schema for comps to attempt: `yearBuilt`, `builder`, `priorOwners`, `listingAgent`, `listingBroker`, `everRented`, `insuranceClaims`.
-
-These are best-effort — most scrape sources won't have owner counts or claims, so leave them null when unknown. Existing confidence filters stay as-is (still gated on price/sqft/address).
-
-## Persistence
-
-Already handled — `cma_reports.comps_data` is JSONB and auto-save serializes the full comp objects. No migration needed.
-
-## Out of scope
-
-- Public-records lookups for owner history (would require a paid data provider like ATTOM/CoreLogic)
-- Insurance claim databases (CLUE reports are not API-accessible; user enters manually when known)
-- Subject property doesn't get these new fields in this pass — comps only, per the request
+- `supabase/migrations/*` — new `dossier_views` table + RLS
+- `src/components/portal/ClientDossierView.tsx` — types, change detection, toast, badges
+- `src/components/admin/PropertyEditor.tsx` — stamp `createdAt` / `updatedAt`
+- `src/pages/AdminDashboard.tsx` — bump `lastUpdatedAt` on save, diff old vs new properties
+- `src/pages/ClientPortal.tsx` — upsert `last_viewed_at` on leave

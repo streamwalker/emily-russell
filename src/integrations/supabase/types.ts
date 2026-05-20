@@ -307,6 +307,24 @@ export type Database = {
         }
         Relationships: []
       }
+      dossier_views: {
+        Row: {
+          dossier_id: string
+          last_viewed_at: string
+          user_id: string
+        }
+        Insert: {
+          dossier_id: string
+          last_viewed_at?: string
+          user_id: string
+        }
+        Update: {
+          dossier_id?: string
+          last_viewed_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
