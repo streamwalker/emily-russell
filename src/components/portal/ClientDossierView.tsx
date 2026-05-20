@@ -706,6 +706,49 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
   const allProperties = useMemo(() => Object.values(dossier.properties).flat(), [dossier]);
   const compareProperties = useMemo(() => allProperties.filter(p => compareIds.has(p.id)), [allProperties, compareIds]);
 
+  // Compute "what's new since your last visit"
+  const changes = useMemo(() => {
+    const result = { newIds: new Set<string>(), updatedIds: new Set<string>(), replyPropIds: new Set<string>() };
+    if (readOnly || lastViewedAt === undefined) return result; // still loading
+    if (lastViewedAt === null) return result; // first visit — don't spam badges
+    const cutoff = new Date(lastViewedAt).getTime();
+    allProperties.forEach(p => {
+      const created = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+      const updated = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
+      if (created > cutoff) result.newIds.add(p.id);
+      else if (updated > cutoff) result.updatedIds.add(p.id);
+    });
+    // Map interaction_id → property_id for new-reply detection
+    const interactionToProp: Record<string, string> = {};
+    Object.values(interactions).forEach(i => { if (i.id) interactionToProp[i.id] = i.property_id; });
+    Object.entries(replies).forEach(([interactionId, list]) => {
+      const propId = interactionToProp[interactionId];
+      if (!propId) return;
+      if (list.some(r => new Date(r.created_at).getTime() > cutoff)) {
+        result.replyPropIds.add(propId);
+      }
+    });
+    return result;
+  }, [allProperties, interactions, replies, lastViewedAt, readOnly]);
+
+  // One-time toast summarizing what changed
+  useEffect(() => {
+    if (toastShownRef.current) return;
+    if (readOnly || lastViewedAt === undefined || lastViewedAt === null) return;
+    if (loading) return;
+    const newCount = changes.newIds.size;
+    const updCount = changes.updatedIds.size;
+    const replyCount = changes.replyPropIds.size;
+    if (newCount + updCount + replyCount === 0) return;
+    const parts: string[] = [];
+    if (newCount) parts.push(`${newCount} new ${newCount === 1 ? "property" : "properties"}`);
+    if (updCount) parts.push(`${updCount} updated`);
+    if (replyCount) parts.push(`${replyCount} new ${replyCount === 1 ? "reply" : "replies"} from Emily`);
+    toast.success("What's new in your dossier", { description: parts.join(" · "), duration: 6000 });
+    toastShownRef.current = true;
+  }, [changes, lastViewedAt, readOnly, loading]);
+
+
   const gradeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     Object.values(interactions).forEach(i => {
