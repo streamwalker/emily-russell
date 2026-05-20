@@ -964,11 +964,18 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
               {allTabs.map((tab, idx) => {
                 const rainbowColor = getRainbowColor(idx);
                 const isActive = activeTab === tab.key;
+                // Count new/updated properties belonging to this tab
+                const tabPropIds = !tab.key.startsWith("rank-") && tab.key !== "all-homes"
+                  ? new Set((dossier.properties[tab.key] || []).map(p => p.id))
+                  : new Set(allProperties.map(p => p.id));
+                let tabChangeCount = 0;
+                changes.newIds.forEach(id => { if (tabPropIds.has(id)) tabChangeCount++; });
+                changes.updatedIds.forEach(id => { if (tabPropIds.has(id)) tabChangeCount++; });
                 return (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
+                    className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150 relative"
                     style={{
                       background: isActive ? rainbowColor : "rgba(255,255,255,0.06)",
                       color: isActive ? "#fff" : rainbowColor,
@@ -982,6 +989,15 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
                     )}
                     {tab.key === "all-homes" && (
                       <span className="opacity-50">({totalProps})</span>
+                    )}
+                    {tabChangeCount > 0 && (
+                      <span
+                        className="ml-1.5 inline-flex items-center justify-center text-[9px] font-bold px-1.5 py-0.5 rounded-full align-middle"
+                        style={{ background: "hsl(var(--gold))", color: "hsl(var(--charcoal))" }}
+                        title={`${tabChangeCount} new or updated`}
+                      >
+                        {tabChangeCount}
+                      </span>
                     )}
                   </button>
                 );
