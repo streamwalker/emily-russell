@@ -55,6 +55,8 @@ export interface Property {
   rentEst?: string;
   rentNote?: string;
   yieldEst?: string;
+  createdAt?: string;
+  updatedAt?: string;
   expenses?: {
     piti?: number;
     hoa?: number;
@@ -80,6 +82,7 @@ export interface DossierData {
   subtitle?: string;
   date?: string;
   phone?: string;
+  lastUpdatedAt?: string;
 }
 
 export interface PropertyInteraction {
