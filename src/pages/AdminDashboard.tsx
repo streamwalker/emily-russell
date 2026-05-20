@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import AiCreditsBadge from "@/components/admin/AiCreditsBadge";
 import { reportAiResult } from "@/lib/aiCreditStatus";
 import { CreditsExhaustedNotice, isCreditsExhaustedError } from "@/components/admin/CreditsExhaustedNotice";
+import { stampDossierChanges } from "@/lib/dossierChangeTracking";
 
 interface DossierRow {
   id: string;
@@ -405,9 +406,11 @@ export default function AdminDashboard() {
     setError("");
     try {
       const parsed = JSON.parse(editJson);
+      const prev = dossiers.find(x => x.id === editingId)?.dossier_data as any;
+      const stamped = stampDossierChanges(prev, parsed);
       const { error: err } = await supabase
         .from("client_dossiers")
-        .update({ title: editTitle, prepared_date: editDate, dossier_data: parsed })
+        .update({ title: editTitle, prepared_date: editDate, dossier_data: stamped })
         .eq("id", editingId);
       if (err) throw err;
       setEditingId(null);
@@ -551,11 +554,12 @@ export default function AdminDashboard() {
     try {
       const finalData = dossierDataOverride || (useRawJson ? JSON.parse(newJson) : extractedData);
       if (!finalData) throw new Error("No dossier data. Extract properties or enter JSON first.");
+      const stampedNew = stampDossierChanges(null, finalData);
       const { error: err } = await supabase.from("client_dossiers").insert({
         user_id: newUserId,
         title: newTitle,
         prepared_date: newDate,
-        dossier_data: finalData,
+        dossier_data: stampedNew,
       });
       if (err) throw err;
       setShowNew(false);
@@ -955,7 +959,8 @@ export default function AdminDashboard() {
                             onSave={async (updatedData) => {
                               setSaving(true); setError("");
                               try {
-                                const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
+                                 const stamped = stampDossierChanges(d.dossier_data as any, updatedData as any);
+                                 const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: stamped as any }).eq("id", d.id);
                                 if (err) throw err;
                                 setPropertyEditId(null); fetchData();
                               } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save properties"); }
@@ -978,7 +983,8 @@ export default function AdminDashboard() {
                             onSave={async (updatedData) => {
                               setSaving(true); setError("");
                               try {
-                                const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: updatedData as any }).eq("id", d.id);
+                                 const stamped = stampDossierChanges(d.dossier_data as any, updatedData as any);
+                                 const { error: err } = await supabase.from("client_dossiers").update({ dossier_data: stamped as any }).eq("id", d.id);
                                 if (err) throw err;
                                 setExpenseEditId(null); fetchData();
                               } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to save expenses"); }

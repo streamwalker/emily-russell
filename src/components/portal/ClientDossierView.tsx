@@ -55,6 +55,8 @@ export interface Property {
   rentEst?: string;
   rentNote?: string;
   yieldEst?: string;
+  createdAt?: string;
+  updatedAt?: string;
   expenses?: {
     piti?: number;
     hoa?: number;
@@ -80,6 +82,7 @@ export interface DossierData {
   subtitle?: string;
   date?: string;
   phone?: string;
+  lastUpdatedAt?: string;
 }
 
 export interface PropertyInteraction {
@@ -194,7 +197,7 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userI
 /* ── Property Row ── */
 function PropertyRow({
   prop, isExpanded, onToggle, accentColor, rankInfo, isCompareSelected, onCompareToggle,
-  userId, interaction, onInteractionChange, gradeCounts, replies, readOnly,
+  userId, interaction, onInteractionChange, gradeCounts, replies, readOnly, changeStatus, hasNewReply,
 }: {
   prop: Property;
   isExpanded: boolean;
@@ -209,6 +212,8 @@ function PropertyRow({
   gradeCounts?: Record<string, number>;
   replies?: CommentReply[];
   readOnly?: boolean;
+  changeStatus?: "new" | "updated" | null;
+  hasNewReply?: boolean;
 }) {
   const isFav = interaction?.is_favorite || false;
 
@@ -272,7 +277,48 @@ function PropertyRow({
         style={{ background: isExpanded ? accentColor : "hsl(var(--card))", color: isExpanded ? "#fff" : "hsl(var(--charcoal))", ["--accent" as any]: accentColor }}
       >
         <div className="flex-1 min-w-0">
-          <div className="text-[17px] font-bold font-display">{prop.address}</div>
+          <div className="text-[17px] font-bold font-display flex items-center gap-2 flex-wrap">
+            <span>{prop.address}</span>
+            {changeStatus === "new" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded print:hidden"
+                    style={{ background: "hsl(var(--gold))", color: "hsl(var(--charcoal))" }}
+                  >New</span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Added{prop.createdAt ? ` ${format(new Date(prop.createdAt), "MMM d")}` : ""} — new since your last visit
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {changeStatus === "updated" && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded print:hidden"
+                    style={{ background: "hsl(var(--blush))", color: "#fff" }}
+                  >Updated</span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Updated{prop.updatedAt ? ` ${format(new Date(prop.updatedAt), "MMM d")}` : ""} — changed since your last visit
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {hasNewReply && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="text-[9px] font-bold tracking-[1.5px] uppercase font-body px-1.5 py-0.5 rounded print:hidden"
+                    style={{ background: "hsl(var(--sage))", color: "#fff" }}
+                  >New Reply</span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Emily replied to your comment since your last visit
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
           <div className="text-xs opacity-70 mt-0.5 font-body">{prop.city} · {prop.community}</div>
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
@@ -576,7 +622,37 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
   const [interactions, setInteractions] = useState<Record<string, PropertyInteraction>>({});
   const [replies, setReplies] = useState<Record<string, CommentReply[]>>({});
   const [loading, setLoading] = useState(true);
+  const [lastViewedAt, setLastViewedAt] = useState<string | null | undefined>(undefined); // undefined = loading, null = first visit
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const toastShownRef = useRef(false);
+
+  // Fetch the user's last-viewed timestamp for this dossier, then upsert "now" on unmount
+  useEffect(() => {
+    if (readOnly || !clientUserId || !dossierId) { setLastViewedAt(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("dossier_views")
+        .select("last_viewed_at")
+        .eq("user_id", clientUserId)
+        .eq("dossier_id", dossierId)
+        .maybeSingle();
+      if (!cancelled) setLastViewedAt(data?.last_viewed_at ?? null);
+    })();
+    return () => {
+      cancelled = true;
+      // Mark this dossier as viewed when leaving
+      supabase
+        .from("dossier_views")
+        .upsert(
+          { user_id: clientUserId, dossier_id: dossierId, last_viewed_at: new Date().toISOString() },
+          { onConflict: "user_id,dossier_id" },
+        )
+        .then(() => {});
+    };
+  }, [clientUserId, dossierId, readOnly]);
+
+
 
   // Fetch interactions and replies for the client
   useEffect(() => {
@@ -629,6 +705,49 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
 
   const allProperties = useMemo(() => Object.values(dossier.properties).flat(), [dossier]);
   const compareProperties = useMemo(() => allProperties.filter(p => compareIds.has(p.id)), [allProperties, compareIds]);
+
+  // Compute "what's new since your last visit"
+  const changes = useMemo(() => {
+    const result = { newIds: new Set<string>(), updatedIds: new Set<string>(), replyPropIds: new Set<string>() };
+    if (readOnly || lastViewedAt === undefined) return result; // still loading
+    if (lastViewedAt === null) return result; // first visit — don't spam badges
+    const cutoff = new Date(lastViewedAt).getTime();
+    allProperties.forEach(p => {
+      const created = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+      const updated = p.updatedAt ? new Date(p.updatedAt).getTime() : 0;
+      if (created > cutoff) result.newIds.add(p.id);
+      else if (updated > cutoff) result.updatedIds.add(p.id);
+    });
+    // Map interaction_id → property_id for new-reply detection
+    const interactionToProp: Record<string, string> = {};
+    Object.values(interactions).forEach(i => { if (i.id) interactionToProp[i.id] = i.property_id; });
+    Object.entries(replies).forEach(([interactionId, list]) => {
+      const propId = interactionToProp[interactionId];
+      if (!propId) return;
+      if (list.some(r => new Date(r.created_at).getTime() > cutoff)) {
+        result.replyPropIds.add(propId);
+      }
+    });
+    return result;
+  }, [allProperties, interactions, replies, lastViewedAt, readOnly]);
+
+  // One-time toast summarizing what changed
+  useEffect(() => {
+    if (toastShownRef.current) return;
+    if (readOnly || lastViewedAt === undefined || lastViewedAt === null) return;
+    if (loading) return;
+    const newCount = changes.newIds.size;
+    const updCount = changes.updatedIds.size;
+    const replyCount = changes.replyPropIds.size;
+    if (newCount + updCount + replyCount === 0) return;
+    const parts: string[] = [];
+    if (newCount) parts.push(`${newCount} new ${newCount === 1 ? "property" : "properties"}`);
+    if (updCount) parts.push(`${updCount} updated`);
+    if (replyCount) parts.push(`${replyCount} new ${replyCount === 1 ? "reply" : "replies"} from Emily`);
+    toast.success("What's new in your dossier", { description: parts.join(" · "), duration: 6000 });
+    toastShownRef.current = true;
+  }, [changes, lastViewedAt, readOnly, loading]);
+
 
   const gradeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -774,6 +893,8 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
         gradeCounts={gradeCounts}
         replies={interactionId ? replies[interactionId] : undefined}
         readOnly={readOnly}
+        changeStatus={changes.newIds.has(p.id) ? "new" : changes.updatedIds.has(p.id) ? "updated" : null}
+        hasNewReply={changes.replyPropIds.has(p.id)}
       />
     );
   };
@@ -843,11 +964,18 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
               {allTabs.map((tab, idx) => {
                 const rainbowColor = getRainbowColor(idx);
                 const isActive = activeTab === tab.key;
+                // Count new/updated properties belonging to this tab
+                const tabPropIds = !tab.key.startsWith("rank-") && tab.key !== "all-homes"
+                  ? new Set((dossier.properties[tab.key] || []).map(p => p.id))
+                  : new Set(allProperties.map(p => p.id));
+                let tabChangeCount = 0;
+                changes.newIds.forEach(id => { if (tabPropIds.has(id)) tabChangeCount++; });
+                changes.updatedIds.forEach(id => { if (tabPropIds.has(id)) tabChangeCount++; });
                 return (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150"
+                    className="px-3.5 py-2.5 rounded-t border-none cursor-pointer text-[11px] font-semibold tracking-wide font-body whitespace-nowrap transition-all duration-150 relative"
                     style={{
                       background: isActive ? rainbowColor : "rgba(255,255,255,0.06)",
                       color: isActive ? "#fff" : rainbowColor,
@@ -861,6 +989,15 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
                     )}
                     {tab.key === "all-homes" && (
                       <span className="opacity-50">({totalProps})</span>
+                    )}
+                    {tabChangeCount > 0 && (
+                      <span
+                        className="ml-1.5 inline-flex items-center justify-center text-[9px] font-bold px-1.5 py-0.5 rounded-full align-middle"
+                        style={{ background: "hsl(var(--gold))", color: "hsl(var(--charcoal))" }}
+                        title={`${tabChangeCount} new or updated`}
+                      >
+                        {tabChangeCount}
+                      </span>
                     )}
                   </button>
                 );
