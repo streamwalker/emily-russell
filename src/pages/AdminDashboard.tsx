@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import AiCreditsBadge from "@/components/admin/AiCreditsBadge";
 import { reportAiResult } from "@/lib/aiCreditStatus";
 import { CreditsExhaustedNotice, isCreditsExhaustedError } from "@/components/admin/CreditsExhaustedNotice";
+import { stampDossierChanges } from "@/lib/dossierChangeTracking";
 
 interface DossierRow {
   id: string;
