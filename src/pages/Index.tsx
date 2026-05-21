@@ -307,6 +307,7 @@ export default function Index() {
         )}
       </nav>
 
+      <main>
       {/* ═══════════ HERO ═══════════ */}
       <section
         id="home"
@@ -861,6 +862,7 @@ export default function Index() {
           </FadeIn>
         </div>
       </section>
+      </main>
 
       {/* ═══════════ FOOTER ═══════════ */}
       <footer className="bg-charcoal pt-14 pb-7 px-10" style={{ color: "rgba(255,255,255,.45)" }}>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function ClientLogin() {
@@ -46,7 +47,16 @@ export default function ClientLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cream px-4">
+    <main className="min-h-screen flex items-center justify-center bg-cream px-4">
+      <Helmet>
+        <title>Client Portal Login | Emily Russell, REALTOR®</title>
+        <meta name="description" content="Sign in to the Emily Russell Realtor client portal to view your personalized property dossier, scheduled tours, and shared documents." />
+        <meta name="robots" content="noindex, follow" />
+        <link rel="canonical" href="https://alamocitydesigns.com/portal/login" />
+        <meta property="og:title" content="Client Portal Login | Emily Russell, REALTOR®" />
+        <meta property="og:description" content="Sign in to the Emily Russell Realtor client portal." />
+        <meta property="og:url" content="https://alamocitydesigns.com/portal/login" />
+      </Helmet>
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <Link to="/" className="font-display text-3xl text-charcoal no-underline">Emily Russell</Link>
@@ -109,6 +119,6 @@ export default function ClientLogin() {
           <a href="tel:2109120806" className="text-gold no-underline">(210) 912-0806</a> for assistance.
         </p>
       </div>
-    </div>
+    </main>
   );
 }
