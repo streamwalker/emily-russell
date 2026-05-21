@@ -311,11 +311,21 @@ export default function Index() {
       {/* ═══════════ HERO ═══════════ */}
       <section
         id="home"
-        className="relative min-h-[700px] h-screen flex items-center"
-        style={{
-          background: `linear-gradient(150deg,rgba(28,28,28,.78) 0%,rgba(28,28,28,.4) 45%,rgba(28,28,28,.62) 100%),url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=85') center/cover no-repeat`,
-        }}
+        className="relative min-h-[700px] h-screen flex items-center overflow-hidden"
       >
+        <img
+          src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=85"
+          alt="Luxury San Antonio home exterior"
+          fetchPriority="high"
+          decoding="async"
+          width={1600}
+          height={1066}
+          className="absolute inset-0 w-full h-full object-cover -z-10"
+        />
+        <div
+          className="absolute inset-0 -z-10"
+          style={{ background: "linear-gradient(150deg,rgba(28,28,28,.78) 0%,rgba(28,28,28,.4) 45%,rgba(28,28,28,.62) 100%)" }}
+        />
         <div className="max-w-[1280px] mx-auto px-10 md:px-10 px-6 w-full">
           <FadeIn>
             <div className="flex items-center gap-3 mb-5">
