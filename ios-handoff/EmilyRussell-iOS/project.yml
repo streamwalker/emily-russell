@@ -1,0 +1,81 @@
+name: EmilyRussell
+options:
+  bundleIdPrefix: com.emilyrussell
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+configs:
+  Debug: debug
+  Release: release
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: "2.0.0"
+targets:
+  EmilyRussell:
+    type: application
+    platform: iOS
+    sources:
+      - path: EmilyRussell
+        excludes:
+          - "Resources/Fonts/.gitkeep"
+    resources:
+      - EmilyRussell/Resources/Assets.xcassets
+      - EmilyRussell/Resources/Fonts
+      - EmilyRussell/Resources/LegalCopy
+    info:
+      path: EmilyRussell/Info.plist
+      properties:
+        CFBundleDisplayName: Emily Russell
+        UILaunchScreen:
+          UIColorName: brand.charcoal
+        UIAppFonts:
+          - PlayfairDisplay-Regular.ttf
+          - PlayfairDisplay-Medium.ttf
+          - PlayfairDisplay-SemiBold.ttf
+          - DMSans-Regular.ttf
+          - DMSans-Medium.ttf
+        NSCameraUsageDescription: Scan documents to attach to your property dossier.
+        NSPhotoLibraryUsageDescription: Attach photos to property comments.
+        NSFaceIDUsageDescription: Quickly unlock your client portal.
+        ITSAppUsesNonExemptEncryption: false
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [emilyrussell]
+    dependencies:
+      - package: Supabase
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.emilyrussell.app
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        DEVELOPMENT_ASSET_PATHS: ""
+      configs:
+        Debug:
+          xcconfig: EmilyRussell/Config.xcconfig
+        Release:
+          xcconfig: EmilyRussell/Config.xcconfig
+    entitlements:
+      path: EmilyRussell/EmilyRussell.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
+        com.apple.security.application-groups:
+          - group.com.emilyrussell.app
+        com.apple.developer.associated-domains:
+          - applinks:alamocitydesigns.com
+  EmilyRussellTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [EmilyRussellTests]
+    dependencies:
+      - target: EmilyRussell
