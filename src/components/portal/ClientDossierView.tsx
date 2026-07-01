@@ -7,6 +7,7 @@ import TabSummary from "@/components/portal/TabSummary";
 import DossierDashboardView from "@/components/portal/DossierDashboardView";
 import DossierDocumentsCard from "@/components/portal/DossierDocumentsCard";
 import PropertyMediaGallery from "@/components/portal/PropertyMediaGallery";
+import { Linkify } from "@/components/portal/Linkify";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
