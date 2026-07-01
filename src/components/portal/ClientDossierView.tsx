@@ -7,6 +7,7 @@ import TabSummary from "@/components/portal/TabSummary";
 import DossierDashboardView from "@/components/portal/DossierDashboardView";
 import DossierDocumentsCard from "@/components/portal/DossierDocumentsCard";
 import PropertyMediaGallery from "@/components/portal/PropertyMediaGallery";
+import { Linkify } from "@/components/portal/Linkify";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -465,7 +466,7 @@ function PropertyRow({
             <div>
               <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body">Agent Notes</div>
               <div className="text-[12.5px] leading-relaxed text-foreground font-body bg-muted p-3 rounded border border-border/50">
-                {prop.notes}
+                <Linkify text={prop.notes} />
               </div>
               {(prop.rentEst || prop.yieldEst) && (
                 <div className="mt-2.5 p-2.5 rounded border" style={{ background: "#f0f7f0", borderColor: "#c8e6c9" }}>
@@ -577,7 +578,7 @@ function PropertyRow({
           ) : interaction?.comments && (
             <div className="mt-4 p-3 rounded border border-border bg-muted/50">
               <div className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2 font-body font-semibold">Client Feedback</div>
-              <div className="text-xs text-foreground font-body leading-relaxed italic">"{interaction.comments}"</div>
+              <div className="text-xs text-foreground font-body leading-relaxed italic">"<Linkify text={interaction.comments} />"</div>
             </div>
           )}
 
@@ -592,7 +593,7 @@ function PropertyRow({
                       · {format(new Date(r.created_at), "MMM d, yyyy 'at' h:mm a")}
                     </span>
                   </div>
-                  <div className="text-[12px] text-foreground font-body leading-relaxed">{r.reply_text}</div>
+                  <div className="text-[12px] text-foreground font-body leading-relaxed"><Linkify text={r.reply_text} /></div>
                 </div>
               ))}
             </div>
