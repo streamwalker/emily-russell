@@ -62,6 +62,7 @@ export default function PropertyMediaGallery({
   dossierId, propertyId, ownerUserId, variant, canEdit = false, accentColor,
 }: Props) {
   const { isAdmin } = useAdminCheck();
+  const effectiveCanEdit = canEdit || isAdmin;
   const [items, setItems] = useState<SignedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
