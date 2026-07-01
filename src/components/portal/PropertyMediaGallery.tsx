@@ -319,7 +319,7 @@ function Lightbox({
           {it.kind === "photo" && it.url ? (
             <img src={it.url} alt={it.caption ?? ""} className="max-w-full max-h-[80vh] object-contain" />
           ) : it.url ? (
-            <video src={it.url} controls className="max-w-full max-h-[80vh]" />
+            <VideoPlayer url={it.url} mime={it.mime_type} className="max-w-full max-h-[80vh]" />
           ) : null}
           {items.length > 1 && (
             <>
