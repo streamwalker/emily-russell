@@ -334,6 +334,7 @@ function PropertyRow({
                 variant="strip"
                 canEdit={!readOnly}
                 accentColor={accentColor}
+                propertyAddress={prop.address}
               />
             </div>
           )}
