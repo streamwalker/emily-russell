@@ -574,6 +574,59 @@ export type Database = {
         }
         Relationships: []
       }
+      property_media: {
+        Row: {
+          caption: string | null
+          created_at: string
+          dossier_id: string
+          id: string
+          kind: string
+          mime_type: string
+          property_id: string
+          size_bytes: number
+          storage_path: string
+          uploaded_by: string
+          uploader_role: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          dossier_id: string
+          id?: string
+          kind: string
+          mime_type: string
+          property_id: string
+          size_bytes?: number
+          storage_path: string
+          uploaded_by: string
+          uploader_role: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          dossier_id?: string
+          id?: string
+          kind?: string
+          mime_type?: string
+          property_id?: string
+          size_bytes?: number
+          storage_path?: string
+          uploaded_by?: string
+          uploader_role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_media_dossier_id_fkey"
+            columns: ["dossier_id"]
+            isOneToOne: false
+            referencedRelation: "client_dossiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_estimates: {
         Row: {
           created_at: string
