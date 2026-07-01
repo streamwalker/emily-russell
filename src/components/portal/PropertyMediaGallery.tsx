@@ -194,7 +194,7 @@ export default function PropertyMediaGallery({
           open={galleryOpen}
           onOpenChange={setGalleryOpen}
           items={items}
-          canEdit={canEdit || isAdmin}
+          canEdit={effectiveCanEdit}
           onDelete={handleDelete}
           initialIndex={lightboxIdx}
         />
@@ -213,7 +213,7 @@ export default function PropertyMediaGallery({
           </span>
           <span className="text-[10px] text-muted-foreground">({items.length})</span>
         </div>
-        {canEdit && (
+        {effectiveCanEdit && (
           <>
             <input
               ref={fileRef}
@@ -269,7 +269,7 @@ export default function PropertyMediaGallery({
               >
                 {it.uploader_role === "admin" ? "Emily" : "You"}
               </span>
-              {canEdit && (
+              {effectiveCanEdit && (
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); handleDelete(it); }}
@@ -372,7 +372,7 @@ function GalleryDialog({
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{idx + 1} / {items.length} · {items[idx].uploader_role === "admin" ? "Emily" : "Client"}</span>
-              {canEdit && (
+              {effectiveCanEdit && (
                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(items[idx])}>
                   <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                 </Button>
