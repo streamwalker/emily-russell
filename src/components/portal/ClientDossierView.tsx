@@ -324,6 +324,18 @@ function PropertyRow({
             )}
           </div>
           <div className="text-xs opacity-70 mt-0.5 font-body">{prop.city} · {prop.community}</div>
+          {!isExpanded && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <PropertyMediaGallery
+                dossierId={dossierId}
+                propertyId={prop.id}
+                ownerUserId={ownerUserId}
+                variant="strip"
+                canEdit={!readOnly}
+                accentColor={accentColor}
+              />
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
           {prop.beds && (
