@@ -73,7 +73,7 @@ const extFromMime = (m: string) => {
 };
 
 export default function PropertyMediaGallery({
-  dossierId, propertyId, ownerUserId, variant, canEdit = false, accentColor,
+  dossierId, propertyId, ownerUserId, variant, canEdit = false, accentColor, propertyAddress,
 }: Props) {
   const { isAdmin } = useAdminCheck();
   const effectiveCanEdit = canEdit || isAdmin;
