@@ -114,6 +114,11 @@ export default function PropertyMediaGallery({
 
     setUploading(true);
     let successCount = 0;
+    const base = slugifyAddress(propertyAddress);
+    const existingPhotos = items.filter((i) => i.kind === "photo").length;
+    const existingVideos = items.filter((i) => i.kind === "video").length;
+    let photoBatchIdx = 0;
+    let videoBatchIdx = 0;
     for (const file of Array.from(fl)) {
       const isImage = ALLOWED_IMAGE.test(file.type);
       const isVideo = ALLOWED_VIDEO.test(file.type);
@@ -127,11 +132,15 @@ export default function PropertyMediaGallery({
         continue;
       }
       const ext = extFromMime(file.type);
-      const id = crypto.randomUUID();
-      const path = `${ownerUserId}/property-media/${propertyId}/${id}.${ext}`;
+      const kind = isVideo ? "video" : "photo";
+      const seqNum = isVideo ? existingVideos + (++videoBatchIdx) : existingPhotos + (++photoBatchIdx);
+      const seq = String(seqNum).padStart(2, "0");
+      const shortId = crypto.randomUUID().slice(0, 8);
+      const path = `${ownerUserId}/property-media/${propertyId}/${base}-${kind}-${seq}-${shortId}.${ext}`;
       const { error: upErr } = await supabase.storage.from("dossier-documents")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) { console.error(upErr); toast.error(`Upload failed: ${file.name}`); continue; }
+
 
       const { error: insErr } = await supabase.from("property_media").insert({
         dossier_id: dossierId,
