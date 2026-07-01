@@ -372,7 +372,7 @@ function GalleryDialog({
             </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{idx + 1} / {items.length} · {items[idx].uploader_role === "admin" ? "Emily" : "Client"}</span>
-              {effectiveCanEdit && (
+              {canEdit && (
                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(items[idx])}>
                   <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                 </Button>
