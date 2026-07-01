@@ -603,7 +603,7 @@ function PropertyRow({
             propertyId={prop.id}
             ownerUserId={ownerUserId}
             variant="full"
-            canEdit={!readOnly || undefined}
+            canEdit={!readOnly}
           />
 
 
