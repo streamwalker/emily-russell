@@ -1,56 +1,55 @@
-## Rename uploaded property media using the home's address
+## Collision-proof uploads for property media
+
+### Problem
+`PropertyMediaGallery.handleFiles` builds each storage path as:
+```
+{owner}/property-media/{propertyId}/{address-slug}-{kind}-{seq}-{shortId}.{ext}
+```
+`seq` is derived from `items.filter(kind).length + batch index`. That count is stale in three real scenarios, so two uploads can land on the same `seq`:
+
+1. **Deleted files free up numbers.** If photo `03` is deleted, the next upload reuses `03` — colliding with any historical row that still references that slot (and confusing chronological ordering).
+2. **Concurrent uploaders.** Emily and the client both upload at once; both compute `seq = existing + 1` from their own stale `items` snapshot and produce the same `-photo-04-` prefix. The random 8-char `shortId` currently prevents a *storage* overwrite (upsert is off), but the filenames the browser downloads (`{base}-{kind}-{seq}.{ext}` — no shortId) still collide, so "Save as" replaces the earlier file on the user's disk.
+3. **Re-uploads after refresh.** `items` may not be fully loaded when the picker fires, so `existingPhotos`/`existingVideos` count as 0 and everything restarts at `01`.
+
+Storage-level collision is soft-guarded by `shortId` + `upsert:false`, but the *download filename* passed to `createSignedUrl(..., { download })` (planned in `plan.md` step 4 and already partially wired in `load()`) does not include `shortId`, so the human-visible filename is not unique.
 
 ### Goal
-When a photo or video is uploaded to a property in a client dossier, name the stored file with the property's address as the root (e.g. `106-sam-plover-dr-photo-01.jpg`) instead of the current opaque UUID filename. This applies to both the storage path and the filename the browser uses on download / "Open in new tab".
+Guarantee that every uploaded file has a unique storage path **and** a unique download filename per property, even across concurrent uploads, deletions, and reloads — without changing the DB schema.
 
-### Current behavior
-In `src/components/portal/PropertyMediaGallery.tsx`, `handleFiles` writes to:
-```
-${ownerUserId}/property-media/${propertyId}/${crypto.randomUUID()}.${ext}
-```
-Nothing in that path references the address, so downloads land as `a3f9…e2.mov`.
+### Changes — frontend only, all inside `src/components/portal/PropertyMediaGallery.tsx`
 
-### Proposed changes (frontend only)
+1. **Compute `seq` from a monotonic high-water mark, not a count.**
+   Parse existing `storage_path` values for this property, extract the numeric segment that follows `-{kind}-`, and take `max(seq) + 1` as the starting point for the batch. Deleted rows no longer free up numbers, so historical filenames stay stable and new uploads always advance.
 
-1. **Accept the address as a prop.** Add `propertyAddress?: string` to `PropertyMediaGallery`'s `Props`. Pass it in from `ClientDossierView.tsx` at every `<PropertyMediaGallery … />` call site using the property's existing `address` field (fall back to `"property"` if blank).
-
-2. **Slugify helper.** Add a small local `slugifyAddress(addr)` that lowercases, strips punctuation, collapses whitespace to `-`, and truncates to ~60 chars. Example: `"106 Sam Plover Dr, San Antonio, TX"` → `106-sam-plover-dr-san-antonio-tx`.
-
-3. **Build a friendly base name in `handleFiles`.** For each file:
-   - `const base = slugifyAddress(propertyAddress ?? "property");`
-   - Compute a per-upload index by counting existing items of the same `kind` plus the position of the current file in the batch, zero-padded (`01`, `02`…).
-   - New storage path:
-     ```
-     ${ownerUserId}/property-media/${propertyId}/${base}-${kind}-${seq}-${shortId}.${ext}
-     ```
-     Keep a short `crypto.randomUUID().slice(0,8)` suffix so re-uploads of the same file name never collide and RLS/folder scoping stays intact.
-
-4. **Preserve download filename.** When calling `supabase.storage.from("dossier-documents").upload(path, file, …)`, also pass:
    ```ts
-   { contentType: file.type, upsert: false,
-     metadata: { originalName: file.name },
-     // Supabase JS forwards this to storage:
-     cacheControl: "3600" }
+   const seqRe = new RegExp(`-${kind}-(\\d{2,})-`);
+   const maxSeq = items
+     .filter(i => i.kind === kind)
+     .map(i => Number(i.storage_path.match(seqRe)?.[1] ?? 0))
+     .reduce((a, b) => Math.max(a, b), 0);
    ```
-   And when creating signed URLs for the "Open in new tab" / Download buttons in `VideoPlayer` and the image/video anchors, use:
+   Widen padding to `String(n).padStart(3, "0")` so we don't cap at 99.
+
+2. **Refresh the high-water mark right before upload.** Re-query `property_media` for `(dossier_id, property_id)` at the top of `handleFiles` (a single `select('storage_path,kind')`) so concurrent uploads from another session are seen. Compute `maxSeq` from that fresh result, not from the possibly-stale `items` state.
+
+3. **Always include `shortId` in the download filename.** Update every `createSignedUrl(..., { download })` call — in `load()`, in the lightbox "Download" button, and in the `VideoPlayer` fallback — to pass the full unique filename:
    ```ts
-   supabase.storage.from("dossier-documents").createSignedUrl(path, 3600, {
-     download: `${base}-${kind}-${seq}${extDot}`
-   });
+   download: `${base}-${kind}-${seq}-${shortId}.${ext}`
    ```
-   This makes the browser save the file as `106-sam-plover-dr-photo-03.jpg` regardless of the internal storage key.
+   Simplest implementation: use the last path segment of `storage_path` as the download name (that segment already contains base+kind+seq+shortId+ext), which also makes existing UUID-named rows download with their stored name instead of a fabricated one.
 
-5. **No migration of existing files.** Old rows keep their UUID paths; only new uploads get the address-based name. This avoids storage rewrites and keeps existing signed URLs valid. If we later want to backfill, that's a separate task.
+4. **Retry on the rare storage 409.** Wrap the `supabase.storage.upload(...)` call in a small retry (max 3 tries) that regenerates `shortId` and bumps `seq` by 1 whenever the error is a duplicate-key / `409` / "The resource already exists" response. This closes the last-mile race between two tabs picking the same `seq` + `shortId` in the same millisecond.
 
-6. **No schema changes.** `property_media.storage_path` already stores whatever we upload; no new columns needed.
+5. **Preserve address-less fallback.** When `propertyAddress` is empty, keep the existing `"property"` slug; the high-water logic works identically.
 
-### Files touched
-- `src/components/portal/PropertyMediaGallery.tsx` — add prop, slugify, new path builder, `download` option on signed URLs.
-- `src/components/portal/ClientDossierView.tsx` — pass `propertyAddress={prop.address}` at each usage.
+### Non-goals
+- No schema change (no new column, no migration).
+- No backfill of existing rows — legacy UUID filenames keep working via the "use last path segment as download name" rule.
+- No change to RLS, buckets, or the storage folder shape.
 
 ### Verification
-- Upload a photo to "106 Sam Plover Dr" → new row's `storage_path` ends with `106-sam-plover-dr-photo-01-XXXXXXXX.jpg`.
-- Click Download in the lightbox → file saves as `106-sam-plover-dr-photo-01.jpg`.
-- Upload a `.mov` → fallback panel's Open/Download buttons yield `106-sam-plover-dr-video-01.mov`.
-- Existing UUID-named files still load and display.
-- Properties with no address yet fall back to `property-photo-01-XXXXXXXX.jpg` and don't crash.
+- Upload 3 photos, delete #2, upload 1 more → new file is `-photo-004-…`, not `-photo-002-…`.
+- Open two browser tabs, upload simultaneously in both → 6 distinct storage rows, 6 distinct download filenames, no toast errors.
+- Reload before thumbnails finish signing, then upload → new file's `seq` is still `max(existing) + 1`.
+- Trigger a forced 409 (temporarily hardcode a duplicate `shortId`) → upload succeeds on retry with a new suffix.
+- Legacy UUID-named row still downloads under its original UUID filename.
