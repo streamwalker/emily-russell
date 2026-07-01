@@ -243,7 +243,7 @@ export default function PropertyMediaGallery({
         </div>
       ) : items.length === 0 ? (
         <div className="text-xs text-muted-foreground py-3 italic">
-          No photos or videos yet.{canEdit ? " Click Add to upload." : ""}
+          No photos or videos yet.{effectiveCanEdit ? " Click Add to upload." : ""}
         </div>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
