@@ -899,6 +899,8 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
         readOnly={readOnly}
         changeStatus={changes.newIds.has(p.id) ? "new" : changes.updatedIds.has(p.id) ? "updated" : null}
         hasNewReply={changes.replyPropIds.has(p.id)}
+        dossierId={dossierId}
+        ownerUserId={clientUserId}
       />
     );
   };
