@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Image as ImageIcon, Loader2, Plus, Trash2, Video, X } from "lucide-react";
+import { Download, ExternalLink, Image as ImageIcon, Loader2, Plus, Trash2, Video, X } from "lucide-react";
 import { useAdminCheck } from "@/hooks/useAdminCheck";
 
 /**
@@ -137,6 +137,9 @@ export default function PropertyMediaGallery({
         continue;
       }
       successCount++;
+      if (isVideo && /quicktime|mov/i.test(file.type)) {
+        toast.info("Uploaded. Note: .mov may not preview in all browsers — use 'Open in new tab' to view.");
+      }
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
@@ -316,7 +319,7 @@ function Lightbox({
           {it.kind === "photo" && it.url ? (
             <img src={it.url} alt={it.caption ?? ""} className="max-w-full max-h-[80vh] object-contain" />
           ) : it.url ? (
-            <video src={it.url} controls className="max-w-full max-h-[80vh]" />
+            <VideoPlayer url={it.url} mime={it.mime_type} className="max-w-full max-h-[80vh]" />
           ) : null}
           {items.length > 1 && (
             <>
@@ -363,7 +366,7 @@ function GalleryDialog({
               {items[idx].kind === "photo" ? (
                 <img src={items[idx].url} alt="" className="max-h-[60vh] object-contain" />
               ) : (
-                <video src={items[idx].url} controls className="max-h-[60vh]" />
+                <VideoPlayer url={items[idx].url!} mime={items[idx].mime_type} className="max-h-[60vh] w-full" />
               )}
               <button
                 onClick={() => setIdx(null)}
@@ -400,5 +403,60 @@ function GalleryDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ── Video player with graceful fallback for unsupported formats (e.g. .mov) ── */
+function VideoPlayer({ url, mime, className }: { url: string; mime: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [failed, setFailed] = useState(false);
+  const isQuickTime = /quicktime|mov/i.test(mime);
+
+  useEffect(() => {
+    setFailed(false);
+    // Proactively detect: if the browser reports it can't play this type, show fallback.
+    const v = document.createElement("video");
+    const can = v.canPlayType(mime || "");
+    if (!can && isQuickTime) {
+      setFailed(true);
+    }
+  }, [url, mime, isQuickTime]);
+
+  if (failed) {
+    return (
+      <div className={`flex flex-col items-center justify-center gap-3 p-6 text-center bg-black text-white ${className ?? ""}`}>
+        <Video className="h-10 w-10 opacity-80" />
+        <div className="text-sm">
+          This video format {isQuickTime ? "(QuickTime .mov) " : ""}isn't supported by this browser.
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" asChild>
+            <a href={url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open in new tab
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <a href={url} download>
+              <Download className="h-3.5 w-3.5 mr-1" /> Download
+            </a>
+          </Button>
+        </div>
+        <div className="text-[10px] text-white/60">Tip: iPhone .mov files play best in Safari or after downloading.</div>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      playsInline
+      preload="metadata"
+      className={className}
+      onError={() => setFailed(true)}
+    >
+      <source src={url} type={mime || undefined} />
+      Your browser can't play this video.
+    </video>
   );
 }
