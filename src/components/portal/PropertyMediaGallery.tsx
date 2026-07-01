@@ -405,3 +405,58 @@ function GalleryDialog({
     </Dialog>
   );
 }
+
+/* ── Video player with graceful fallback for unsupported formats (e.g. .mov) ── */
+function VideoPlayer({ url, mime, className }: { url: string; mime: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [failed, setFailed] = useState(false);
+  const isQuickTime = /quicktime|mov/i.test(mime);
+
+  useEffect(() => {
+    setFailed(false);
+    // Proactively detect: if the browser reports it can't play this type, show fallback.
+    const v = document.createElement("video");
+    const can = v.canPlayType(mime || "");
+    if (!can && isQuickTime) {
+      setFailed(true);
+    }
+  }, [url, mime, isQuickTime]);
+
+  if (failed) {
+    return (
+      <div className={`flex flex-col items-center justify-center gap-3 p-6 text-center bg-black text-white ${className ?? ""}`}>
+        <Video className="h-10 w-10 opacity-80" />
+        <div className="text-sm">
+          This video format {isQuickTime ? "(QuickTime .mov) " : ""}isn't supported by this browser.
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" asChild>
+            <a href={url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open in new tab
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" asChild>
+            <a href={url} download>
+              <Download className="h-3.5 w-3.5 mr-1" /> Download
+            </a>
+          </Button>
+        </div>
+        <div className="text-[10px] text-white/60">Tip: iPhone .mov files play best in Safari or after downloading.</div>
+      </div>
+    );
+  }
+
+  return (
+    <video
+      ref={videoRef}
+      controls
+      playsInline
+      preload="metadata"
+      className={className}
+      onError={() => setFailed(true)}
+    >
+      <source src={url} type={mime || undefined} />
+      Your browser can't play this video.
+    </video>
+  );
+}
