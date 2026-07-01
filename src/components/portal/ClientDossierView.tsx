@@ -598,6 +598,15 @@ function PropertyRow({
             </div>
           )}
 
+          <PropertyMediaGallery
+            dossierId={dossierId}
+            propertyId={prop.id}
+            ownerUserId={ownerUserId}
+            variant="full"
+            canEdit={!readOnly || undefined}
+          />
+
+
           {prop.price && (
             <div className="print:hidden">
               <PaymentCalculatorToggle price={prop.price} hoaFee={prop.expenses?.hoa} accentColor={accentColor} propertyId={prop.id} userId={userId} readOnly={readOnly} propertyAddress={prop.address} propertyCity={prop.city} propertyCommunity={prop.community} />
