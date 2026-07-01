@@ -94,9 +94,12 @@ export default function PropertyMediaGallery({
       .order("created_at", { ascending: true });
     if (error) { console.error(error); toast.error("Could not load property media"); setLoading(false); return; }
     const rows = (data as PropertyMediaRow[]) || [];
-    // Sign URLs in bulk
+    // Sign URLs in bulk, using the storage filename (address-based) as the download name.
     const signed: SignedItem[] = await Promise.all(rows.map(async (r) => {
-      const { data: s } = await supabase.storage.from("dossier-documents").createSignedUrl(r.storage_path, 60 * 60);
+      const fileName = r.storage_path.split("/").pop() || undefined;
+      const { data: s } = await supabase.storage
+        .from("dossier-documents")
+        .createSignedUrl(r.storage_path, 60 * 60, fileName ? { download: fileName } : undefined);
       return { ...r, url: s?.signedUrl };
     }));
     setItems(signed);
