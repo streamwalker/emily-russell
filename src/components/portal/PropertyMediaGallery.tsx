@@ -137,6 +137,9 @@ export default function PropertyMediaGallery({
         continue;
       }
       successCount++;
+      if (isVideo && /quicktime|mov/i.test(file.type)) {
+        toast.info("Uploaded. Note: .mov may not preview in all browsers — use 'Open in new tab' to view.");
+      }
     }
     setUploading(false);
     if (fileRef.current) fileRef.current.value = "";
