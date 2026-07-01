@@ -94,7 +94,8 @@ export default function PropertyMediaGallery({
       .order("created_at", { ascending: true });
     if (error) { console.error(error); toast.error("Could not load property media"); setLoading(false); return; }
     const rows = (data as PropertyMediaRow[]) || [];
-    // Sign URLs in bulk, using the storage filename (address-based) as the download name.
+    // Sign URLs in bulk, using the stored filename (last path segment) as the download name
+    // so both address-based names and legacy UUID names download with their unique key.
     const signed: SignedItem[] = await Promise.all(rows.map(async (r) => {
       const fileName = r.storage_path.split("/").pop() || undefined;
       const { data: s } = await supabase.storage
@@ -118,10 +119,25 @@ export default function PropertyMediaGallery({
     setUploading(true);
     let successCount = 0;
     const base = slugifyAddress(propertyAddress);
-    const existingPhotos = items.filter((i) => i.kind === "photo").length;
-    const existingVideos = items.filter((i) => i.kind === "video").length;
-    let photoBatchIdx = 0;
-    let videoBatchIdx = 0;
+
+    // Refresh high-water seq per kind directly from the DB so concurrent uploads
+    // from other sessions / stale local state can't produce duplicate seq numbers.
+    const { data: fresh } = await supabase
+      .from("property_media")
+      .select("storage_path,kind")
+      .eq("dossier_id", dossierId)
+      .eq("property_id", propertyId);
+    const highWater = (kind: "photo" | "video") => {
+      const re = new RegExp(`-${kind}-(\\d{2,})-`);
+      return (fresh || []).reduce((max, r: { storage_path: string; kind: string }) => {
+        if (r.kind !== kind) return max;
+        const n = Number(r.storage_path.match(re)?.[1] ?? 0);
+        return n > max ? n : max;
+      }, 0);
+    };
+    let nextPhoto = highWater("photo");
+    let nextVideo = highWater("video");
+
     for (const file of Array.from(fl)) {
       const isImage = ALLOWED_IMAGE.test(file.type);
       const isVideo = ALLOWED_VIDEO.test(file.type);
@@ -135,13 +151,27 @@ export default function PropertyMediaGallery({
         continue;
       }
       const ext = extFromMime(file.type);
-      const kind = isVideo ? "video" : "photo";
-      const seqNum = isVideo ? existingVideos + (++videoBatchIdx) : existingPhotos + (++photoBatchIdx);
-      const seq = String(seqNum).padStart(2, "0");
-      const shortId = crypto.randomUUID().slice(0, 8);
-      const path = `${ownerUserId}/property-media/${propertyId}/${base}-${kind}-${seq}-${shortId}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("dossier-documents")
-        .upload(path, file, { contentType: file.type, upsert: false });
+      const kind: "photo" | "video" = isVideo ? "video" : "photo";
+      let seqNum = isVideo ? ++nextVideo : ++nextPhoto;
+
+      // Upload with retry on duplicate-key/409 races between concurrent tabs.
+      let path = "";
+      let upErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const seq = String(seqNum).padStart(3, "0");
+        const shortId = crypto.randomUUID().slice(0, 8);
+        path = `${ownerUserId}/property-media/${propertyId}/${base}-${kind}-${seq}-${shortId}.${ext}`;
+        const { error } = await supabase.storage.from("dossier-documents")
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (!error) { upErr = null; break; }
+        const msg = (error as { message?: string; statusCode?: string })?.message || "";
+        const status = (error as { statusCode?: string })?.statusCode;
+        const isDup = /already exists|duplicate/i.test(msg) || status === "409";
+        if (!isDup) { upErr = error; break; }
+        // Bump seq and retry with a new shortId.
+        seqNum = isVideo ? ++nextVideo : ++nextPhoto;
+        upErr = error;
+      }
       if (upErr) { console.error(upErr); toast.error(`Upload failed: ${file.name}`); continue; }
 
 
