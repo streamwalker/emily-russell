@@ -366,7 +366,7 @@ function GalleryDialog({
               {items[idx].kind === "photo" ? (
                 <img src={items[idx].url} alt="" className="max-h-[60vh] object-contain" />
               ) : (
-                <video src={items[idx].url} controls className="max-h-[60vh]" />
+                <VideoPlayer url={items[idx].url!} mime={items[idx].mime_type} className="max-h-[60vh] w-full" />
               )}
               <button
                 onClick={() => setIdx(null)}
