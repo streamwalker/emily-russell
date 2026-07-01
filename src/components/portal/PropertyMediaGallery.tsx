@@ -43,11 +43,25 @@ interface Props {
   canEdit?: boolean;
   /** Optional accent color for the strip border/count chip. */
   accentColor?: string;
+  /** Property address — used as root of stored filenames. */
+  propertyAddress?: string;
 }
 
 interface SignedItem extends PropertyMediaRow {
   url?: string;
 }
+
+const slugifyAddress = (addr?: string) => {
+  const s = (addr || "property")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return s || "property";
+};
+
 
 const extFromMime = (m: string) => {
   const map: Record<string, string> = {
@@ -59,7 +73,7 @@ const extFromMime = (m: string) => {
 };
 
 export default function PropertyMediaGallery({
-  dossierId, propertyId, ownerUserId, variant, canEdit = false, accentColor,
+  dossierId, propertyId, ownerUserId, variant, canEdit = false, accentColor, propertyAddress,
 }: Props) {
   const { isAdmin } = useAdminCheck();
   const effectiveCanEdit = canEdit || isAdmin;
@@ -80,9 +94,12 @@ export default function PropertyMediaGallery({
       .order("created_at", { ascending: true });
     if (error) { console.error(error); toast.error("Could not load property media"); setLoading(false); return; }
     const rows = (data as PropertyMediaRow[]) || [];
-    // Sign URLs in bulk
+    // Sign URLs in bulk, using the storage filename (address-based) as the download name.
     const signed: SignedItem[] = await Promise.all(rows.map(async (r) => {
-      const { data: s } = await supabase.storage.from("dossier-documents").createSignedUrl(r.storage_path, 60 * 60);
+      const fileName = r.storage_path.split("/").pop() || undefined;
+      const { data: s } = await supabase.storage
+        .from("dossier-documents")
+        .createSignedUrl(r.storage_path, 60 * 60, fileName ? { download: fileName } : undefined);
       return { ...r, url: s?.signedUrl };
     }));
     setItems(signed);
@@ -100,6 +117,11 @@ export default function PropertyMediaGallery({
 
     setUploading(true);
     let successCount = 0;
+    const base = slugifyAddress(propertyAddress);
+    const existingPhotos = items.filter((i) => i.kind === "photo").length;
+    const existingVideos = items.filter((i) => i.kind === "video").length;
+    let photoBatchIdx = 0;
+    let videoBatchIdx = 0;
     for (const file of Array.from(fl)) {
       const isImage = ALLOWED_IMAGE.test(file.type);
       const isVideo = ALLOWED_VIDEO.test(file.type);
@@ -113,11 +135,15 @@ export default function PropertyMediaGallery({
         continue;
       }
       const ext = extFromMime(file.type);
-      const id = crypto.randomUUID();
-      const path = `${ownerUserId}/property-media/${propertyId}/${id}.${ext}`;
+      const kind = isVideo ? "video" : "photo";
+      const seqNum = isVideo ? existingVideos + (++videoBatchIdx) : existingPhotos + (++photoBatchIdx);
+      const seq = String(seqNum).padStart(2, "0");
+      const shortId = crypto.randomUUID().slice(0, 8);
+      const path = `${ownerUserId}/property-media/${propertyId}/${base}-${kind}-${seq}-${shortId}.${ext}`;
       const { error: upErr } = await supabase.storage.from("dossier-documents")
         .upload(path, file, { contentType: file.type, upsert: false });
       if (upErr) { console.error(upErr); toast.error(`Upload failed: ${file.name}`); continue; }
+
 
       const { error: insErr } = await supabase.from("property_media").insert({
         dossier_id: dossierId,

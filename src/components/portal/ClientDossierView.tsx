@@ -334,6 +334,7 @@ function PropertyRow({
                 variant="strip"
                 canEdit={!readOnly}
                 accentColor={accentColor}
+                propertyAddress={prop.address}
               />
             </div>
           )}
@@ -605,6 +606,7 @@ function PropertyRow({
             ownerUserId={ownerUserId}
             variant="full"
             canEdit={!readOnly}
+            propertyAddress={prop.address}
           />
 
 
