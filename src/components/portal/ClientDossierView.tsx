@@ -6,6 +6,7 @@ import RankBadge from "@/components/portal/RankBadge";
 import TabSummary from "@/components/portal/TabSummary";
 import DossierDashboardView from "@/components/portal/DossierDashboardView";
 import DossierDocumentsCard from "@/components/portal/DossierDocumentsCard";
+import PropertyMediaGallery from "@/components/portal/PropertyMediaGallery";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -198,6 +199,7 @@ function PaymentCalculatorToggle({ price, hoaFee, accentColor, propertyId, userI
 function PropertyRow({
   prop, isExpanded, onToggle, accentColor, rankInfo, isCompareSelected, onCompareToggle,
   userId, interaction, onInteractionChange, gradeCounts, replies, readOnly, changeStatus, hasNewReply,
+  dossierId, ownerUserId,
 }: {
   prop: Property;
   isExpanded: boolean;
@@ -214,6 +216,8 @@ function PropertyRow({
   readOnly?: boolean;
   changeStatus?: "new" | "updated" | null;
   hasNewReply?: boolean;
+  dossierId: string;
+  ownerUserId: string;
 }) {
   const isFav = interaction?.is_favorite || false;
 
@@ -320,6 +324,18 @@ function PropertyRow({
             )}
           </div>
           <div className="text-xs opacity-70 mt-0.5 font-body">{prop.city} · {prop.community}</div>
+          {!isExpanded && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <PropertyMediaGallery
+                dossierId={dossierId}
+                propertyId={prop.id}
+                ownerUserId={ownerUserId}
+                variant="strip"
+                canEdit={!readOnly}
+                accentColor={accentColor}
+              />
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4 flex-shrink-0">
           {prop.beds && (
@@ -581,6 +597,15 @@ function PropertyRow({
               ))}
             </div>
           )}
+
+          <PropertyMediaGallery
+            dossierId={dossierId}
+            propertyId={prop.id}
+            ownerUserId={ownerUserId}
+            variant="full"
+            canEdit={!readOnly}
+          />
+
 
           {prop.price && (
             <div className="print:hidden">
@@ -895,6 +920,8 @@ export default function ClientDossierView({ dossierData, dossierId, clientUserId
         readOnly={readOnly}
         changeStatus={changes.newIds.has(p.id) ? "new" : changes.updatedIds.has(p.id) ? "updated" : null}
         hasNewReply={changes.replyPropIds.has(p.id)}
+        dossierId={dossierId}
+        ownerUserId={clientUserId}
       />
     );
   };
