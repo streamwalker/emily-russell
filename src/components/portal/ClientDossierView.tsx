@@ -606,6 +606,7 @@ function PropertyRow({
             ownerUserId={ownerUserId}
             variant="full"
             canEdit={!readOnly}
+            propertyAddress={prop.address}
           />
 
 
