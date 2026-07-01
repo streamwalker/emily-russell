@@ -43,11 +43,25 @@ interface Props {
   canEdit?: boolean;
   /** Optional accent color for the strip border/count chip. */
   accentColor?: string;
+  /** Property address — used as root of stored filenames. */
+  propertyAddress?: string;
 }
 
 interface SignedItem extends PropertyMediaRow {
   url?: string;
 }
+
+const slugifyAddress = (addr?: string) => {
+  const s = (addr || "property")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return s || "property";
+};
+
 
 const extFromMime = (m: string) => {
   const map: Record<string, string> = {
