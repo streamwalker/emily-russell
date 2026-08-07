@@ -524,8 +524,8 @@ export default function PcsLackland() {
 
       <p className="max-w-[70ch] text-[15px] text-muted-foreground">
         Tell me your report date, your rank, and whether you have kids in school. I'll tell you what's realistically
-        available in your window, what your BAH actually buys after taxes and HOA, and whether buying even makes sense
-        for your situation. If the answer is “rent first,” I'll say that.
+        available in your window, and I'll look up your actual BAH and pull the current tax rate and HOA for the specific
+        section you're considering — then we'll see whether buying even makes sense for your situation. If the answer is “rent first,” I'll say that.
       </p>
 
       <CommunityLeadForm

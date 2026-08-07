@@ -15,7 +15,7 @@
  *                         table, not in a meta description.
  *
  * Rendering rule (non-negotiable): read pending values ONLY through
- * `renderVerified()` / the <VerifiedFact /> component, which substitute a
+ * `verifiedValue()` / the <VerifiedFact /> component, which substitute a
  * neutral placeholder or omit the row entirely. Publishing a wrong school zone,
  * tax rate, or MUD assessment is worse than publishing nothing — accuracy is
  * this site's entire competitive position.
@@ -56,20 +56,6 @@ export function isVerified<T>(fact: Verified<T> | undefined | null): fact is Ver
  */
 export function verifiedValue<T>(fact: Verified<T> | undefined | null): T | undefined {
   return isVerified(fact) ? fact.value : undefined;
-}
-
-/**
- * Safe render. Returns a display string for verified facts, or the neutral
- * placeholder for pending ones. Pass `omitWhenPending` to get `null` instead
- * (use when the whole row should disappear).
- */
-export function renderVerified<T>(
-  fact: Verified<T> | undefined | null,
-  options: { format?: (value: T) => string; omitWhenPending?: boolean; placeholder?: string } = {},
-): string | null {
-  const { format, omitWhenPending, placeholder = PENDING_PLACEHOLDER } = options;
-  if (isVerified(fact)) return format ? format(fact.value) : String(fact.value);
-  return omitWhenPending ? null : placeholder;
 }
 
 /** Convenience constructors so records stay readable. */

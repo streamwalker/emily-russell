@@ -21,6 +21,7 @@ import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import Unsubscribe from "./pages/Unsubscribe.tsx";
 import RentVsBuy from "./pages/RentVsBuy.tsx";
 import FairHousing from "./pages/FairHousing.tsx";
+import Communities from "./pages/Communities.tsx";
 import RedbirdRanchSchoolZones from "./pages/RedbirdRanchSchoolZones.tsx";
 import PcsLackland from "./pages/PcsLackland.tsx";
 
@@ -70,6 +71,7 @@ const App = () => (
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/communities" element={<Communities />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/trec" element={<TRECDisclosures />} />
