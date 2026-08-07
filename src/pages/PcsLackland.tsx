@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import CommunityArticleLayout from "@/components/communities/CommunityArticleLayout";
+import CommunityArticleLayout, { formatVerifiedDate } from "@/components/communities/CommunityArticleLayout";
 import CommunityLeadForm from "@/components/communities/CommunityLeadForm";
 import { VerifiedFact } from "@/components/communities/VerifiedFact";
 import { REDBIRD_RANCH, isVerified, verifiedValue } from "@/data/communities";
@@ -23,6 +23,9 @@ import {
 
 const SITE = "https://alamocitydesigns.com";
 const CANONICAL_PATH = "/pcs-lackland-redbird-ranch";
+
+/** Single source of truth for the page's verification date. */
+const VERIFIED_ON = REDBIRD_RANCH.name.verifiedOn ?? "";
 
 const TITLE = "PCS to Lackland: Buying New Construction at Redbird Ranch";
 const DESCRIPTION =
@@ -71,7 +74,7 @@ const articleSchema = {
   },
   publisher: { "@type": "Organization", name: "Emily Russell Realtor", url: SITE },
   image: `${SITE}/communities/redbird-ranch.jpg`,
-  dateModified: "2026-08-07",
+  dateModified: VERIFIED_ON,
 };
 
 const breadcrumbSchema = {
@@ -204,7 +207,7 @@ export default function PcsLackland() {
       description={DESCRIPTION}
       canonicalPath={CANONICAL_PATH}
       ogImage="/og-pcs-lackland.jpg"
-      lastVerified="August 7, 2026"
+      lastVerified={VERIFIED_ON}
       eyebrow={`${communityName} · PCS to JBSA-Lackland`}
       heading="PCS to Lackland: What to Know Before You Buy at Redbird Ranch"
     >
@@ -218,7 +221,7 @@ export default function PcsLackland() {
         <figure className="m-0">
           <img
             src={heroImage}
-            alt={`New construction homes in the ${communityName} community off Potranco Road in San Antonio, TX 78253`}
+            alt={`New construction homes in the ${communityName} community off Potranco Road in San Antonio, TX ${verifiedValue(c.zip) ?? ""}`.trim()}
             width={1200}
             height={675}
             loading="eager"
@@ -270,7 +273,7 @@ export default function PcsLackland() {
       <div className="not-prose">
         <Table>
           <TableCaption className="text-left">
-            Community details as published by <VerifiedFact fact={c.builder} />, verified August 7, 2026.
+            Community details as published by <VerifiedFact fact={c.builder} />, verified {formatVerifiedDate(VERIFIED_ON)}.
           </TableCaption>
           <TableHeader>
             <TableRow>
@@ -299,48 +302,66 @@ export default function PcsLackland() {
       </P>
 
       <H2>Your BAH, honestly</H2>
-      <P>{BAH_JBSA.yoyChangeNote}</P>
+      <P>{BAH_JBSA.pendingSummary}</P>
       <P>
         Nobody is going to lead with that. It matters, because if you built your budget off a 2025 number someone quoted
         you last year, you're working with a figure that no longer exists.
       </P>
 
-      <div className="not-prose">
-        <Table>
-          <TableCaption className="text-left">
-            {BAH_JBSA.location} monthly BAH, {BAH_JBSA.asOf} rates.
-          </TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[140px]">Rank</TableHead>
-              <TableHead>With dependents</TableHead>
-              <TableHead>Without</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {BAH_JBSA.rows.map((r) => (
-              <TableRow key={r.rank}>
-                <TableCell className="font-medium">{r.rank}</TableCell>
-                <TableCell>{r.withDependents}</TableCell>
-                <TableCell>{r.withoutDependents}</TableCell>
+      {isVerified(BAH_JBSA.rows) ? (
+        <div className="not-prose">
+          <Table>
+            <TableCaption className="text-left">
+              {BAH_JBSA.location} monthly BAH, {BAH_JBSA.asOf} rates.
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[140px]">Rank</TableHead>
+                <TableHead>With dependents</TableHead>
+                <TableHead>Without</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {BAH_JBSA.rows.value.map((r) => (
+                <TableRow key={r.rank}>
+                  <TableCell className="font-medium">{r.rank}</TableCell>
+                  <TableCell>{r.withDependents}</TableCell>
+                  <TableCell>{r.withoutDependents}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="max-w-[70ch] border border-border rounded-lg bg-warm/60 p-5 space-y-3">
+          <p className="font-body text-[11px] tracking-[2px] uppercase text-gold">
+            {BAH_JBSA.location} · {BAH_JBSA.asOf} rates
+          </p>
+          <p className="text-foreground/90">
+            I'm not publishing a rank-by-rank rate table here. The {BAH_JBSA.asOf} figures I have came from a published
+            housing source I haven't yet confirmed at the source, and a BAH number that's off by a hundred dollars a
+            month is the difference between a payment that works and one that doesn't.
+          </p>
+          <p className="text-foreground/90">
+            Look yours up directly at the{" "}
+            <a
+              href={BAH_JBSA.officialCalculatorUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-gold hover:text-foreground transition-colors"
+            >
+              {BAH_JBSA.officialCalculatorLabel}
+            </a>{" "}
+            — or send me your rank, dependent status, and duty ZIP and I'll run it with you and show you what it buys
+            after taxes, insurance, and HOA.
+          </p>
+        </div>
+      )}
 
       <p className="max-w-[70ch] text-[13.5px] leading-[1.7] text-muted-foreground border-l-2 border-border pl-4">
-        Source: published JBSA housing rates. Confirm your exact entitlement against the official DoD BAH calculator at{" "}
-        <a
-          href={BAH_JBSA.officialCalculatorUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-gold transition-colors"
-        >
-          defensetravel.dod.mil
-        </a>{" "}
-        before you budget — your rate depends on rank, dependent status, and duty ZIP.
+        {BAH_JBSA.sourceNote}
       </p>
+
 
       <H3>What the math actually has to include</H3>
       <P>BAH is not your budget. Your budget is BAH minus the things a rental didn't charge you for:</P>
@@ -503,8 +524,8 @@ export default function PcsLackland() {
 
       <p className="max-w-[70ch] text-[15px] text-muted-foreground">
         Tell me your report date, your rank, and whether you have kids in school. I'll tell you what's realistically
-        available in your window, what your BAH actually buys after taxes and HOA, and whether buying even makes sense
-        for your situation. If the answer is “rent first,” I'll say that.
+        available in your window, and I'll look up your actual BAH and pull the current tax rate and HOA for the specific
+        section you're considering — then we'll see whether buying even makes sense for your situation. If the answer is “rent first,” I'll say that.
       </p>
 
       <CommunityLeadForm

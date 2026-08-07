@@ -663,6 +663,13 @@ export default function Index() {
                 Straight answers on the far west side's largest new-construction neighborhood — the school district
                 split, and what relocating military families need to know before they arrive.
               </p>
+              <Link
+                to="/communities"
+                onClick={() => trackLinkClick("All Communities", "homepage_communities_section")}
+                className="inline-block mt-4 font-body text-[10px] tracking-[2px] uppercase text-gold no-underline hover:text-charcoal transition-colors"
+              >
+                Browse all communities →
+              </Link>
             </div>
           </FadeIn>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-[22px]">
