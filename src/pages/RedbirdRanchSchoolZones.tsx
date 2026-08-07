@@ -330,16 +330,16 @@ export default function RedbirdRanchSchoolZones() {
         of why you should verify this at the district, not at a website — including this one.
       </P>
 
-      <CommunityLeadForm
-        source="redbird-school-zones"
-        offerLabel="Send me the school zone sheet"
-        heading="Get the Redbird Ranch lot-by-lot school zone sheet"
-      />
       <p className="max-w-[70ch] text-[15px] text-muted-foreground">
         I keep a working sheet of which sections and streets fall on which side of the line, cross-checked against both
         districts, plus the current tax rate and HOA for each section. It's free, it takes ten seconds to request, and
         it will take you about four minutes to read.
       </p>
+      <CommunityLeadForm
+        source="redbird-school-zones"
+        offerLabel="Send me the school zone sheet"
+        heading="Get the Redbird Ranch lot-by-lot school zone sheet"
+      />
 
       <H2>Frequently asked</H2>
       <Accordion type="single" collapsible className="max-w-[70ch]">

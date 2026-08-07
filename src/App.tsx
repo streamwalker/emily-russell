@@ -21,6 +21,7 @@ import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import Unsubscribe from "./pages/Unsubscribe.tsx";
 import RentVsBuy from "./pages/RentVsBuy.tsx";
 import FairHousing from "./pages/FairHousing.tsx";
+import RedbirdRanchSchoolZones from "./pages/RedbirdRanchSchoolZones.tsx";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -82,6 +83,7 @@ const App = () => (
             <Route path="/unsubscribe" element={<Unsubscribe />} />
             <Route path="/rent-vs-buy" element={<RentVsBuy />} />
             <Route path="/fair-housing" element={<FairHousing />} />
+            <Route path="/redbird-ranch-school-district" element={<RedbirdRanchSchoolZones />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
