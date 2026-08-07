@@ -14,6 +14,9 @@ const schema = z.object({
     .min(7, "Please enter a phone number we can reach you at")
     .max(30, "Phone number is too long"),
   moveDate: z.string().trim().min(1, "Please tell me roughly when you're moving").max(60),
+  consent: z.literal(true, {
+    errorMap: () => ({ message: "Please check the box so I know it's okay to contact you." }),
+  }),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -29,6 +32,9 @@ interface CommunityLeadFormProps {
 
 const PRE_VISIT_WARNING =
   "One thing that matters more than the guide: if you're planning to visit the model home, talk to me first. Builders register the first buyer who walks in unaccompanied, and once you're registered on your own you've given up your representation and your leverage for that community. It costs you nothing to have someone in your corner. It costs real money not to.";
+
+const CONSENT_TEXT =
+  "By submitting this form I authorize Emily Russell, REALTOR® (Fathom Realty) to contact me by phone, text message, and email about my inquiry. Consent is not a condition of any purchase. Message and data rates may apply. I can opt out at any time by replying STOP or asking to be removed.";
 
 const fieldBase =
   "w-full min-h-[44px] px-3.5 py-2.5 font-body text-[15px] bg-background text-foreground border border-border rounded-md transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring";
@@ -47,7 +53,7 @@ export default function CommunityLeadForm({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { firstName: "", email: "", phone: "", moveDate: "" },
+    defaultValues: { firstName: "", email: "", phone: "", moveDate: "", consent: undefined },
   });
 
   const onSubmit = async (values: FormValues) => {
@@ -61,6 +67,9 @@ export default function CommunityLeadForm({
           message: `${offerLabel} request from ${source}. Target move date: ${values.moveDate}.`,
           form_type: "contact",
           source,
+          consent: values.consent === true,
+          consent_text: CONSENT_TEXT,
+          consent_at: new Date().toISOString(),
         },
       });
       if (error) throw error;
@@ -172,6 +181,31 @@ export default function CommunityLeadForm({
               {errors.moveDate && (
                 <p id="cl-moveDate-error" role="alert" className="mt-1.5 font-body text-[13px] text-destructive">
                   {errors.moveDate.message}
+                </p>
+              )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <div className="flex items-start gap-3">
+                <input
+                  id="cl-consent"
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 shrink-0 accent-gold cursor-pointer"
+                  aria-invalid={!!errors.consent}
+                  aria-describedby={errors.consent ? "cl-consent-error" : undefined}
+                  {...register("consent")}
+                />
+                <label htmlFor="cl-consent" className="font-body text-[13px] leading-[1.7] text-muted-foreground">
+                  {CONSENT_TEXT}{" "}
+                  <a href="/privacy" className="underline hover:text-gold transition-colors">
+                    Privacy Policy
+                  </a>
+                  .
+                </label>
+              </div>
+              {errors.consent && (
+                <p id="cl-consent-error" role="alert" className="mt-1.5 font-body text-[13px] text-destructive">
+                  {errors.consent.message}
                 </p>
               )}
             </div>

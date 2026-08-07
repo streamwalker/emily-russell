@@ -15,6 +15,10 @@ const LeadSchema = z.object({
   form_type: z.enum(["valuation", "contact"]).optional().nullable(),
   // Optional page-level attribution (e.g. "redbird-school-zones", "pcs-lackland").
   source: z.string().trim().max(120, "Source too long").optional().nullable(),
+  // TCPA/SMS consent captured with the submission (community lead forms).
+  consent: z.boolean().optional().nullable(),
+  consent_text: z.string().trim().max(1000, "Consent text too long").optional().nullable(),
+  consent_at: z.string().trim().max(40).optional().nullable(),
 });
 
 const LEADGENIUS_URL = Deno.env.get("LEADGENIUS_URL") ?? "";
@@ -66,7 +70,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { name, email, phone, intent, message, address, form_type, source } = parsed.data;
+    const { name, email, phone, intent, message, address, form_type, source, consent, consent_text, consent_at } =
+      parsed.data;
+
+    // Preserve a record of the contact consent alongside the lead message.
+    const consentRecord =
+      consent === true
+        ? `\n\n[Contact consent granted ${consent_at ?? new Date().toISOString()}]: ${consent_text ?? "Authorized phone, text and email contact."}`
+        : "";
+    const messageWithConsent = `${message ?? ""}${consentRecord}` || null;
 
     const results: Record<string, unknown> = {};
 
