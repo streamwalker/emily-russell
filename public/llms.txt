@@ -8,6 +8,8 @@ Emily Russell specializes in buyer representation, new-construction guidance, ho
 
 - [Home](/): About Emily, services, featured San Antonio neighborhoods, recent sales, new-construction partners, reviews, and contact form.
 - [Rent vs Buy Calculator](/rent-vs-buy): Interactive tool to compare the long-term cost of renting versus buying a San Antonio home.
+- [Redbird Ranch School Zones](/redbird-ranch-school-district): How Redbird Ranch (78253) is split between Northside ISD and Medina Valley ISD, and how to verify the district for a specific lot.
+- [PCS to Lackland: Redbird Ranch](/pcs-lackland-redbird-ranch): Guide for military families with orders to JBSA-Lackland buying new construction at Redbird Ranch — BAH math, VA loan rules, and builder registration pitfalls.
 - [TREC Disclosures](/trec): Texas Real Estate Commission Information About Brokerage Services (IABS) and Consumer Protection Notice.
 - [Fair Housing](/fair-housing): Equal Housing Opportunity commitment and HUD fair-housing resources.
 - [Privacy Policy](/privacy): How personal information collected through lead forms is used and protected.
