@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { name, email, phone, intent, message, address, form_type } = parsed.data;
+    const { name, email, phone, intent, message, address, form_type, source } = parsed.data;
 
     const results: Record<string, unknown> = {};
 
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       name,
       email: email || null,
       phone: phone || null,
-      source: form_type === "valuation" ? "emily_russell_valuation" : "emily_russell_contact",
+      source: source || (form_type === "valuation" ? "emily_russell_valuation" : "emily_russell_contact"),
       score: "warm",
       city: "San Antonio",
       state: "TX",
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       name,
       email,
       phone: phone || null,
-      source: form_type === "valuation" ? "Emily Russell - Home Valuation" : "Emily Russell - Contact Form",
+      source: source ? `Emily Russell - ${source}` : (form_type === "valuation" ? "Emily Russell - Home Valuation" : "Emily Russell - Contact Form"),
       score: 65,
       status: "Warm",
       stage: "New",
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
         phone: phone || null,
         timeframe: intent && intent.includes("Timeframe:") ? intent.split("Timeframe:")[1].trim() : null,
         message: message || null,
-        source: form_type === "valuation" ? "valuation" : (intent && intent.toLowerCase().includes("rent vs") ? "rent_vs_buy" : "contact"),
+        source: source || (form_type === "valuation" ? "valuation" : (intent && intent.toLowerCase().includes("rent vs") ? "rent_vs_buy" : "contact")),
         metadata: {
           intent: intent || null,
           address: address || null,
