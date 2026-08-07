@@ -652,6 +652,65 @@ export default function Index() {
         </div>
       </section>
 
+      {/* ═══════════ NEW CONSTRUCTION COMMUNITIES ═══════════ */}
+      <section id="communities" className="py-[92px] px-10 bg-warm">
+        <div className="max-w-[1080px] mx-auto">
+          <FadeIn>
+            <div className="text-center mb-11">
+              <div className="er-label">New Construction Communities</div>
+              <h2 className="er-heading">Redbird Ranch, <span className="italic text-gold">Verified</span></h2>
+              <p className="er-body max-w-[560px] mx-auto mt-3">
+                Straight answers on the far west side's largest new-construction neighborhood — the school district
+                split, and what relocating military families need to know before they arrive.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[22px]">
+            {[
+              {
+                to: "/redbird-ranch-school-district",
+                tag: "School Zones",
+                title: "Redbird Ranch Is Zoned to Two School Districts",
+                desc: "Northside ISD or Medina Valley ISD depends on your section. Here's how to confirm the district for your specific lot before you sign.",
+              },
+              {
+                to: "/pcs-lackland-redbird-ranch",
+                tag: "PCS to JBSA-Lackland",
+                title: "Buying New Construction on Orders to Lackland",
+                desc: "2026 BAH math, what changed with VA loans on new construction, and the builder registration mistake that costs PCS buyers the most.",
+              },
+            ].map((card, i) => (
+              <FadeIn key={card.to} delay={i * 0.1}>
+                <Link
+                  to={card.to}
+                  onClick={() => trackLinkClick(card.tag, "homepage_communities_section")}
+                  className="card-hover bg-white overflow-hidden flex flex-col h-full no-underline"
+                >
+                  <div className="relative overflow-hidden">
+                    <img
+                      className="img-zoom w-full h-52 object-cover block"
+                      src="/communities/redbird-ranch.jpg"
+                      alt="New construction homes at Redbird Ranch in San Antonio, TX 78253"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-3.5 left-3.5 bg-gold text-white py-1 px-3 font-body text-[9.5px] tracking-[2px] uppercase font-medium">
+                      {card.tag}
+                    </div>
+                  </div>
+                  <div className="py-[22px] px-[22px] flex flex-col flex-1">
+                    <h3 className="font-display text-xl font-medium text-charcoal mb-2">{card.title}</h3>
+                    <p className="font-body text-[13.5px] leading-[1.7] text-slate-er flex-1">{card.desc}</p>
+                    <span className="font-body text-[10px] tracking-[2px] uppercase text-gold mt-4">Read the guide →</span>
+                  </div>
+                </Link>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
+
       {/* ═══════════ REVIEWS ═══════════ */}
       <section id="reviews" className="py-[92px] px-10" style={{ background: "linear-gradient(140deg,#2e2722 0%,#1c1c1c 100%)" }}>
         <div className="max-w-[760px] mx-auto text-center">
