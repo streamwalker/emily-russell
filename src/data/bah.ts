@@ -38,10 +38,15 @@ export type BahTable = {
   officialCalculatorUrl: string;
   /** Human-readable label for the calculator link. */
   officialCalculatorLabel: string;
-  /** What we can say honestly while the figures are pending. */
+  /**
+   * Copy shown while figures are pending. MUST NOT assert the direction or size
+   * of any year-over-year change — that claim lives in `yoyChangeNote`, which is
+   * Verified-gated.
+   */
   pendingSummary: string;
   /** Dollar figures. Verified-gated — never render while pending. */
   rows: Verified<BahRow[] | undefined>;
+
 };
 
 const PENDING_NOTE =
