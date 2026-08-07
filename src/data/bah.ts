@@ -6,9 +6,12 @@
  * VERIFICATION CONTRACT: this module uses the same `Verified<T>` guardrail as
  * `src/data/communities.ts`. Dollar figures and the year-over-year change note
  * are `pending` until they have been confirmed against the official DoD BAH
- * calculator. While pending, consumers MUST NOT render the numbers as fact —
- * render the honest state (rates went down, entitlement depends on rank,
- * dependent status and duty ZIP) and link to the official calculator instead.
+ * calculator. While pending, consumers MUST NOT render the numbers as fact.
+ * Never assert the direction or size of any year-over-year change (up, down, or
+ * by how much) outside a Verified-gated field such as `yoyChangeNote` — not in
+ * copy, not in `pendingSummary`, not in schema markup. The honest pending state
+ * says only that BAH is set annually and that entitlement depends on rank,
+ * dependent status and duty ZIP, and links to the official calculator.
  *
  * UPDATING: BAH is republished annually. Each January, re-check the figures on
  * the official calculator, replace `rows`, bump `asOf`, and only then flip the

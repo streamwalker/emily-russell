@@ -383,14 +383,15 @@ export default function PcsLackland() {
           <strong>Property taxes</strong> — Texas has no state income tax and the property taxes reflect that. This is
           the line that surprises people moving from most other states, and it's escrowed into your monthly payment.{" "}
           <span className="text-muted-foreground italic">
-            Rate for this community: <VerifiedFact fact={c.taxRate} />
+            Rate for this community: <VerifiedFact fact={c.taxRate} format={(r) => `${r}%`} />
           </span>
         </li>
         <li>
           <strong>HOA dues</strong>{" "}
           <span className="text-muted-foreground italic">
-            — <VerifiedFact fact={c.hoaMonthlyDues} />
+            — <VerifiedFact fact={c.hoaMonthlyDues} format={(d) => `$${d.toLocaleString("en-US")}/mo`} />
           </span>
+
         </li>
         <li>
           <strong>Any MUD or PID assessment on the section</strong>{" "}
