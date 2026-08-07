@@ -329,6 +329,14 @@ export default function RedbirdRanchSchoolZones() {
         I'm not pointing that out to dunk on anyone. I'm pointing it out because it's the clearest possible illustration
         of why you should verify this at the district, not at a website — including this one.
       </P>
+      <P>
+        Moving in on military orders?{" "}
+        <Link to="/pcs-lackland-redbird-ranch" className="underline text-gold hover:text-foreground transition-colors">
+          Read the PCS to Lackland guide
+        </Link>{" "}
+        — BAH math, VA loan rules for new construction, and the builder-registration mistake that costs relocating
+        families the most.
+      </P>
 
       <p className="max-w-[70ch] text-[15px] text-muted-foreground">
         I keep a working sheet of which sections and streets fall on which side of the line, cross-checked against both
