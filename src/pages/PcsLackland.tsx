@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import CommunityArticleLayout, { formatVerifiedDate } from "@/components/communities/CommunityArticleLayout";
 import CommunityLeadForm from "@/components/communities/CommunityLeadForm";
 import { VerifiedFact } from "@/components/communities/VerifiedFact";
-import { REDBIRD_RANCH, isVerified, verifiedValue } from "@/data/communities";
+import { REDBIRD_RANCH, isVerified, verifiedValue, type DriveTime } from "@/data/communities";
 import { BAH_JBSA } from "@/data/bah";
 import {
   Table,
@@ -26,6 +26,15 @@ const CANONICAL_PATH = "/pcs-lackland-redbird-ranch";
 
 /** Single source of truth for the page's verification date. */
 const VERIFIED_ON = REDBIRD_RANCH.name.verifiedOn ?? "";
+
+/** Renders one verified drive time, omitting whichever measurement is missing. */
+function formatDriveTime(t: DriveTime): string {
+  const parts = [
+    t.offPeakMinutes !== undefined ? `${t.offPeakMinutes} min off-peak` : null,
+    t.peakMinutes !== undefined ? `${t.peakMinutes} min peak` : null,
+  ].filter(Boolean);
+  return parts.length ? `${t.destination}: ${parts.join(" / ")}` : t.destination;
+}
 
 const TITLE = "PCS to Lackland: Buying New Construction at Redbird Ranch";
 const DESCRIPTION =
