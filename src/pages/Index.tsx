@@ -619,7 +619,9 @@ export default function Index() {
                   <div className="py-[22px] px-[22px] flex flex-col flex-1">
                     <div className="font-body text-[10px] tracking-[2px] uppercase text-gold font-medium mb-1">{deal.location}</div>
                     <h3 className="font-display text-xl font-medium text-charcoal mb-1">{deal.name}</h3>
-                    <div className="font-display text-2xl text-gold mb-3">Starting from {deal.price}</div>
+                    <div className="font-display text-2xl text-gold mb-3">
+                      {deal.price ? `Starting from ${deal.price}` : "Ask for current pricing"}
+                    </div>
                     <ul className="flex-1 mb-5">
                       {deal.features.map((f, j) => (
                         <li key={j} className="font-body text-[13px] text-slate-er mb-1.5 flex items-start gap-2">
@@ -627,7 +629,20 @@ export default function Index() {
                           {f}
                         </li>
                       ))}
+                      {deal.schoolNote && (
+                        <li className="font-body text-[13px] text-slate-er mb-1.5 flex items-start gap-2">
+                          <span className="text-gold mt-0.5 text-xs">✦</span>
+                          {deal.schoolNote.to ? (
+                            <Link to={deal.schoolNote.to} className="underline hover:text-gold transition-colors">
+                              {deal.schoolNote.text}
+                            </Link>
+                          ) : (
+                            deal.schoolNote.text
+                          )}
+                        </li>
+                      )}
                     </ul>
+
                     <a
                       href="https://nubuildhomes.com/markets/san-antonio/#get-deal"
                       target="_blank"
