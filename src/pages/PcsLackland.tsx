@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import CommunityArticleLayout from "@/components/communities/CommunityArticleLayout";
+import CommunityArticleLayout, { formatVerifiedDate } from "@/components/communities/CommunityArticleLayout";
 import CommunityLeadForm from "@/components/communities/CommunityLeadForm";
 import { VerifiedFact } from "@/components/communities/VerifiedFact";
 import { REDBIRD_RANCH, isVerified, verifiedValue } from "@/data/communities";
@@ -23,6 +23,9 @@ import {
 
 const SITE = "https://alamocitydesigns.com";
 const CANONICAL_PATH = "/pcs-lackland-redbird-ranch";
+
+/** Single source of truth for the page's verification date. */
+const VERIFIED_ON = REDBIRD_RANCH.name.verifiedOn ?? "";
 
 const TITLE = "PCS to Lackland: Buying New Construction at Redbird Ranch";
 const DESCRIPTION =
@@ -71,7 +74,7 @@ const articleSchema = {
   },
   publisher: { "@type": "Organization", name: "Emily Russell Realtor", url: SITE },
   image: `${SITE}/communities/redbird-ranch.jpg`,
-  dateModified: "2026-08-07",
+  dateModified: VERIFIED_ON,
 };
 
 const breadcrumbSchema = {
@@ -204,7 +207,7 @@ export default function PcsLackland() {
       description={DESCRIPTION}
       canonicalPath={CANONICAL_PATH}
       ogImage="/og-pcs-lackland.jpg"
-      lastVerified="August 7, 2026"
+      lastVerified={VERIFIED_ON}
       eyebrow={`${communityName} · PCS to JBSA-Lackland`}
       heading="PCS to Lackland: What to Know Before You Buy at Redbird Ranch"
     >
@@ -218,7 +221,7 @@ export default function PcsLackland() {
         <figure className="m-0">
           <img
             src={heroImage}
-            alt={`New construction homes in the ${communityName} community off Potranco Road in San Antonio, TX 78253`}
+            alt={`New construction homes in the ${communityName} community off Potranco Road in San Antonio, TX ${verifiedValue(c.zip) ?? ""}`.trim()}
             width={1200}
             height={675}
             loading="eager"
@@ -270,7 +273,7 @@ export default function PcsLackland() {
       <div className="not-prose">
         <Table>
           <TableCaption className="text-left">
-            Community details as published by <VerifiedFact fact={c.builder} />, verified August 7, 2026.
+            Community details as published by <VerifiedFact fact={c.builder} />, verified {formatVerifiedDate(VERIFIED_ON)}.
           </TableCaption>
           <TableHeader>
             <TableRow>
