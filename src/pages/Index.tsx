@@ -8,6 +8,7 @@ import { trackPageView, trackLinkClick } from "@/lib/analyticsTracker";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
 import NuBuildLogo from "@/assets/nubuild_logo.png";
 import FathomEHO from "@/assets/fathom_eho.png";
+import { REDBIRD_RANCH, verifiedValue } from "@/data/communities";
 
 /* ── Lead Sync Helper ── */
 async function syncLead(data: Record<string, string>) {
@@ -29,7 +30,7 @@ const RECENT_SALES = [
 ];
 
 const NEIGHBORHOODS = [
-  { name: "Alamo Ranch / 78253", desc: "Master-planned community zoned to Northside ISD with parks, pools, and walking trails", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80", highlight: "Emily's Top Area" },
+  { name: "Alamo Ranch / 78253", desc: "Master-planned community with parks, pools, and walking trails — confirm school attendance zones directly with the district for your address", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80", highlight: "Emily's Top Area" },
   { name: "Stone Oak / 78258", desc: "Established neighborhood known for dining, shopping, and proximity to major employers", img: "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80", highlight: "Hot Market" },
   { name: "Helotes / Hill Country", desc: "Hill Country charm minutes from the city — acreage and custom homes", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80", highlight: "Growing Fast" },
   { name: "Boerne / Fair Oaks", desc: "Small-town Texas feel with a booming real estate market", img: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=80", highlight: "Hidden Gem" },
@@ -46,18 +47,39 @@ const BLOG_POSTS = [
   { title: "Relocating to San Antonio: Everything You Need to Know in 2026", cat: "Relocation", date: "Feb 2026", read: "8 min", img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=80" },
 ];
 
-const NEW_HOME_DEALS = [
+const usdWhole = (n: number) => `$${n.toLocaleString("en-US")}`;
+const redbirdPrice = verifiedValue(REDBIRD_RANCH.startingPrice);
+const redbirdDistricts = verifiedValue(REDBIRD_RANCH.schoolDistricts);
+
+type HomeDeal = {
+  name: string;
+  /** Only rendered when we have a sourced figure. */
+  price?: string;
+  location: string;
+  features: string[];
+  /** School line rendered separately so it can carry a link to the guide. */
+  schoolNote?: { text: string; to?: string };
+  img: string;
+  tag: string;
+};
+
+const NEW_HOME_DEALS: HomeDeal[] = [
   {
-    name: "Redbird Ranch",
-    price: "$217,000",
-    location: "Northwest San Antonio",
-    features: ["Brick, stone & siding exteriors", "Zoned to Northside ISD", "Community pool & parks"],
-    img: "/communities/redbird-ranch.jpg",
+    name: verifiedValue(REDBIRD_RANCH.name) ?? "Redbird Ranch",
+    price: redbirdPrice ? usdWhole(redbirdPrice) : undefined,
+    location: verifiedValue(REDBIRD_RANCH.area) ?? "Far west side, Potranco corridor",
+    features: ["Brick, stone & siding exteriors", "Community pool & parks"],
+    schoolNote: {
+      text: redbirdDistricts?.length
+        ? `Split between ${redbirdDistricts.join(" & ")}`
+        : "School district varies by section",
+      to: "/redbird-ranch-school-district",
+    },
+    img: verifiedValue(REDBIRD_RANCH.heroImage) ?? "/communities/redbird-ranch.jpg",
     tag: "Best Value",
   },
   {
     name: "Ladera",
-    price: "$349,990",
     location: "Gated Master-Planned Community",
     features: ["Coventry Homes builder", "Resort-style amenities", "Hill Country views"],
     img: "/communities/ladera.jpg",
@@ -65,13 +87,14 @@ const NEW_HOME_DEALS = [
   },
   {
     name: "Stillwater Ranch",
-    price: "$380,000",
     location: "Northwest San Antonio",
-    features: ["Resort-style pool & splash pad", "Miles of hike & bike trails", "Zoned to Northside ISD"],
+    features: ["Resort-style pool & splash pad", "Miles of hike & bike trails"],
+    schoolNote: { text: "Confirm school attendance directly with the district for your lot" },
     img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80",
     tag: "Resort Living",
   },
 ];
+
 
 const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Rent vs. Buy","/rent-vs-buy"],["Reviews","reviews"],["FAQ","faq"],["Blog","blog"],["Contact","contact"]];
 const PORTAL_LINK = "/portal";
@@ -596,7 +619,9 @@ export default function Index() {
                   <div className="py-[22px] px-[22px] flex flex-col flex-1">
                     <div className="font-body text-[10px] tracking-[2px] uppercase text-gold font-medium mb-1">{deal.location}</div>
                     <h3 className="font-display text-xl font-medium text-charcoal mb-1">{deal.name}</h3>
-                    <div className="font-display text-2xl text-gold mb-3">Starting from {deal.price}</div>
+                    <div className="font-display text-2xl text-gold mb-3">
+                      {deal.price ? `Starting from ${deal.price}` : "Ask for current pricing"}
+                    </div>
                     <ul className="flex-1 mb-5">
                       {deal.features.map((f, j) => (
                         <li key={j} className="font-body text-[13px] text-slate-er mb-1.5 flex items-start gap-2">
@@ -604,7 +629,20 @@ export default function Index() {
                           {f}
                         </li>
                       ))}
+                      {deal.schoolNote && (
+                        <li className="font-body text-[13px] text-slate-er mb-1.5 flex items-start gap-2">
+                          <span className="text-gold mt-0.5 text-xs">✦</span>
+                          {deal.schoolNote.to ? (
+                            <Link to={deal.schoolNote.to} className="underline hover:text-gold transition-colors">
+                              {deal.schoolNote.text}
+                            </Link>
+                          ) : (
+                            deal.schoolNote.text
+                          )}
+                        </li>
+                      )}
                     </ul>
+
                     <a
                       href="https://nubuildhomes.com/markets/san-antonio/#get-deal"
                       target="_blank"
@@ -805,10 +843,10 @@ export default function Index() {
           </FadeIn>
           {[
             { q: "How much does it cost to hire a buyer's agent in San Antonio?", a: "Real estate commissions are, of course, negotiable. In most cases involving new construction, the builder pays the buyer's agent commission in the form of a finder's fee — meaning your costs are typically nothing out of pocket. For resale transactions, Emily provides a transparent buyer representation agreement that clearly outlines any fees before you begin your home search." },
-            { q: "What are the best neighborhoods in San Antonio for families?", a: (<>San Antonio offers a wide range of established family neighborhoods. Alamo Ranch (78253) is a fast-growing master-planned community zoned to Northside ISD; Stone Oak (78258) is known for its dining, shopping, and proximity to major employers; Helotes blends Hill Country charm with larger lot sizes; and Boerne and Fair Oaks Ranch offer a small-town feel with easy access to San Antonio. Because school quality is a personal priority and ratings change yearly, we recommend buyers independently research current school information at <a href="https://www.niche.com/k12/search/best-schools/m/san-antonio-metro-area/" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">niche.com</a> or <a href="https://www.greatschools.org/" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">GreatSchools.org</a> and confirm attendance zones directly with the relevant school district. Emily can connect you with neighborhoods that match your lifestyle, commute, and amenity preferences.</>) },
+            { q: "What are the best neighborhoods in San Antonio for families?", a: (<>San Antonio offers a wide range of established family neighborhoods. Alamo Ranch (78253) is a fast-growing master-planned community; Stone Oak (78258) is known for its dining, shopping, and proximity to major employers; Helotes blends Hill Country charm with larger lot sizes; and Boerne and Fair Oaks Ranch offer a small-town feel with easy access to San Antonio. Because school quality is a personal priority and ratings change yearly, we recommend buyers independently research current school information at <a href="https://www.niche.com/k12/search/best-schools/m/san-antonio-metro-area/" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">niche.com</a> or <a href="https://www.greatschools.org/" target="_blank" rel="noopener noreferrer" className="text-gold underline hover:text-gold-dark">GreatSchools.org</a> and confirm attendance zones directly with the relevant school district. Emily can connect you with neighborhoods that match your lifestyle, commute, and amenity preferences.</>) },
             { q: "Should I buy new construction or a resale home in San Antonio?", a: "Both have advantages. New construction offers builder warranties, modern floor plans, and energy efficiency. Resale homes often feature established landscaping, larger lots, and mature neighborhoods. Emily can guide you through builder negotiations for new builds or help find the perfect resale home." },
             { q: "How do I relocate to San Antonio from out of state?", a: "Emily provides full relocation support including virtual home tours, neighborhood guides, third-party school research resources, cost-of-living comparisons, and coordination with moving services. She helps families and professionals transition smoothly from anywhere in the U.S." },
-            { q: "What is the average home price in San Antonio in 2026?", a: "The median home price in greater San Antonio ranges from approximately $250,000 to $380,000 depending on the neighborhood. Alamo Ranch starts around $217,000 for new construction, while Stone Oak and gated communities can range from $350,000 to $500,000+. Contact Emily for a current market analysis." },
+            { q: "What is the average home price in San Antonio in 2026?", a: "Prices vary widely by neighborhood, builder, and floor plan, and they move month to month — so rather than quote a figure here that may be out of date by the time you read it, contact Emily for a current market analysis for the specific area you're considering." },
             { q: "Do I need a REALTOR® to buy a new construction home in Texas?", a: "While not legally required, having a REALTOR® represent you is highly recommended. Builders have sales agents who represent the builder's interests — not yours. Emily negotiates upgrades, reviews contracts, ensures inspections, and helps you understand builder incentives so you get the best deal." },
           ].map((item, i) => (
             <FadeIn key={i} delay={i * 0.05}>

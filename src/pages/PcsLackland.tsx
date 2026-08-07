@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import CommunityArticleLayout, { formatVerifiedDate } from "@/components/communities/CommunityArticleLayout";
 import CommunityLeadForm from "@/components/communities/CommunityLeadForm";
 import { VerifiedFact } from "@/components/communities/VerifiedFact";
-import { REDBIRD_RANCH, isVerified, verifiedValue } from "@/data/communities";
+import { REDBIRD_RANCH, isVerified, verifiedValue, type DriveTime } from "@/data/communities";
 import { BAH_JBSA } from "@/data/bah";
 import {
   Table,
@@ -26,6 +26,15 @@ const CANONICAL_PATH = "/pcs-lackland-redbird-ranch";
 
 /** Single source of truth for the page's verification date. */
 const VERIFIED_ON = REDBIRD_RANCH.name.verifiedOn ?? "";
+
+/** Renders one verified drive time, omitting whichever measurement is missing. */
+function formatDriveTime(t: DriveTime): string {
+  const parts = [
+    t.offPeakMinutes !== undefined ? `${t.offPeakMinutes} min off-peak` : null,
+    t.peakMinutes !== undefined ? `${t.peakMinutes} min peak` : null,
+  ].filter(Boolean);
+  return parts.length ? `${t.destination}: ${parts.join(" / ")}` : t.destination;
+}
 
 const TITLE = "PCS to Lackland: Buying New Construction at Redbird Ranch";
 const DESCRIPTION =
@@ -260,14 +269,18 @@ export default function PcsLackland() {
 
       <div className="max-w-[70ch] border border-border rounded-lg bg-warm p-5">
         <p className="font-body text-[11px] tracking-[1.5px] uppercase text-gold mb-2">Drive times</p>
-        <p className="font-body text-[15px] text-foreground mb-2">
-          <VerifiedFact fact={c.driveTimes} format={() => ""} />
-        </p>
+        <div className="font-body text-[15px] text-foreground mb-2">
+          <VerifiedFact
+            fact={c.driveTimes}
+            format={(times) => (times ?? []).map(formatDriveTime).join(" · ")}
+          />
+        </div>
         <p className="font-body text-[14px] leading-[1.8] text-muted-foreground">
           I measure these myself rather than repeating a builder estimate. Ask me and I'll send you real peak and
           off-peak times for the specific section you're considering.
         </p>
       </div>
+
 
       <H2>The community, in plain numbers</H2>
       <div className="not-prose">
@@ -304,8 +317,8 @@ export default function PcsLackland() {
       <H2>Your BAH, honestly</H2>
       <P>{BAH_JBSA.pendingSummary}</P>
       <P>
-        Nobody is going to lead with that. It matters, because if you built your budget off a 2025 number someone quoted
-        you last year, you're working with a figure that no longer exists.
+        Nobody is going to lead with that. It matters, because if you built your budget off a number someone quoted you
+        last year, you may be working with a figure that no longer applies.
       </P>
 
       {isVerified(BAH_JBSA.rows) ? (
