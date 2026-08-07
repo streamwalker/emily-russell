@@ -203,7 +203,7 @@ export default function PcsLackland() {
       title={TITLE}
       description={DESCRIPTION}
       canonicalPath={CANONICAL_PATH}
-      ogImage={heroImage}
+      ogImage="/og-pcs-lackland.jpg"
       lastVerified="August 7, 2026"
       eyebrow={`${communityName} · PCS to JBSA-Lackland`}
       heading="PCS to Lackland: What to Know Before You Buy at Redbird Ranch"
