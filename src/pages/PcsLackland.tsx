@@ -299,48 +299,66 @@ export default function PcsLackland() {
       </P>
 
       <H2>Your BAH, honestly</H2>
-      <P>{BAH_JBSA.yoyChangeNote}</P>
+      <P>{BAH_JBSA.pendingSummary}</P>
       <P>
         Nobody is going to lead with that. It matters, because if you built your budget off a 2025 number someone quoted
         you last year, you're working with a figure that no longer exists.
       </P>
 
-      <div className="not-prose">
-        <Table>
-          <TableCaption className="text-left">
-            {BAH_JBSA.location} monthly BAH, {BAH_JBSA.asOf} rates.
-          </TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[140px]">Rank</TableHead>
-              <TableHead>With dependents</TableHead>
-              <TableHead>Without</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {BAH_JBSA.rows.map((r) => (
-              <TableRow key={r.rank}>
-                <TableCell className="font-medium">{r.rank}</TableCell>
-                <TableCell>{r.withDependents}</TableCell>
-                <TableCell>{r.withoutDependents}</TableCell>
+      {isVerified(BAH_JBSA.rows) ? (
+        <div className="not-prose">
+          <Table>
+            <TableCaption className="text-left">
+              {BAH_JBSA.location} monthly BAH, {BAH_JBSA.asOf} rates.
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[140px]">Rank</TableHead>
+                <TableHead>With dependents</TableHead>
+                <TableHead>Without</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {BAH_JBSA.rows.value.map((r) => (
+                <TableRow key={r.rank}>
+                  <TableCell className="font-medium">{r.rank}</TableCell>
+                  <TableCell>{r.withDependents}</TableCell>
+                  <TableCell>{r.withoutDependents}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="max-w-[70ch] border border-border rounded-lg bg-warm/60 p-5 space-y-3">
+          <p className="font-body text-[11px] tracking-[2px] uppercase text-gold">
+            {BAH_JBSA.location} · {BAH_JBSA.asOf} rates
+          </p>
+          <p className="text-foreground/90">
+            I'm not publishing a rank-by-rank rate table here. The {BAH_JBSA.asOf} figures I have came from a published
+            housing source I haven't yet confirmed at the source, and a BAH number that's off by a hundred dollars a
+            month is the difference between a payment that works and one that doesn't.
+          </p>
+          <p className="text-foreground/90">
+            Look yours up directly at the{" "}
+            <a
+              href={BAH_JBSA.officialCalculatorUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-gold hover:text-foreground transition-colors"
+            >
+              {BAH_JBSA.officialCalculatorLabel}
+            </a>{" "}
+            — or send me your rank, dependent status, and duty ZIP and I'll run it with you and show you what it buys
+            after taxes, insurance, and HOA.
+          </p>
+        </div>
+      )}
 
       <p className="max-w-[70ch] text-[13.5px] leading-[1.7] text-muted-foreground border-l-2 border-border pl-4">
-        Source: published JBSA housing rates. Confirm your exact entitlement against the official DoD BAH calculator at{" "}
-        <a
-          href={BAH_JBSA.officialCalculatorUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:text-gold transition-colors"
-        >
-          defensetravel.dod.mil
-        </a>{" "}
-        before you budget — your rate depends on rank, dependent status, and duty ZIP.
+        {BAH_JBSA.sourceNote}
       </p>
+
 
       <H3>What the math actually has to include</H3>
       <P>BAH is not your budget. Your budget is BAH minus the things a rental didn't charge you for:</P>
