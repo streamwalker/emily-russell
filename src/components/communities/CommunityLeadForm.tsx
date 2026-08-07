@@ -31,7 +31,7 @@ const PRE_VISIT_WARNING =
   "One thing that matters more than the guide: if you're planning to visit the model home, talk to me first. Builders register the first buyer who walks in unaccompanied, and once you're registered on your own you've given up your representation and your leverage for that community. It costs you nothing to have someone in your corner. It costs real money not to.";
 
 const fieldBase =
-  "w-full min-h-[44px] px-3.5 py-2.5 font-body text-[15px] bg-background text-foreground border border-border rounded-md transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-gold focus:border-gold";
+  "w-full min-h-[44px] px-3.5 py-2.5 font-body text-[15px] bg-background text-foreground border border-border rounded-md transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring";
 
 export default function CommunityLeadForm({
   source,
@@ -79,7 +79,7 @@ export default function CommunityLeadForm({
           <h3 className="font-display text-2xl mb-2 text-foreground">You're all set.</h3>
           <p className="font-body text-[15px] leading-relaxed text-muted-foreground max-w-[46ch] mx-auto">
             I'll send it over shortly. If you need it faster, call or text me at{" "}
-            <a href="tel:2109120806" className="underline hover:text-gold transition-colors">
+            <a href="tel:2109120806" className="underline hover:text-gold-light transition-colors">
               (210) 912-0806
             </a>
             .
@@ -180,7 +180,7 @@ export default function CommunityLeadForm({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto min-h-[44px] px-7 py-3 font-body text-[14px] tracking-[1.5px] uppercase bg-gold text-white rounded-md transition-colors hover:bg-gold-dark focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="btn-er-primary w-full sm:w-auto min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Sending…" : offerLabel}
               </button>
