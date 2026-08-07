@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import CommunityArticleLayout from "@/components/communities/CommunityArticleLayout";
+import CommunityArticleLayout, { formatVerifiedDate } from "@/components/communities/CommunityArticleLayout";
 import CommunityLeadForm from "@/components/communities/CommunityLeadForm";
 import { VerifiedFact } from "@/components/communities/VerifiedFact";
 import { REDBIRD_RANCH, verifiedValue, type SchoolDistrictPath } from "@/data/communities";
@@ -22,6 +22,9 @@ import {
 
 const SITE = "https://alamocitydesigns.com";
 const CANONICAL_PATH = "/redbird-ranch-school-district";
+
+/** Single source of truth for the page's verification date. */
+const VERIFIED_ON = REDBIRD_RANCH.name.verifiedOn ?? "";
 
 const TITLE = "Redbird Ranch School Zones: Northside vs. Medina Valley ISD";
 const DESCRIPTION =
@@ -54,6 +57,23 @@ const faqSchema = {
     name: f.q,
     acceptedAnswer: { "@type": "Answer", text: f.a },
   })),
+};
+
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Redbird Ranch Is Zoned to Two Different School Districts",
+  description: DESCRIPTION,
+  mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE}${CANONICAL_PATH}` },
+  author: {
+    "@type": "Person",
+    name: "Emily Russell",
+    jobTitle: "REALTOR®",
+    worksFor: { "@type": "Organization", name: "Fathom Realty" },
+  },
+  publisher: { "@type": "Organization", name: "Emily Russell Realtor", url: SITE },
+  image: `${SITE}/og-redbird-school-zones.jpg`,
+  dateModified: VERIFIED_ON,
 };
 
 const breadcrumbSchema = {
@@ -94,6 +114,7 @@ export default function RedbirdRanchSchoolZones() {
   const builder = verifiedValue(REDBIRD_RANCH.builder) ?? "the builder";
   const heroImage = verifiedValue(REDBIRD_RANCH.heroImage);
   const communityName = verifiedValue(REDBIRD_RANCH.name) ?? "This community";
+  const mvisdHighMiles = mvisd?.schools.find((s) => s.level === "High")?.distanceMiles;
 
   const cell = (path: SchoolDistrictPath | undefined, level: string) => {
     const school = path?.schools.find((s) => s.level === level);
@@ -112,11 +133,12 @@ export default function RedbirdRanchSchoolZones() {
       description={DESCRIPTION}
       canonicalPath={CANONICAL_PATH}
       ogImage="/og-redbird-school-zones.jpg"
-      lastVerified="August 7, 2026"
+      lastVerified={VERIFIED_ON}
       eyebrow={`${communityName} · New Construction`}
       heading="Redbird Ranch Is Zoned to Two Different School Districts. Here's How to Tell Which One You're Buying Into."
     >
       <Helmet>
+        <script type="application/ld+json">{JSON.stringify(articleSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
       </Helmet>
@@ -125,7 +147,7 @@ export default function RedbirdRanchSchoolZones() {
         <figure className="m-0">
           <img
             src={heroImage}
-            alt={`New construction homes in the ${communityName} community off Potranco Road in San Antonio, TX 78253`}
+            alt={`New construction homes in the ${communityName} community off Potranco Road in San Antonio, TX ${verifiedValue(REDBIRD_RANCH.zip) ?? ""}`.trim()}
             width={1200}
             height={675}
             loading="eager"
@@ -153,7 +175,7 @@ export default function RedbirdRanchSchoolZones() {
       <div className="not-prose">
         <Table>
           <TableCaption className="text-left">
-            Distances as published by <VerifiedFact fact={REDBIRD_RANCH.builder} /> for the {communityName} community.
+            Distances as published by <VerifiedFact fact={REDBIRD_RANCH.builder} /> for the {communityName} community, verified {formatVerifiedDate(VERIFIED_ON)}.
           </TableCaption>
           <TableHeader>
             <TableRow>
@@ -179,9 +201,8 @@ export default function RedbirdRanchSchoolZones() {
       <P>
         Look at the high school row.{" "}
         {nisd?.schools.find((s) => s.level === "High")?.distanceMiles} miles versus{" "}
-        {mvisd?.schools.find((s) => s.level === "High")?.distanceMiles} miles. That is the difference between a
-        fifteen-minute morning and a real commute, every school day, for however many years you have a teenager in the
-        house. It is also the difference between two entirely different districts — different sizes, different programs,
+        {mvisd?.schools.find((s) => s.level === "High")?.distanceMiles} miles. That is the difference between a short hop down the road and a
+        genuinely longer drive, every school day, for however many years you have a teenager in the house. It is also the difference between two entirely different districts — different sizes, different programs,
         different UIL classifications, different bond packages, different everything.
       </P>
       <P>
@@ -191,8 +212,8 @@ export default function RedbirdRanchSchoolZones() {
 
       <CommunityLeadForm
         source="redbird-school-zones"
-        offerLabel="Send me the school zone sheet"
-        heading="Want the lot-by-lot school zone sheet?"
+        offerLabel="Confirm my lot's school zone"
+        heading="Want your specific lot confirmed with both districts?"
         className="my-2"
       />
 
@@ -205,8 +226,8 @@ export default function RedbirdRanchSchoolZones() {
       </P>
       <P>{communityName} was developed across that line.</P>
       <P>
-        When a community gets built out in phases over many years — and {communityName} has been building since the
-        mid-2000s — the later phases can land on the other side of a line the earlier phases never crossed. Two houses
+        When a community gets built out in phases over many years — and {communityName} has been developed in phases —
+        the later phases can land on the other side of a line the earlier phases never crossed. Two houses
         that look identical, built by the same builder, on streets that connect, can feed different high schools.
       </P>
 
@@ -314,8 +335,9 @@ export default function RedbirdRanchSchoolZones() {
       <P>
         A family relocating from out of state does their research. They find a blog post or a listing page that names
         one district. They fall in love with a floor plan. They sign. Six months later they call to enroll and discover
-        their address feeds a different high school eleven miles away, in a district they never looked at, never toured,
-        and never chose.
+        their address feeds a different high school{" "}
+        {mvisdHighMiles !== undefined ? `${mvisdHighMiles} miles away` : "in the other district"}, in a district they
+        never looked at, never toured, and never chose.
       </P>
       <P>
         Nothing was hidden from them. Nobody lied. They just relied on a source that had no obligation to be right.
@@ -340,14 +362,14 @@ export default function RedbirdRanchSchoolZones() {
       </P>
 
       <p className="max-w-[70ch] text-[15px] text-muted-foreground">
-        I keep a working sheet of which sections and streets fall on which side of the line, cross-checked against both
-        districts, plus the current tax rate and HOA for each section. It's free, it takes ten seconds to request, and
-        it will take you about four minutes to read.
+        Tell me the lot or section you're looking at and I'll confirm the school assignment with both districts
+        directly, in writing, and send you the current tax rate and HOA for that specific section. It's free and it
+        usually takes me a day.
       </p>
       <CommunityLeadForm
         source="redbird-school-zones"
-        offerLabel="Send me the school zone sheet"
-        heading="Get the Redbird Ranch lot-by-lot school zone sheet"
+        offerLabel="Confirm my lot's school zone"
+        heading="Get your Redbird Ranch lot confirmed in writing"
       />
 
       <H2>Frequently asked</H2>
