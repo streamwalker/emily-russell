@@ -40,18 +40,24 @@ export default function CommunityArticleLayout({
         <title>{title}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={canonical} />
+        <meta property="og:site_name" content="Emily Russell Realtor" />
+        <meta property="og:locale" content="en_US" />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:url" content={canonical} />
         <meta property="og:type" content="article" />
         {image && <meta property="og:image" content={image} />}
+        {image && <meta property="og:image:secure_url" content={image} />}
+        {image && <meta property="og:image:type" content="image/jpeg" />}
         {image && <meta property="og:image:width" content="1200" />}
         {image && <meta property="og:image:height" content="630" />}
         {image && <meta property="og:image:alt" content={title} />}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@EmilyRussellRealtor" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         {image && <meta name="twitter:image" content={image} />}
+        {image && <meta name="twitter:image:alt" content={title} />}
       </Helmet>
 
       {/* ── Header (matches the site's interior-page header) ── */}

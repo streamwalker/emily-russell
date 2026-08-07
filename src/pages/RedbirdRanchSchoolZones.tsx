@@ -111,7 +111,7 @@ export default function RedbirdRanchSchoolZones() {
       title={TITLE}
       description={DESCRIPTION}
       canonicalPath={CANONICAL_PATH}
-      ogImage={heroImage}
+      ogImage="/og-redbird-school-zones.jpg"
       lastVerified="August 7, 2026"
       eyebrow={`${communityName} · New Construction`}
       heading="Redbird Ranch Is Zoned to Two Different School Districts. Here's How to Tell Which One You're Buying Into."
