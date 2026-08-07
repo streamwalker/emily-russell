@@ -13,6 +13,8 @@ const LeadSchema = z.object({
   message: z.string().trim().max(2000, "Message too long").optional().nullable(),
   address: z.string().trim().max(500, "Address too long").optional().nullable(),
   form_type: z.enum(["valuation", "contact"]).optional().nullable(),
+  // Optional page-level attribution (e.g. "redbird-school-zones", "pcs-lackland").
+  source: z.string().trim().max(120, "Source too long").optional().nullable(),
 });
 
 const LEADGENIUS_URL = Deno.env.get("LEADGENIUS_URL") ?? "";
