@@ -317,8 +317,8 @@ export default function PcsLackland() {
       <H2>Your BAH, honestly</H2>
       <P>{BAH_JBSA.pendingSummary}</P>
       <P>
-        Nobody is going to lead with that. It matters, because if you built your budget off a 2025 number someone quoted
-        you last year, you're working with a figure that no longer exists.
+        Nobody is going to lead with that. It matters, because if you built your budget off a number someone quoted you
+        last year, you may be working with a figure that no longer applies.
       </P>
 
       {isVerified(BAH_JBSA.rows) ? (
