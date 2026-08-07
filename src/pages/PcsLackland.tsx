@@ -387,11 +387,11 @@ export default function PcsLackland() {
           </span>
         </li>
         <li>
-
           <strong>HOA dues</strong>{" "}
           <span className="text-muted-foreground italic">
-            — <VerifiedFact fact={c.hoaMonthlyDues} />
+            — <VerifiedFact fact={c.hoaMonthlyDues} format={(d) => `$${d.toLocaleString("en-US")}/mo`} />
           </span>
+
         </li>
         <li>
           <strong>Any MUD or PID assessment on the section</strong>{" "}
