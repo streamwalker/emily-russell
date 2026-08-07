@@ -8,6 +8,7 @@ import { trackPageView, trackLinkClick } from "@/lib/analyticsTracker";
 import EmilyPhoto from "@/assets/Emily_Russell.png";
 import NuBuildLogo from "@/assets/nubuild_logo.png";
 import FathomEHO from "@/assets/fathom_eho.png";
+import { REDBIRD_RANCH, verifiedValue } from "@/data/communities";
 
 /* ── Lead Sync Helper ── */
 async function syncLead(data: Record<string, string>) {
@@ -29,7 +30,7 @@ const RECENT_SALES = [
 ];
 
 const NEIGHBORHOODS = [
-  { name: "Alamo Ranch / 78253", desc: "Master-planned community zoned to Northside ISD with parks, pools, and walking trails", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80", highlight: "Emily's Top Area" },
+  { name: "Alamo Ranch / 78253", desc: "Master-planned community with parks, pools, and walking trails — confirm school attendance zones directly with the district for your address", img: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80", highlight: "Emily's Top Area" },
   { name: "Stone Oak / 78258", desc: "Established neighborhood known for dining, shopping, and proximity to major employers", img: "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80", highlight: "Hot Market" },
   { name: "Helotes / Hill Country", desc: "Hill Country charm minutes from the city — acreage and custom homes", img: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80", highlight: "Growing Fast" },
   { name: "Boerne / Fair Oaks", desc: "Small-town Texas feel with a booming real estate market", img: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=80", highlight: "Hidden Gem" },
@@ -46,18 +47,39 @@ const BLOG_POSTS = [
   { title: "Relocating to San Antonio: Everything You Need to Know in 2026", cat: "Relocation", date: "Feb 2026", read: "8 min", img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=80" },
 ];
 
-const NEW_HOME_DEALS = [
+const usdWhole = (n: number) => `$${n.toLocaleString("en-US")}`;
+const redbirdPrice = verifiedValue(REDBIRD_RANCH.startingPrice);
+const redbirdDistricts = verifiedValue(REDBIRD_RANCH.schoolDistricts);
+
+type HomeDeal = {
+  name: string;
+  /** Only rendered when we have a sourced figure. */
+  price?: string;
+  location: string;
+  features: string[];
+  /** School line rendered separately so it can carry a link to the guide. */
+  schoolNote?: { text: string; to?: string };
+  img: string;
+  tag: string;
+};
+
+const NEW_HOME_DEALS: HomeDeal[] = [
   {
-    name: "Redbird Ranch",
-    price: "$217,000",
-    location: "Northwest San Antonio",
-    features: ["Brick, stone & siding exteriors", "Zoned to Northside ISD", "Community pool & parks"],
-    img: "/communities/redbird-ranch.jpg",
+    name: verifiedValue(REDBIRD_RANCH.name) ?? "Redbird Ranch",
+    price: redbirdPrice ? usdWhole(redbirdPrice) : undefined,
+    location: verifiedValue(REDBIRD_RANCH.area) ?? "Far west side, Potranco corridor",
+    features: ["Brick, stone & siding exteriors", "Community pool & parks"],
+    schoolNote: {
+      text: redbirdDistricts?.length
+        ? `Split between ${redbirdDistricts.join(" & ")}`
+        : "School district varies by section",
+      to: "/redbird-ranch-school-district",
+    },
+    img: verifiedValue(REDBIRD_RANCH.heroImage) ?? "/communities/redbird-ranch.jpg",
     tag: "Best Value",
   },
   {
     name: "Ladera",
-    price: "$349,990",
     location: "Gated Master-Planned Community",
     features: ["Coventry Homes builder", "Resort-style amenities", "Hill Country views"],
     img: "/communities/ladera.jpg",
@@ -65,13 +87,14 @@ const NEW_HOME_DEALS = [
   },
   {
     name: "Stillwater Ranch",
-    price: "$380,000",
     location: "Northwest San Antonio",
-    features: ["Resort-style pool & splash pad", "Miles of hike & bike trails", "Zoned to Northside ISD"],
+    features: ["Resort-style pool & splash pad", "Miles of hike & bike trails"],
+    schoolNote: { text: "Confirm school attendance directly with the district for your lot" },
     img: "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=600&q=80",
     tag: "Resort Living",
   },
 ];
+
 
 const NAV_ITEMS: [string, string][] = [["Home","home"],["About","about"],["Sales","sales"],["Areas","areas"],["New Homes","newhomes"],["Rent vs. Buy","/rent-vs-buy"],["Reviews","reviews"],["FAQ","faq"],["Blog","blog"],["Contact","contact"]];
 const PORTAL_LINK = "/portal";
