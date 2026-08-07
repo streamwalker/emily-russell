@@ -260,14 +260,18 @@ export default function PcsLackland() {
 
       <div className="max-w-[70ch] border border-border rounded-lg bg-warm p-5">
         <p className="font-body text-[11px] tracking-[1.5px] uppercase text-gold mb-2">Drive times</p>
-        <p className="font-body text-[15px] text-foreground mb-2">
-          <VerifiedFact fact={c.driveTimes} format={() => ""} />
-        </p>
+        <div className="font-body text-[15px] text-foreground mb-2">
+          <VerifiedFact
+            fact={c.driveTimes}
+            format={(times) => (times ?? []).map(formatDriveTime).join(" · ")}
+          />
+        </div>
         <p className="font-body text-[14px] leading-[1.8] text-muted-foreground">
           I measure these myself rather than repeating a builder estimate. Ask me and I'll send you real peak and
           off-peak times for the specific section you're considering.
         </p>
       </div>
+
 
       <H2>The community, in plain numbers</H2>
       <div className="not-prose">
