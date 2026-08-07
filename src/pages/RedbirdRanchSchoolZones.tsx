@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import CommunityArticleLayout from "@/components/communities/CommunityArticleLayout";
 import CommunityLeadForm from "@/components/communities/CommunityLeadForm";
 import { VerifiedFact } from "@/components/communities/VerifiedFact";
@@ -328,6 +329,14 @@ export default function RedbirdRanchSchoolZones() {
       <P>
         I'm not pointing that out to dunk on anyone. I'm pointing it out because it's the clearest possible illustration
         of why you should verify this at the district, not at a website — including this one.
+      </P>
+      <P>
+        Moving in on military orders?{" "}
+        <Link to="/pcs-lackland-redbird-ranch" className="underline text-gold hover:text-foreground transition-colors">
+          Read the PCS to Lackland guide
+        </Link>{" "}
+        — BAH math, VA loan rules for new construction, and the builder-registration mistake that costs relocating
+        families the most.
       </P>
 
       <p className="max-w-[70ch] text-[15px] text-muted-foreground">
