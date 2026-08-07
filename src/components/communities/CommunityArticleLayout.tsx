@@ -6,6 +6,18 @@ import CookieConsent from "@/components/CookieConsent";
 
 const SITE = "https://alamocitydesigns.com";
 
+/** "2026-08-07" → "August 7, 2026". Falls back to the raw string. */
+export function formatVerifiedDate(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return iso;
+  const [, y, m, d] = match;
+  return new Date(Number(y), Number(m) - 1, Number(d)).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 interface CommunityArticleLayoutProps {
   title: string;
   description: string;
@@ -13,7 +25,7 @@ interface CommunityArticleLayoutProps {
   canonicalPath: string;
   /** Absolute or site-relative OG image path. */
   ogImage?: string;
-  /** Human-readable verification date, e.g. "August 7, 2026". */
+  /** ISO date (YYYY-MM-DD) the page's facts were last verified. */
   lastVerified: string;
   /** Small kicker above the H1, e.g. "Redbird Ranch · New Construction". */
   eyebrow?: string;
@@ -87,7 +99,7 @@ export default function CommunityArticleLayout({
           {heading ?? title}
         </h1>
         <p className="font-body text-[13px] text-muted-foreground mb-8 sm:mb-10">
-          Last verified: <time dateTime={lastVerified}>{lastVerified}</time>
+          Last verified: <time dateTime={lastVerified}>{formatVerifiedDate(lastVerified)}</time>
         </p>
 
         <div className="font-body text-[16px] leading-[1.85] space-y-8">{children}</div>
