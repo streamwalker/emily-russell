@@ -64,7 +64,7 @@ export const BAH_JBSA: BahTable = {
   officialCalculatorUrl: "https://www.travel.dod.mil/Allowances/Basic-Allowance-for-Housing/BAH-Rate-Lookup/",
   officialCalculatorLabel: "travel.dod.mil BAH Rate Lookup",
   pendingSummary:
-    "2026 BAH rates for Joint Base San Antonio went down compared to 2025, so a figure someone quoted you last year is no longer the figure you'll receive. Exact entitlement depends on your rank, your dependent status, and your duty ZIP — which is why I won't print a table of numbers here that I haven't personally confirmed at the source.",
+    "BAH is set annually and changes from year to year, so a figure someone quoted you last year may not be the figure you receive now. Exact entitlement depends on your rank, your dependent status, and your duty ZIP — which is why I won't print a table of numbers here that I haven't personally confirmed at the source.",
   rows: pending<BahRow[]>(PENDING_NOTE, [
     { rank: "E1–E4", withDependents: "$1,728", withoutDependents: "$1,359" },
     { rank: "E5", withDependents: "$1,869", withoutDependents: "$1,500" },
