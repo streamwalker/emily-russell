@@ -376,6 +376,13 @@ export default function PcsLackland() {
       </p>
 
 
+      <P>
+        For a property-specific budget check, use the{" "}
+        <Link to="/san-antonio-property-tax-escrow-checklist" className="underline text-gold hover:text-foreground transition-colors">
+          San Antonio property-tax and escrow checklist
+        </Link>.
+      </P>
+
       <H3>What the math actually has to include</H3>
       <P>BAH is not your budget. Your budget is BAH minus the things a rental didn't charge you for:</P>
       <ul className="max-w-[70ch] list-disc pl-5 space-y-2 text-foreground/90">

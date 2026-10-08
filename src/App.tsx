@@ -24,6 +24,7 @@ import FairHousing from "./pages/FairHousing.tsx";
 import Communities from "./pages/Communities.tsx";
 import RedbirdRanchSchoolZones from "./pages/RedbirdRanchSchoolZones.tsx";
 import PcsLackland from "./pages/PcsLackland.tsx";
+import PropertyTaxEscrow from "./pages/PropertyTaxEscrow.tsx";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -88,6 +89,7 @@ const App = () => (
             <Route path="/fair-housing" element={<FairHousing />} />
             <Route path="/redbird-ranch-school-district" element={<RedbirdRanchSchoolZones />} />
             <Route path="/pcs-lackland-redbird-ranch" element={<PcsLackland />} />
+            <Route path="/san-antonio-property-tax-escrow-checklist" element={<PropertyTaxEscrow />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

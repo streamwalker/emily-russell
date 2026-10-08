@@ -812,6 +812,12 @@ export default function Index() {
               <button className="btn-er-dark" onClick={() => handleScrollTo("contact")}>All Articles</button>
             </div>
           </FadeIn>
+          <Link to="/san-antonio-property-tax-escrow-checklist" className="block border border-gold/30 bg-white p-6 sm:p-8 mb-6 hover:border-gold transition-colors">
+            <p className="font-body text-[10px] tracking-[2px] uppercase text-gold mb-3">New · October 8, 2026 · Homeownership</p>
+            <h3 className="font-display text-2xl sm:text-3xl text-charcoal mb-3">Why Your San Antonio Mortgage Payment Can Change</h3>
+            <p className="font-body text-sm leading-relaxed text-muted-foreground max-w-[70ch]">An October checkup for property-tax records, homestead eligibility, escrow assumptions, and closing paperwork.</p>
+            <span className="inline-block mt-5 font-body text-xs tracking-wider uppercase text-gold underline">Read the tax &amp; escrow checklist →</span>
+          </Link>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
             {BLOG_POSTS.map((b, i) => (
               <FadeIn key={i} delay={i * 0.1}>
