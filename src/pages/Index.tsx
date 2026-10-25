@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import buyerGuides from "@/data/buyerGuides.json";
 import { supabase } from "@/integrations/supabase/client";
 import CookieConsent from "@/components/CookieConsent";
 import FairHousingNotice from "@/components/FairHousingNotice";
@@ -809,7 +810,7 @@ export default function Index() {
                 <div className="er-label">Local Insights</div>
                 <h2 className="er-heading">San Antonio <span className="italic text-sage">Market Guide</span></h2>
               </div>
-              <button className="btn-er-dark" onClick={() => handleScrollTo("contact")}>All Articles</button>
+              <a className="btn-er-dark" href="#published-guides">Browse buyer guides</a>
             </div>
           </FadeIn>
           <Link to="/san-antonio-property-tax-escrow-checklist" className="block border border-gold/30 bg-white p-6 sm:p-8 mb-6 hover:border-gold transition-colors">
@@ -818,21 +819,14 @@ export default function Index() {
             <p className="font-body text-sm leading-relaxed text-muted-foreground max-w-[70ch]">An October checkup for property-tax records, homestead eligibility, escrow assumptions, and closing paperwork.</p>
             <span className="inline-block mt-5 font-body text-xs tracking-wider uppercase text-gold underline">Read the tax &amp; escrow checklist →</span>
           </Link>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-[22px]">
-            {BLOG_POSTS.map((b, i) => (
-              <FadeIn key={i} delay={i * 0.1}>
-                <div className="card-hover bg-white overflow-hidden cursor-pointer" title="Click to learn more" onClick={() => handleScrollTo("contact")}>
-                  <div className="overflow-hidden"><img className="img-zoom w-full h-[190px] object-cover block" src={b.img} alt={b.title} /></div>
-                  <div className="py-[18px] px-[22px]">
-                    <div className="flex gap-2.5 mb-2.5">
-                      <span className="font-body text-[9.5px] tracking-[1.5px] uppercase text-blush font-medium">{b.cat}</span>
-                      <span className="font-body text-[9.5px]" style={{ color: "#b5ada4" }}>{b.read}</span>
-                    </div>
-                    <h3 className="font-display text-lg font-medium leading-[1.3] text-charcoal mb-1.5">{b.title}</h3>
-                    <span className="font-body text-[11.5px]" style={{ color: "#b5ada4" }}>{b.date}</span>
-                  </div>
-                </div>
-              </FadeIn>
+          <div id="published-guides" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[22px] scroll-mt-24">
+            {buyerGuides.map((guide) => (
+              <Link key={guide.slug} to={`/${guide.slug}`} className="block bg-white border border-gold/20 p-6 hover:border-gold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold">
+                <p className="font-body text-[10px] tracking-[1.5px] uppercase text-gold mb-3">Buyer education · October 25, 2026</p>
+                <h3 className="font-display text-xl leading-snug text-charcoal mb-3">{guide.title}</h3>
+                <p className="font-body text-sm leading-relaxed text-muted-foreground">{guide.description}</p>
+                <span className="inline-block mt-5 font-body text-xs text-gold underline">Read the guide →</span>
+              </Link>
             ))}
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -25,6 +26,8 @@ import Communities from "./pages/Communities.tsx";
 import RedbirdRanchSchoolZones from "./pages/RedbirdRanchSchoolZones.tsx";
 import PcsLackland from "./pages/PcsLackland.tsx";
 import PropertyTaxEscrow from "./pages/PropertyTaxEscrow.tsx";
+import BuyerGuide from "./pages/BuyerGuide.tsx";
+import buyerGuides from "./data/buyerGuides.json";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   constructor(props: { children: ReactNode }) {
@@ -65,6 +68,16 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <Helmet>
+      <title>Emily Russell | San Antonio REALTOR® | Homes for Sale</title>
+      <meta name="description" content="Emily Russell is a licensed San Antonio REALTOR® specializing in buying, selling, and relocation in Alamo Ranch, Stone Oak, Helotes, and Hill Country." />
+      <meta property="og:url" content="https://alamocitydesigns.com/" />
+      <meta property="og:type" content="website" />
+      <meta property="og:title" content="Emily Russell | San Antonio REALTOR® | Homes for Sale" />
+      <meta property="og:description" content="Emily Russell is a licensed San Antonio REALTOR® specializing in buying, selling, and relocation in Alamo Ranch, Stone Oak, Helotes, and Hill Country." />
+      <meta name="twitter:title" content="Emily Russell | San Antonio REALTOR® | Homes for Sale" />
+      <meta name="twitter:description" content="Emily Russell is a licensed San Antonio REALTOR® specializing in buying, selling, and relocation in Alamo Ranch, Stone Oak, Helotes, and Hill Country." />
+    </Helmet>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -91,6 +104,7 @@ const App = () => (
             <Route path="/pcs-lackland-redbird-ranch" element={<PcsLackland />} />
             <Route path="/san-antonio-property-tax-escrow-checklist" element={<PropertyTaxEscrow />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {buyerGuides.map((guide) => <Route key={guide.slug} path={`/${guide.slug}`} element={<BuyerGuide guide={guide} />} />)}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ErrorBoundary>
